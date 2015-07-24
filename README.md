@@ -42,7 +42,7 @@ The scraper is executed by running the scrape.sh shell script. The script accept
 
 To illustrate how the scraper's parameters are used, consider the following examples.
 
-Scrape people and vote data for armenia and georgie. Run the scrapeer script every 3 minutes and overwrite all previously scraped data:
+Scrape people and vote data for armenia and georgie. Run the scraper script every 3 minutes and overwrite all previously scraped data:
 >bash scraper.sh --countries armenia,georgia --people --votes --loop 180 --overwrite
 
 Run scraper once to retrieve people and votes data from Armenia parliament:
