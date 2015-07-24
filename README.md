@@ -9,9 +9,9 @@ Data in scraped for the following countries:
 - Ukraine
 
 # Installation
-- [Prerequisites](#Prerequisites)
-- [Download](#Download)
-- [Configuration](#Configuration)
+- [Prerequisites](#prerequisites)
+- [Download](#download)
+- [Configuration](#configuration)
 - [Running](#running)
 
 # Prerequisites
