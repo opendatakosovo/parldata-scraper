@@ -20,9 +20,9 @@ Data in scraped for the following countries:
 - Install python-dev. Required to compile 3rd party python libraries.
 
 # Download
-'$ sudo mkdir --p /home/projects/scrapers
-'$ cd /home/projects/scrapers
-'$ sudo git clone https://github.com/opendatakosovo/parldata-scraper.git
+>$ sudo mkdir --p /home/projects/scrapers
+>$ cd /home/projects/scrapers
+>$ sudo git clone https://github.com/opendatakosovo/parldata-scraper.git
 
 # Configuration
 TODO: write instructions for config.cfg file.
