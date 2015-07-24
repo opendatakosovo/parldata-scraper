@@ -9,15 +9,25 @@ Data in scraped for the following countries:
 - Ukraine
 
 # Installation
-- [Prerequisites]()
-- [Download]()
-- [Configuration]()
-- [Running]()
+- [Prerequisites](#Prerequisites)
+- [Download](#Download)
+- [Configuration](#Configuration)
+- [Running](#Running)
 
-### Prerequisites ###
-### Download ###
-### Configuration ###
-### Running ###
+# Prerequisites
+- Made to run on a Unix distro. Development was done in Ubuntu.
+- Install cURL. Required to download Python and/or virtualenv (in Ubuntu: sudo apt-get install curl).
+- Install python-dev. Required to compile 3rd party python libraries.
+
+# Download
+'$ sudo mkdir --p /home/projects/scrapers
+'$ cd /home/projects/scrapers
+'$ sudo git clone https://github.com/opendatakosovo/parldata-scraper.git
+
+# Configuration
+TODO: write instructions for config.cfg file.
+
+# Running
 
 
 
