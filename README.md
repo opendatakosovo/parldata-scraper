@@ -40,26 +40,16 @@ The scraper is executed by running the scrape.sh shell script. The script accept
 | loop         | Integer                | Loop scraper with given interval sleep time (in seconds).  |
 | overwrite    | Boolean                | Overwrite previously scraped data.                         |
 
-To illustrate how the scraper's parameters are used, consider the following examples:
-
+To illustrate how the scraper's parameters are used, consider the following examples.
 
 Scrape people and vote data for armenia and georgie. Run the scrapeer script every 3 minutes and overwrite all previously scraped data:
 >bash scraper.sh --countries armenia,georgia --people --votes --loop 180 --overwrite
 
-
-
-
 Run scraper once to retrieve people and votes data from Armenia parliament:
 >bash scraper.sh --countries armenia --people --votes
 
-
-
-
 Run scraper once to retrieve people data from Armenian parliament:
 >bash scraper.sh --countries armenia --people
-
-
-
 
 Run scraper every 3 minutes to retrieve votes data from Georgia parliament:
 >bash scraper.sh --countries georgia --votes --loop 180
