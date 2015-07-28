@@ -1,7 +1,6 @@
 class ArmeniaScraper():
     def scrape_mp_bio_data(self, people, votes):
-        if people == "Yes":
+        if people == "yes":
             print "Scraping Armenia People data"
-
-        if votes == "Yes":
+        if votes == "yes":
             print "scraping Armenia Votes data"

@@ -1,7 +1,7 @@
 from pymongo import MongoClient
 import argparse
 from time import sleep
-from app.mod_scraper import georgia_scraper, armenia_scraper, ukraine_scraper
+from app.mod_scraper import georgia_scraper, armenia_scraper, ukraine_scraper, belarus_scraper, moldova_scraper
 
 client = MongoClient()
 db = client.ge
@@ -12,16 +12,18 @@ def scrape(countries, people, votes):
     georgia = georgia_scraper.GeorgiaScraper()
     armenia = armenia_scraper.ArmeniaScraper()
     ukraine = ukraine_scraper.UkraineScraper()
+    belarus = belarus_scraper.BelarusScraper()
+    moldova = moldova_scraper.MoldovaScraper()
 
-    references = {"georgia": georgia, "armenia": armenia, "ukraine": ukraine}
+    references = {"georgia": georgia, "armenia": armenia, "ukraine": ukraine, "belarus": belarus, "moldova": moldova}
     if countries == "all":
         armenia.scrape_mp_bio_data(people, votes)
         georgia.scrape_mp_bio_data(people, votes)
+        belarus.scrape_mp_bio_data(people, votes)
     else:
         countries_array = countries.split(',')
-        print countries_array
         for item in countries_array:
-            references[item].scrape_mp_bio_data(people, votes)
+            references[item.lower()].scrape_mp_bio_data(people, votes)
 
 
 
@@ -51,7 +53,7 @@ if __name__ == "__main__":
     if time_out_seconds != "":
         while True:
             try:
-                scrape(countries, people, votes)
+                scrape(countries, people.lower(), votes.lower())
             except:
                 print "An error occured wile polling for changes."
 
