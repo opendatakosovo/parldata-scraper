@@ -1,5 +1,7 @@
+# -*- coding: utf-8 -*-
 from pymongo import MongoClient
 import scraper
+import requests
 import pprint
 
 client = MongoClient()
@@ -33,13 +35,25 @@ class MoldovaScraper():
                                     print "full_name: " + td_element.get_text()
                                     print "link: " + str(td_element.get('href'))
                             elif str(td_element)[:2] == "<i":
+                                image_url = td_element.get('src')
                                 print "image_url: http://www.parlament.md" + td_element.get('src')
+                                image = requests.get(image_url).content
+                                print image
 
+                    person_id_url = link[-31:]
+                    print "identifier: " + person_id_url[:4].replace('/', "")
                     soup_deputy = scrape.download_html_file(link)
-                    #membership = soup_deputy.find("td", {"class": "ContentPane"})
-                    #nameTags = membership.findAll('a', {"name": True})[0].get('name')
-                    #print "personID: " + nameTags
-                    print "----------------------------------------------------------"
+                    membership = soup_deputy.find("span", {"id": "dnn_ctr476_ViewDeputat_lblPosition"})
+                    if membership.next[:1] != "P":
+                        committe = soup_deputy.find("a", {"id": "dnn_ctr476_ViewDeputat_hlCommission"})
+                        print "committe_group: " + committe.next
+                        print "member: " + membership.next
+                        print "----------------------------------------------------------"
+                    else:
+                        print "committe_group: "
+                        print "member: " + membership.next
+                        print "----------------------------------------------------------"
+
                     counter += 1
                 else:
                     continue

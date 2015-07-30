@@ -30,6 +30,7 @@ class GeorgiaScraper():
                     position = each.find('p').next
                     url = each.get('href')
                     image_url = each.find('img').get('src')
+                    person_id = url[-4:]
 
                     soup_deputy = scrape.download_html_file(url)
 
@@ -69,18 +70,23 @@ class GeorgiaScraper():
                                 election_block = li_element.get_text(strip=True)
                                 election_block = election_block.replace('election block', '')
 
-                    json_doc = self.build_json_doc(full_name, position, url, image_url, phone, date_of_birth, educational_institutions,
+                    json_doc = self.build_json_doc(person_id, full_name, position, url, image_url, phone, date_of_birth, educational_institutions,
                                            qualification, election_form, election_block, specialities['specialities'])
                     pp = pprint.PrettyPrinter()
                     pp.pprint(json_doc)
                     print "---------------------------------------------------------------------------------"
                     db.mps_list.insert(json_doc)
 
-            print "\n\tScraping completed! \n\tScraped " + str(counter) + " deputies"
+            #print "\n\tScraping completed! \n\tScraped " + str(counter) + " deputies"
 
-    def build_json_doc(self, full_name, position, url, image_url, phone_number, date_of_birth, educational_institution, qualification,
+    def build_json_doc(self, person_id, full_name, position, url, image_url, phone_number, date_of_birth, educational_institution, qualification,
                        election_form, election_block, specialities):
         json_doc = {
+            "identifiers": {
+              "identifier": person_id,
+              "scheme": "parliament.ge"
+            },
+            "id": person_id,
             "full_name": full_name,
             "position": position,
             "source_url": url,
