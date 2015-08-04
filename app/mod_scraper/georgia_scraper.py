@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*-
 from pymongo import MongoClient
 import scraper
+import re
 import pprint
+import binascii
 
 client = MongoClient()
 db = client.ge
@@ -14,7 +17,7 @@ class GeorgiaScraper():
             db.mps_list.remove({})
             print "\nScraping members (people) of Georgia's parliament..."
 
-            deputy_list_url = "http://www.parliament.ge/en/parlamentarebi/deputatebis-sia"
+            deputy_list_url = "http://www.parliament.ge/ge/parlamentarebi/deputatebis-sia"
             scrape = scraper.Scraper()
 
             soup = scrape.download_html_file(deputy_list_url)
@@ -26,11 +29,17 @@ class GeorgiaScraper():
                     continue
                 else:
                     counter += 1
-                    full_name = each.find('h4').next
+                    full_name = each.find('h4').next.encode('utf-8')
+                    first_last_name = full_name.split(' ')
+
+                    first_name = first_last_name[0]
+                    last_name = first_last_name[1]
+
                     position = each.find('p').next
                     url = each.get('href')
                     image_url = each.find('img').get('src')
-                    person_id = url[-4:]
+                    person_id_from_url = url.index('p/')
+                    person_id = url[person_id_from_url + 2:]
 
                     soup_deputy = scrape.download_html_file(url)
 
@@ -47,31 +56,52 @@ class GeorgiaScraper():
                     #iterate through each element of deputy information in the page and store data to the database.
                     for div_elements in soup_deputy.findAll("div", {"class": "info_group"}):
                         for li_element in div_elements.findAll('ul'):
-                            if li_element.get_text(strip=True)[:4] == "phon":
-                                phone = li_element.get_text(strip=True)
-                                phone = phone.replace('phone', '')
-                            if li_element.get_text(strip=True)[:4] == "date":
-                                date_of_birth = li_element.get_text(strip=True)
-                                date_of_birth = date_of_birth.replace('date of birth', '')
-                            if li_element.get_text(strip=True)[:4] == "educ":
-                                educational_institutions = li_element.get_text(strip=True)
-                                educational_institutions = educational_institutions.replace('educational institutions', '')
-                            if li_element.get_text(strip=True)[:4] == "qual":
-                                qualification = li_element.get_text(strip=True)
-                                qualification = qualification.replace('qualification', '')
-                            if li_element.get_text(strip=True)[:4] == "spec":
-                                speciality = li_element.get_text(strip=True)
-                                speciality = speciality.replace('speciality', '')
-                                specialities['specialities'].append(speciality)
-                            if li_element.get_text(strip=True)[:10] == "election f":
-                                election_form = li_element.get_text(strip=True)
-                                election_form = election_form.replace('election form', '')
-                            if li_element.get_text(strip=True)[:10] == "election b":
-                                election_block = li_element.get_text(strip=True)
-                                election_block = election_block.replace('election block', '')
+                            element = li_element.get_text(strip=True)
+                            encoded_element = element.encode("utf-8")
+                            #print element.encode("utf-8")
+                            if "ტელეფონი" in encoded_element:
+                                phone = encoded_element.replace('ტელეფონი', '')
+                            elif "დაბადების თარიღი" in encoded_element:
+                                date_of_birth = encoded_element.replace('დაბადების თარიღი', '')
+                            elif "საარჩევნო ფორმა" in encoded_element:
+                                election_form = encoded_element.replace('საარჩევნო ფორმა', '')
+                            elif "საარჩევნო ბლოკი" in encoded_element:
+                                election_block = encoded_element.replace('საარჩევნო ბლოკი', '')
 
-                    json_doc = self.build_json_doc(person_id, full_name, position, url, image_url, phone, date_of_birth, educational_institutions,
-                                           qualification, election_form, election_block, specialities['specialities'])
+                            # for each_li in li_element.findAll('li'):
+                            #     if each_li.find("a"):
+                            #         print "Web LINK"
+                            #     else:
+                            #         print "%s: %s" % (each_li.next)
+                            # element = li_element.get_text(strip=True)
+                            # if isinstance(element, unicode):
+                            #     if element[:8] is "ტელეფონი":
+                            #         phone = li_element.get_text(strip=True)
+                            #         phone = phone.replace("ტელეფონი", '')
+                            #         print "Phone: " + phone
+                            #     if element.encode('utf-8') == "დაბადების თარიღი":
+                            #         date_of_birth = element.replace('დაბადების თარიღი', '')
+                            #     if li_element.get_text(strip=True)[:4] == "educ":
+                            #         educational_institutions = li_element.get_text(strip=True)
+                            #         educational_institutions = educational_institutions.replace('educational institutions', '')
+                            #     if li_element.get_text(strip=True)[:4] == "qual":
+                            #         qualification = li_element.get_text(strip=True)
+                            #         qualification = qualification.replace('qualification', '')
+                            #     if li_element.get_text(strip=True)[:4] == "spec":
+                            #         speciality = li_element.get_text(strip=True)
+                            #         speciality = speciality.replace('speciality', '')
+                            #         specialities['specialities'].append(speciality)
+                            #     if li_element.get_text(strip=True)[:10] == "election f":
+                            #         election_form = li_element.get_text(strip=True)
+                            #         election_form = election_form.replace('election form', '')
+                            #     if li_element.get_text(strip=True)[:10] == "election b":
+                            #         election_block = li_element.get_text(strip=True)
+                            #         election_block = election_block.replace('election block', '')
+                    gender = self.guess_gender(first_name)
+                    json_doc = self.build_json_doc(person_id, full_name, first_name, last_name,
+                                                   position, url, image_url, phone, date_of_birth,
+                                                   educational_institutions, qualification, election_form,
+                                                   election_block, specialities['specialities'], gender)
                     pp = pprint.PrettyPrinter()
                     pp.pprint(json_doc)
                     print "---------------------------------------------------------------------------------"
@@ -79,19 +109,31 @@ class GeorgiaScraper():
 
             #print "\n\tScraping completed! \n\tScraped " + str(counter) + " deputies"
 
-    def build_json_doc(self, person_id, full_name, position, url, image_url, phone_number, date_of_birth, educational_institution, qualification,
-                       election_form, election_block, specialities):
+
+    def build_json_doc(self, person_id, full_name, first_name, last_name, position, url, image_url,
+                       phone_number, date_of_birth, educational_institution, qualification,
+                       election_form, election_block, specialities, gender):
         json_doc = {
             "identifiers": {
               "identifier": person_id,
               "scheme": "parliament.ge"
             },
-            "id": person_id,
-            "full_name": full_name,
+            "gender": gender,
+            "name": full_name,
+            "given_name": first_name,
+            "family_name": last_name,
             "position": position,
-            "source_url": url,
+            "sources": {
+                "note": "ვებგვერდი",
+                "url": url
+            },
             "image_url": image_url,
-            "phone_number": phone_number,
+            "contact_details": {
+                "label": "ტელეფონი",
+                "type": "tel",
+                "value": phone_number
+            },
+            "sort_name": last_name + ", " + first_name,
             "date_of_birth": date_of_birth,
             "educational_institutions": educational_institution,
             "qualification": qualification,
@@ -100,6 +142,14 @@ class GeorgiaScraper():
             "specialities": specialities
         }
         return json_doc
+
+    def guess_gender(self, name):
+        females = ["მანანა", "ეკა", "თინათინ", "ხათუნა", "ნინო", "მარიკა", "ჩიორა", "თამარ", "გუგული",
+                   "ანი", "ირმა", "მარიამ", "ნანა", "ელისო", "დარეჯან", "ფატი", "ეკატერინე"]
+        if name in females:
+            return "female"
+        else:
+            return "male"
 
     '''
     sample_identifier = {
