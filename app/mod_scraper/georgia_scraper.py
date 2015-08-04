@@ -2,14 +2,17 @@
 from pymongo import MongoClient
 import scraper
 from urllib2 import urlopen
+import os
 from bson import json_util
 import json
 import re
 import pprint
 import binascii
 
+
 client = MongoClient()
 db = client.ge
+
 
 class GeorgiaScraper():
     def get_member_id(self):
@@ -26,7 +29,7 @@ class GeorgiaScraper():
             mp_list[mp] = member_id
         return mp_list
 
-    def scrape_mp_bio_data(self, people, votes):
+    def scrape_mp_bio_data(self, people, votes, base_dir):
         '''
         Scraping members data of the Georgian Parliament.
         '''
@@ -40,7 +43,11 @@ class GeorgiaScraper():
             scrape = scraper.Scraper()
 
             soup = scrape.download_html_file(deputy_list_url)
-
+            print base_dir
+            with open(os.path.join(base_dir, 'access.json')) as f:
+                creds = json.load(f)
+            for state in creds:
+                print state
             counter = 0
             #iterate through each deputy in the deputy list.
             for each in soup.find("div", {"class": "mps_list"}): #iterate over loop [above sections]

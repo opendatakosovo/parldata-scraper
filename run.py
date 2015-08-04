@@ -1,10 +1,12 @@
 from pymongo import MongoClient
 import argparse
 from time import sleep
+import os
 from app.mod_scraper import georgia_scraper, armenia_scraper, ukraine_scraper, belarus_scraper, moldova_scraper
 
 client = MongoClient()
 db = client.ge
+BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
 def scrape(countries, people, votes):
@@ -14,7 +16,6 @@ def scrape(countries, people, votes):
     ukraine = ukraine_scraper.UkraineScraper()
     belarus = belarus_scraper.BelarusScraper()
     moldova = moldova_scraper.MoldovaScraper()
-
     references = {"georgia": georgia, "armenia": armenia, "ukraine": ukraine, "belarus": belarus, "moldova": moldova}
     if countries == "all":
         armenia.scrape_mp_bio_data(people, votes)
@@ -23,7 +24,7 @@ def scrape(countries, people, votes):
     else:
         countries_array = countries.split(',')
         for item in countries_array:
-            references[item.lower()].scrape_mp_bio_data(people, votes)
+            references[item.lower()].scrape_mp_bio_data(people, votes, BASE_DIR)
 
 
 

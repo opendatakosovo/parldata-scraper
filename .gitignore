@@ -1,3 +1,5 @@
+vpapi.py
+server_cert.pem
 access.json
 /venv
 /.idea
