@@ -68,35 +68,6 @@ class GeorgiaScraper():
                             elif "საარჩევნო ბლოკი" in encoded_element:
                                 election_block = encoded_element.replace('საარჩევნო ბლოკი', '')
 
-                            # for each_li in li_element.findAll('li'):
-                            #     if each_li.find("a"):
-                            #         print "Web LINK"
-                            #     else:
-                            #         print "%s: %s" % (each_li.next)
-                            # element = li_element.get_text(strip=True)
-                            # if isinstance(element, unicode):
-                            #     if element[:8] is "ტელეფონი":
-                            #         phone = li_element.get_text(strip=True)
-                            #         phone = phone.replace("ტელეფონი", '')
-                            #         print "Phone: " + phone
-                            #     if element.encode('utf-8') == "დაბადების თარიღი":
-                            #         date_of_birth = element.replace('დაბადების თარიღი', '')
-                            #     if li_element.get_text(strip=True)[:4] == "educ":
-                            #         educational_institutions = li_element.get_text(strip=True)
-                            #         educational_institutions = educational_institutions.replace('educational institutions', '')
-                            #     if li_element.get_text(strip=True)[:4] == "qual":
-                            #         qualification = li_element.get_text(strip=True)
-                            #         qualification = qualification.replace('qualification', '')
-                            #     if li_element.get_text(strip=True)[:4] == "spec":
-                            #         speciality = li_element.get_text(strip=True)
-                            #         speciality = speciality.replace('speciality', '')
-                            #         specialities['specialities'].append(speciality)
-                            #     if li_element.get_text(strip=True)[:10] == "election f":
-                            #         election_form = li_element.get_text(strip=True)
-                            #         election_form = election_form.replace('election form', '')
-                            #     if li_element.get_text(strip=True)[:10] == "election b":
-                            #         election_block = li_element.get_text(strip=True)
-                            #         election_block = election_block.replace('election block', '')
                     gender = self.guess_gender(first_name)
                     json_doc = self.build_json_doc(person_id, full_name, first_name, last_name,
                                                    position, url, image_url, phone, date_of_birth,
