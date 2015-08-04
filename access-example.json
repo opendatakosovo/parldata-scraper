@@ -1,0 +1,26 @@
+{
+  "georgia": {
+      "api_user": "scraper",
+      "password": "secret"
+  },
+  "armenia": {
+      "api_user": "scraper",
+      "password": "secret"
+  },
+  "moldova": {
+      "api_user": "scraper",
+      "password": "secret"
+  },
+  "ukraine": {
+      "api_user": "scraper",
+      "password": "secret"
+  },
+  "belarus-upperhouse": {
+      "api_user": "scraper",
+      "password": "secret"
+  },
+  "belarus-lowerhouse": {
+      "api_user": "scraper",
+      "password": "secret"
+  }
+}

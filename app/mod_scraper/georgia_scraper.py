@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 from pymongo import MongoClient
 import scraper
+from urllib2 import urlopen
+from bson import json_util
+import json
 import re
 import pprint
 import binascii
@@ -9,11 +12,27 @@ client = MongoClient()
 db = client.ge
 
 class GeorgiaScraper():
+    def get_member_id(self):
+        url = "http://votes.parliament.ge/ka/api/v1/members"
+        result = urlopen(url).read()
+        json_result = json.loads(result)
+        mp_list = {}
+        for item in json_result:
+            full_name = item['name'].split(" ")
+            first_name = full_name[1]
+            last_name = full_name[0]
+            mp = first_name + " " + last_name
+            member_id = item['id']
+            mp_list[mp] = member_id
+        return mp_list
+
     def scrape_mp_bio_data(self, people, votes):
         '''
         Scraping members data of the Georgian Parliament.
         '''
         if people == "yes":
+            mp_list = self.get_member_id()
+
             db.mps_list.remove({})
             print "\nScraping members (people) of Georgia's parliament..."
 
@@ -35,7 +54,6 @@ class GeorgiaScraper():
                     first_name = first_last_name[0]
                     last_name = first_last_name[1]
 
-                    position = each.find('p').next
                     url = each.get('href')
                     image_url = each.find('img').get('src')
                     person_id_from_url = url.index('p/')
@@ -45,13 +63,8 @@ class GeorgiaScraper():
 
                     phone = ""
                     date_of_birth = ""
-                    educational_institutions = ""
-                    qualification = ""
                     election_form = ""
                     election_block = ""
-                    specialities = {
-                        "specialities": []
-                    }
 
                     #iterate through each element of deputy information in the page and store data to the database.
                     for div_elements in soup_deputy.findAll("div", {"class": "info_group"}):
@@ -69,21 +82,23 @@ class GeorgiaScraper():
                                 election_block = encoded_element.replace('საარჩევნო ბლოკი', '')
 
                     gender = self.guess_gender(first_name)
-                    json_doc = self.build_json_doc(person_id, full_name, first_name, last_name,
-                                                   position, url, image_url, phone, date_of_birth,
-                                                   educational_institutions, qualification, election_form,
-                                                   election_block, specialities['specialities'], gender)
+                    if full_name.decode('utf-8') in mp_list:
+                        member_id = mp_list[full_name.decode('utf-8')]
+                    else:
+                        member_id = person_id
+                    json_doc = self.build_json_doc(member_id, full_name, first_name, last_name, url,
+                                                   image_url, phone, date_of_birth, election_form,
+                                                   election_block, gender)
                     pp = pprint.PrettyPrinter()
                     pp.pprint(json_doc)
                     print "---------------------------------------------------------------------------------"
                     db.mps_list.insert(json_doc)
 
-            #print "\n\tScraping completed! \n\tScraped " + str(counter) + " deputies"
+            print "\n\tScraping completed! \n\tScraped " + str(counter) + " deputies"
 
 
-    def build_json_doc(self, person_id, full_name, first_name, last_name, position, url, image_url,
-                       phone_number, date_of_birth, educational_institution, qualification,
-                       election_form, election_block, specialities, gender):
+    def build_json_doc(self, person_id, full_name, first_name, last_name, url, image_url,
+                       phone_number, date_of_birth, election_form, election_block,  gender):
         json_doc = {
             "identifiers": {
               "identifier": person_id,
@@ -93,24 +108,20 @@ class GeorgiaScraper():
             "name": full_name,
             "given_name": first_name,
             "family_name": last_name,
-            "position": position,
             "sources": {
                 "note": "ვებგვერდი",
                 "url": url
             },
-            "image_url": image_url,
+            "image": image_url,
             "contact_details": {
                 "label": "ტელეფონი",
                 "type": "tel",
-                "value": phone_number
+                "value": phone_number.replace(" ", '')
             },
             "sort_name": last_name + ", " + first_name,
             "date_of_birth": date_of_birth,
-            "educational_institutions": educational_institution,
-            "qualification": qualification,
             "election_form": election_form,
             "election_block": election_block,
-            "specialities": specialities
         }
         return json_doc
 
