@@ -1,5 +1,6 @@
 pymongo==2.6.2
 mechanize==0.2.5
 beautifulsoup4==4.4.0
-requests>=2.2
+requests[security]>=2.2
 Unidecode==0.04.17
+pytz>=2015.4

@@ -3,15 +3,21 @@ from pymongo import MongoClient
 import scraper
 from urllib2 import urlopen
 import os
-from bson import json_util
+import vpapi
+from datetime import date
 import json
-import re
 import pprint
-import binascii
 
 
 client = MongoClient()
 db = client.ge
+
+
+class JSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, ObjectId):
+            return str(o)
+        return json.JSONEncoder.default(self, o)
 
 
 class GeorgiaScraper():
@@ -26,109 +32,125 @@ class GeorgiaScraper():
             last_name = full_name[0]
             mp = first_name + " " + last_name
             member_id = item['id']
-            mp_list[mp] = member_id
+            mp_list[mp] = str(member_id)
         return mp_list
 
     def scrape_mp_bio_data(self, people, votes, base_dir):
+        global effective_date
+        effective_date = date.today().isoformat()
+        print effective_date
         '''
         Scraping members data of the Georgian Parliament.
         '''
         if people == "yes":
-            mp_list = self.get_member_id()
-
-            db.mps_list.remove({})
-            print "\nScraping members (people) of Georgia's parliament..."
-
-            deputy_list_url = "http://www.parliament.ge/ge/parlamentarebi/deputatebis-sia"
-            scrape = scraper.Scraper()
-
-            soup = scrape.download_html_file(deputy_list_url)
-            print base_dir
             with open(os.path.join(base_dir, 'access.json')) as f:
                 creds = json.load(f)
-            for state in creds:
-                print state
-            counter = 0
-            #iterate through each deputy in the deputy list.
-            for each in soup.find("div", {"class": "mps_list"}): #iterate over loop [above sections]
-                if each.find('a'):
-                    continue
-                else:
-                    counter += 1
-                    full_name = each.find('h4').next.encode('utf-8')
-                    first_last_name = full_name.split(' ')
+            try:
+                vpapi.parliament('ge/parliament')
+                vpapi.timezone('Etc/GMT+4')
+                vpapi.authorize(creds['georgia']['api_user'], creds['georgia']['password'])
+                mp_list = self.get_member_id()
+                db.mps_list.remove({})
+                print "\nScraping members (people) of Georgia's parliament..."
+                # resp = vpapi.delete('people')
+                # print resp
+                deputy_list_url = "http://www.parliament.ge/ge/parlamentarebi/deputatebis-sia"
+                scrape = scraper.Scraper()
 
-                    first_name = first_last_name[0]
-                    last_name = first_last_name[1]
-
-                    url = each.get('href')
-                    image_url = each.find('img').get('src')
-                    person_id_from_url = url.index('p/')
-                    person_id = url[person_id_from_url + 2:]
-
-                    soup_deputy = scrape.download_html_file(url)
-
-                    phone = ""
-                    date_of_birth = ""
-                    election_form = ""
-                    election_block = ""
-
-                    #iterate through each element of deputy information in the page and store data to the database.
-                    for div_elements in soup_deputy.findAll("div", {"class": "info_group"}):
-                        for li_element in div_elements.findAll('ul'):
-                            element = li_element.get_text(strip=True)
-                            encoded_element = element.encode("utf-8")
-                            #print element.encode("utf-8")
-                            if "ტელეფონი" in encoded_element:
-                                phone = encoded_element.replace('ტელეფონი', '')
-                            elif "დაბადების თარიღი" in encoded_element:
-                                date_of_birth = encoded_element.replace('დაბადების თარიღი', '')
-                            elif "საარჩევნო ფორმა" in encoded_element:
-                                election_form = encoded_element.replace('საარჩევნო ფორმა', '')
-                            elif "საარჩევნო ბლოკი" in encoded_element:
-                                election_block = encoded_element.replace('საარჩევნო ბლოკი', '')
-
-                    gender = self.guess_gender(first_name)
-                    if full_name.decode('utf-8') in mp_list:
-                        member_id = mp_list[full_name.decode('utf-8')]
+                soup = scrape.download_html_file(deputy_list_url)
+                counter = 0
+                mps = []
+                #iterate through each deputy in the deputy list.
+                for each in soup.find("div", {"class": "mps_list"}): #iterate over loop [above sections]
+                    if each.find('a'):
+                        continue
                     else:
-                        member_id = person_id
-                    json_doc = self.build_json_doc(member_id, full_name, first_name, last_name, url,
-                                                   image_url, phone, date_of_birth, election_form,
-                                                   election_block, gender)
-                    pp = pprint.PrettyPrinter()
-                    pp.pprint(json_doc)
-                    print "---------------------------------------------------------------------------------"
-                    db.mps_list.insert(json_doc)
+                        counter += 1
+                        full_name = each.find('h4').next.encode('utf-8')
+                        first_last_name = full_name.split(' ')
 
-            print "\n\tScraping completed! \n\tScraped " + str(counter) + " deputies"
+                        first_name = first_last_name[0]
+                        last_name = first_last_name[1]
+
+                        url = each.get('href')
+                        image_url = each.find('img').get('src')
+                        person_id_from_url = url.index('p/')
+                        person_id = url[person_id_from_url + 2:]
+
+                        soup_deputy = scrape.download_html_file(url)
+
+                        phone = ""
+                        date_of_birth = ""
+
+                        #iterate through each element of deputy information in the page and store data to the database.
+                        for div_elements in soup_deputy.findAll("div", {"class": "info_group"}):
+                            for li_element in div_elements.findAll('ul'):
+                                element = li_element.get_text(strip=True)
+                                encoded_element = element.encode("utf-8")
+                                if "ტელეფონი" in encoded_element:
+                                    phone = encoded_element.replace('ტელეფონი', '')
+                                    if phone == "":
+                                        phone = ""
+                                elif "დაბადების თარიღი" in encoded_element:
+                                    date_of_birth = encoded_element.replace('დაბადების თარიღი', '')
+                                # elif "საარჩევნო ფორმა" in encoded_element:
+                                #     election_form = encoded_element.replace('საარჩევნო ფორმა', '')
+                                # elif "საარჩევნო ბლოკი" in encoded_element:
+                                #     election_block = encoded_element.replace('საარჩევნო ბლოკი', '')
+
+                        gender = self.guess_gender(first_name)
+                        if full_name.decode('utf-8') in mp_list:
+                            member_id = mp_list[full_name.decode('utf-8')]
+                        else:
+                            member_id = person_id
+                        identifier = {
+                            "identifier": member_id.encode('utf-8'),
+                            "scheme": "parliament.ge"
+                        }
+                        json_doc = self.build_json_doc(identifier, full_name, first_name, last_name, url,
+                                                       image_url, phone, date_of_birth, gender)
+
+                        if phone == "":
+                            del json_doc['contact_details']
+                        pp = pprint.PrettyPrinter()
+                        pp.pprint(json_doc)
+
+                        existing = vpapi.getfirst('people', where={'identifiers': {'$elemMatch': identifier}})
+                        print existing
+                        if not existing:
+                            resp = vpapi.post('people', json_doc)
+                        else:
+                            # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
+                            resp = vpapi.put('people', existing['id'], json_doc, effective_date=effective_date)
+                        print "---------------------------------------------------------------------------------"
+
+                        db.mps_list.insert(json_doc)
+
+                print "\n\tScraping completed! \n\tScraped " + str(counter) + " deputies"
+            except Exception as e:
+                print "\n" + str(e)
 
 
-    def build_json_doc(self, person_id, full_name, first_name, last_name, url, image_url,
-                       phone_number, date_of_birth, election_form, election_block,  gender):
+    def build_json_doc(self, identifier, full_name, first_name, last_name, url, image_url,
+                       phone_number, date_of_birth, gender):
         json_doc = {
-            "identifiers": {
-              "identifier": person_id,
-              "scheme": "parliament.ge"
-            },
+            "identifiers": [identifier],
             "gender": gender,
             "name": full_name,
             "given_name": first_name,
             "family_name": last_name,
-            "sources": {
+            "sources": [{
                 "note": "ვებგვერდი",
                 "url": url
-            },
+            }],
             "image": image_url,
-            "contact_details": {
+            "contact_details": [{
                 "label": "ტელეფონი",
                 "type": "tel",
                 "value": phone_number.replace(" ", '')
-            },
+            }],
             "sort_name": last_name + ", " + first_name,
-            "date_of_birth": date_of_birth,
-            "election_form": election_form,
-            "election_block": election_block,
+            "birth_date": date_of_birth,
         }
         return json_doc
 

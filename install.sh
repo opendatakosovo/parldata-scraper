@@ -2,12 +2,13 @@
 
 # check python version, should be over 2.7
 ret=`python -c 'import sys; print("%i" % (sys.hexversion<0x02060000))'`
+echo `python -c 'import sys; print("%i" % (sys.hexversion<0x02060000))'`
 if [ $ret -eq 0 ]; then
     echo "Required version of Python already installed."
 
 else
     echo "You need to install Python 2.7.X"
-    echo -e "Install Python 2.7.3? [y/n] \c "
+    echo -e "Install Python 2.7.10? [y/n] \c "
     read word
     if [ $word == "y" ]; then
        if [ "$(whoami)" != "root" ]; then
@@ -15,12 +16,12 @@ else
           exit 1
        fi
        # echo "You said yes"
-       echo `wget http://python.org/ftp/python/2.7.3/Python-2.7.3.tar.bz2`
-       echo `tar xf Python-2.7.3.tar.bz2`
+       echo `wget http://python.org/ftp/python/2.7.10/Python-2.7.10.tar.bz2`
+       echo `tar xf Python-2.7.10.tar.bz2`
        cd Python-2.7.3
        echo `./configure --prefix=/usr/local`
        echo `make && make altinstall`
-       echo `rm Python-2.7.3.tar.bz2`
+       echo `rm Python-2.7.10.tar.bz2`
      else
        echo "Aborting installation script."
        exit 1
