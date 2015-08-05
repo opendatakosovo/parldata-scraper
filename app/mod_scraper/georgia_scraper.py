@@ -13,13 +13,6 @@ client = MongoClient()
 db = client.ge
 
 
-class JSONEncoder(json.JSONEncoder):
-    def default(self, o):
-        if isinstance(o, ObjectId):
-            return str(o)
-        return json.JSONEncoder.default(self, o)
-
-
 class GeorgiaScraper():
     def get_member_id(self):
         url = "http://votes.parliament.ge/ka/api/v1/members"
@@ -51,15 +44,13 @@ class GeorgiaScraper():
                 vpapi.authorize(creds['georgia']['api_user'], creds['georgia']['password'])
                 mp_list = self.get_member_id()
                 db.mps_list.remove({})
-                print "\nScraping members (people) of Georgia's parliament..."
-                # resp = vpapi.delete('people')
-                # print resp
+                print "\nScraping members data of the Georgian Parliament..."
+
                 deputy_list_url = "http://www.parliament.ge/ge/parlamentarebi/deputatebis-sia"
                 scrape = scraper.Scraper()
 
                 soup = scrape.download_html_file(deputy_list_url)
                 counter = 0
-                mps = []
                 #iterate through each deputy in the deputy list.
                 for each in soup.find("div", {"class": "mps_list"}): #iterate over loop [above sections]
                     if each.find('a'):
@@ -93,10 +84,6 @@ class GeorgiaScraper():
                                         phone = ""
                                 elif "დაბადების თარიღი" in encoded_element:
                                     date_of_birth = encoded_element.replace('დაბადების თარიღი', '')
-                                # elif "საარჩევნო ფორმა" in encoded_element:
-                                #     election_form = encoded_element.replace('საარჩევნო ფორმა', '')
-                                # elif "საარჩევნო ბლოკი" in encoded_element:
-                                #     election_block = encoded_element.replace('საარჩევნო ბლოკი', '')
 
                         gender = self.guess_gender(first_name)
                         if full_name.decode('utf-8') in mp_list:
@@ -122,6 +109,7 @@ class GeorgiaScraper():
                         else:
                             # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
                             resp = vpapi.put('people', existing['id'], json_doc, effective_date=effective_date)
+
                         print "---------------------------------------------------------------------------------"
 
                         db.mps_list.insert(json_doc)
