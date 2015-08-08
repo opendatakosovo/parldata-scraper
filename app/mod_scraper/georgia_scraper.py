@@ -26,97 +26,107 @@ class GeorgiaScraper():
             mp = first_name + " " + last_name
             member_id = item['id']
             mp_list[mp] = str(member_id)
+        print len(mp_list)
         return mp_list
 
     def scrape_mp_bio_data(self, people, votes, base_dir):
-        global effective_date
-        effective_date = date.today().isoformat()
-        print effective_date
         '''
         Scraping members data of the Georgian Parliament.
         '''
-        if people == "yes":
-            with open(os.path.join(base_dir, 'access.json')) as f:
-                creds = json.load(f)
-            try:
-                vpapi.parliament('ge/parliament')
-                vpapi.timezone('Etc/GMT+4')
-                vpapi.authorize(creds['georgia']['api_user'], creds['georgia']['password'])
-                mp_list = self.get_member_id()
-                db.mps_list.remove({})
-                print "\nScraping members data of the Georgian Parliament..."
+        mp_list = self.get_member_id()
+        db.mps_list.remove({})
+        print "\nScraping members data of the Georgian Parliament\nThis may take few moments, Please wait..."
 
-                deputy_list_url = "http://www.parliament.ge/ge/parlamentarebi/deputatebis-sia"
-                scrape = scraper.Scraper()
+        deputy_list_url = "http://www.parliament.ge/ge/parlamentarebi/deputatebis-sia"
+        scrape = scraper.Scraper()
 
-                soup = scrape.download_html_file(deputy_list_url)
-                counter = 0
-                #iterate through each deputy in the deputy list.
-                for each in soup.find("div", {"class": "mps_list"}): #iterate over loop [above sections]
-                    if each.find('a'):
-                        continue
-                    else:
-                        counter += 1
-                        full_name = each.find('h4').next.encode('utf-8')
-                        first_last_name = full_name.split(' ')
+        soup = scrape.download_html_file(deputy_list_url)
+        counter = 0
+        deputies = []
+        #iterate through each deputy in the deputy list.
+        for each in soup.find("div", {"class": "mps_list"}): #iterate over loop [above sections]
+            if each.find('a'):
+                continue
+            else:
+                counter += 1
+                full_name = each.find('h4').next.encode('utf-8')
+                first_last_name = full_name.split(' ')
 
-                        first_name = first_last_name[0]
-                        last_name = first_last_name[1]
+                first_name = first_last_name[0]
+                last_name = first_last_name[1]
 
-                        url = each.get('href')
-                        image_url = each.find('img').get('src')
-                        person_id_from_url = url.index('p/')
-                        person_id = url[person_id_from_url + 2:]
+                url = each.get('href')
+                image_url = each.find('img').get('src')
+                person_id_from_url = url.index('p/')
+                person_id = url[person_id_from_url + 2:]
 
-                        soup_deputy = scrape.download_html_file(url)
+                soup_deputy = scrape.download_html_file(url)
 
-                        phone = ""
-                        date_of_birth = ""
+                phone = ""
+                date_of_birth = ""
 
-                        #iterate through each element of deputy information in the page and store data to the database.
-                        for div_elements in soup_deputy.findAll("div", {"class": "info_group"}):
-                            for li_element in div_elements.findAll('ul'):
-                                element = li_element.get_text(strip=True)
-                                encoded_element = element.encode("utf-8")
-                                if "ტელეფონი" in encoded_element:
-                                    phone = encoded_element.replace('ტელეფონი', '')
-                                    if phone == "":
-                                        phone = ""
-                                elif "დაბადების თარიღი" in encoded_element:
-                                    date_of_birth = encoded_element.replace('დაბადების თარიღი', '')
+                #iterate through each element of deputy information in the page and store data to the database.
+                for div_elements in soup_deputy.findAll("div", {"class": "info_group"}):
+                    for li_element in div_elements.findAll('ul'):
+                        element = li_element.get_text(strip=True)
+                        encoded_element = element.encode("utf-8")
+                        if "ტელეფონი" in encoded_element:
+                            phone = encoded_element.replace('ტელეფონი', '')
+                        elif "დაბადების თარიღი" in encoded_element:
+                            date_of_birth = encoded_element.replace('დაბადების თარიღი', '')
 
-                        gender = self.guess_gender(first_name)
-                        if full_name.decode('utf-8') in mp_list:
-                            member_id = mp_list[full_name.decode('utf-8')]
-                        else:
-                            member_id = person_id
-                        identifier = {
-                            "identifier": member_id.encode('utf-8'),
-                            "scheme": "parliament.ge"
-                        }
-                        json_doc = self.build_json_doc(identifier, full_name, first_name, last_name, url,
-                                                       image_url, phone, date_of_birth, gender)
+                gender = self.guess_gender(first_name)
+                if full_name.decode('utf-8') in mp_list:
+                    member_id = mp_list[full_name.decode('utf-8')]
+                else:
+                    member_id = person_id
+                identifier = {
+                    "identifier": member_id.encode('utf-8'),
+                    "scheme": "parliament.ge"
+                }
 
-                        if phone == "":
-                            del json_doc['contact_details']
-                        pp = pprint.PrettyPrinter()
-                        pp.pprint(json_doc)
+                json_doc = self.build_json_doc(identifier, full_name, first_name, last_name, url,
+                                               image_url, phone, date_of_birth, gender)
 
-                        existing = vpapi.getfirst('people', where={'identifiers': {'$elemMatch': identifier}})
-                        print existing
-                        if not existing:
-                            resp = vpapi.post('people', json_doc)
-                        else:
-                            # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
-                            resp = vpapi.put('people', existing['id'], json_doc, effective_date=effective_date)
+                deputies.append(json_doc)
 
-                        print "---------------------------------------------------------------------------------"
+                if phone == "":
+                    del json_doc['contact_details']
 
-                        db.mps_list.insert(json_doc)
+        print "\n\tScraping completed! \n\tScraped " + str(counter) + " deputies"
+        return deputies
 
-                print "\n\tScraping completed! \n\tScraped " + str(counter) + " deputies"
-            except Exception as e:
-                print "\n" + str(e)
+    def scrape_organization(self):
+        '''
+        Scapres organisation data from the official web page of Georgian parliament
+        '''
+        parties_list_url = "http://www.parliament.ge/ge/saparlamento-saqmianoba/fraqciebi-6"
+        scrape = scraper.Scraper()
+
+        soup = scrape.download_html_file(parties_list_url)
+        parties = []
+        for div_elements in soup.find("div", {"class": "submenu_list"}):
+            if div_elements.find("a"):
+                continue
+            else:
+                parties.append(div_elements.get('href'))
+
+        for party in parties:
+            soup = scrape.download_html_file(party)
+            for each_a in soup.find("div", {"class": "submenu_list"}):
+                if each_a.find('a'):
+                    continue
+                else:
+                    print each_a.get_text()
+                    faction_url = each_a.get('href')
+                    soup_faction = scrape.download_html_file(faction_url)
+                    div = soup_faction.find("div", {"class": "submenu_list"})
+                    if div.find('a').get_text().encode('utf-8') == "ფრაქციის წევრები":
+                        print div.find('a').get("href")
+                print "-------------------------------"
+
+        print "\n\tScraping of Faction groups complete!"
+
 
 
     def build_json_doc(self, identifier, full_name, first_name, last_name, url, image_url,
