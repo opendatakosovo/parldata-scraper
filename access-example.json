@@ -1,26 +1,38 @@
 {
   "georgia": {
       "api_user": "scraper",
-      "password": "secret"
+      "password": "secret",
+      "parliament": "ge/parliament",
+      "timezone": "Asia/Tbilisi"
   },
   "armenia": {
       "api_user": "scraper",
-      "password": "secret"
+      "password": "secret",
+      "parliament": "am/parliament",
+      "timezone": "Asia/Yerevan"
   },
   "moldova": {
       "api_user": "scraper",
-      "password": "secret"
+      "password": "secret",
+      "parliament": "md/parliament",
+      "timezone": "Europe/Chisinau"
   },
   "ukraine": {
       "api_user": "scraper",
-      "password": "secret"
+      "password": "secret",
+      "parliament": "ua/rada",
+      "timezone": "Europe/Kiev"
   },
   "belarus-upperhouse": {
       "api_user": "scraper",
-      "password": "secret"
+      "password": "secret",
+      "parliament": "by/sovrep",
+      "timezone": "Europe/Minsk"
   },
   "belarus-lowerhouse": {
       "api_user": "scraper",
-      "password": "secret"
+      "password": "secret",
+      "parliament": "by/house",
+      "timezone": "Europe/Minsk"
   }
 }

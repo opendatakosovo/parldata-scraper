@@ -29,69 +29,85 @@ class GeorgiaScraper():
         print len(mp_list)
         return mp_list
 
-    def scrape_mp_bio_data(self, people, votes, base_dir):
-        '''
-        Scraping members data of the Georgian Parliament.
-        '''
-        mp_list = self.get_member_id()
-        db.mps_list.remove({})
-        print "\nScraping members data of the Georgian Parliament\nThis may take few moments, Please wait..."
-
+    def mps_list(self):
+        mps_list = []
         deputy_list_url = "http://www.parliament.ge/ge/parlamentarebi/deputatebis-sia"
         scrape = scraper.Scraper()
-
         soup = scrape.download_html_file(deputy_list_url)
-        counter = 0
-        deputies = []
-        #iterate through each deputy in the deputy list.
+        mp_list = self.get_member_id()
         for each in soup.find("div", {"class": "mps_list"}): #iterate over loop [above sections]
             if each.find('a'):
                 continue
             else:
-                counter += 1
                 full_name = each.find('h4').next.encode('utf-8')
                 first_last_name = full_name.split(' ')
 
                 first_name = first_last_name[0]
                 last_name = first_last_name[1]
-
                 url = each.get('href')
                 image_url = each.find('img').get('src')
                 person_id_from_url = url.index('p/')
+                gender = self.guess_gender(first_name)
                 person_id = url[person_id_from_url + 2:]
 
-                soup_deputy = scrape.download_html_file(url)
-
-                phone = ""
-                date_of_birth = ""
-
-                #iterate through each element of deputy information in the page and store data to the database.
-                for div_elements in soup_deputy.findAll("div", {"class": "info_group"}):
-                    for li_element in div_elements.findAll('ul'):
-                        element = li_element.get_text(strip=True)
-                        encoded_element = element.encode("utf-8")
-                        if "ტელეფონი" in encoded_element:
-                            phone = encoded_element.replace('ტელეფონი', '')
-                        elif "დაბადების თარიღი" in encoded_element:
-                            date_of_birth = encoded_element.replace('დაბადების თარიღი', '')
-
-                gender = self.guess_gender(first_name)
                 if full_name.decode('utf-8') in mp_list:
+
                     member_id = mp_list[full_name.decode('utf-8')]
+                    print "MEMBER ID FOUND IN JSON"
                 else:
+                    print "MEMBER ID NOT FOUND IN JSON"
                     member_id = person_id
-                identifier = {
+
+                identifiers = {
                     "identifier": member_id.encode('utf-8'),
                     "scheme": "parliament.ge"
                 }
 
-                json_doc = self.build_json_doc(identifier, full_name, first_name, last_name, url,
-                                               image_url, phone, date_of_birth, gender)
+                mp_json = {
+                    "name": full_name,
+                    "identifiers": identifiers,
+                    "given_name": first_name,
+                    "family_name": last_name,
+                    "gender": gender,
+                    "image": image_url,
+                    "source_url": url
+                }
+                mps_list.append(mp_json)
+        return mps_list
 
-                deputies.append(json_doc)
+    def scrape_mp_bio_data(self, people, votes, base_dir):
+        '''
+        Scraping members data of the Georgian Parliament.
+        '''
+        mps_list = self.mps_list()
+        db.mps_list.remove({})
+        print "\nScraping members data of the Georgian Parliament\nThis may take few moments, Please wait..."
+        scrape = scraper.Scraper()
+        counter = 0
+        deputies = []
+        #iterate through each deputy in the deputies list.
+        for json in mps_list: #iterate over loop [above sections]8
+            counter += 1
+            soup_deputy = scrape.download_html_file(json['source_url'])
+            phone = ""
+            date_of_birth = ""
+            #iterate through each element of deputy information in the page and store data to the database.
+            for div_elements in soup_deputy.findAll("div", {"class": "info_group"}):
+                for li_element in div_elements.findAll('ul'):
+                    element = li_element.get_text(strip=True)
+                    encoded_element = element.encode("utf-8")
+                    if "ტელეფონი" in encoded_element:
+                        phone = encoded_element.replace('ტელეფონი', '')
+                    elif "დაბადების თარიღი" in encoded_element:
+                        date_of_birth = encoded_element.replace('დაბადების თარიღი', '')
 
-                if phone == "":
-                    del json_doc['contact_details']
+            json_doc = self.build_json_doc(json['identifiers'], json['name'], json['given_name'], json['family_name'],
+                                           json['source_url'], json['image'], phone, date_of_birth, json['gender'])
+
+            deputies.append(json_doc)
+
+            if phone == "":
+                del json_doc['contact_details']
 
         print "\n\tScraping completed! \n\tScraped " + str(counter) + " deputies"
         return deputies
