@@ -6,7 +6,7 @@ import os
 import vpapi
 from datetime import date
 import json
-import pprint
+import re
 
 
 client = MongoClient()
@@ -26,7 +26,6 @@ class GeorgiaScraper():
             mp = first_name + " " + last_name
             member_id = item['id']
             mp_list[mp] = str(member_id)
-        print len(mp_list)
         return mp_list
 
     def mps_list(self):
@@ -51,11 +50,8 @@ class GeorgiaScraper():
                 person_id = url[person_id_from_url + 2:]
 
                 if full_name.decode('utf-8') in mp_list:
-
                     member_id = mp_list[full_name.decode('utf-8')]
-                    print "MEMBER ID FOUND IN JSON"
                 else:
-                    print "MEMBER ID NOT FOUND IN JSON"
                     member_id = person_id
 
                 identifiers = {
@@ -75,7 +71,7 @@ class GeorgiaScraper():
                 mps_list.append(mp_json)
         return mps_list
 
-    def scrape_mp_bio_data(self, people, votes, base_dir):
+    def scrape_mp_bio_data(self):
         '''
         Scraping members data of the Georgian Parliament.
         '''
@@ -112,10 +108,7 @@ class GeorgiaScraper():
         print "\n\tScraping completed! \n\tScraped " + str(counter) + " deputies"
         return deputies
 
-    def scrape_organization(self):
-        '''
-        Scapres organisation data from the official web page of Georgian parliament
-        '''
+    def parliamentary_grous_list(self):
         parties_list_url = "http://www.parliament.ge/ge/saparlamento-saqmianoba/fraqciebi-6"
         scrape = scraper.Scraper()
 
@@ -125,25 +118,124 @@ class GeorgiaScraper():
             if div_elements.find("a"):
                 continue
             else:
-                parties.append(div_elements.get('href'))
+                party_json = {
+                    "name": div_elements.get_text(),
+                    "url": div_elements.get('href')
+                }
+                parties.append(party_json)
+        return parties
 
+
+    def scrape_organization(self):
+        '''
+        Scapres organisation data from the official web page of Georgian parliament
+        '''
+        parties_list = []
+        scrape = scraper.Scraper()
+        parties = self.parliamentary_grous_list()
         for party in parties:
-            soup = scrape.download_html_file(party)
-            for each_a in soup.find("div", {"class": "submenu_list"}):
-                if each_a.find('a'):
-                    continue
-                else:
-                    print each_a.get_text()
-                    faction_url = each_a.get('href')
-                    soup_faction = scrape.download_html_file(faction_url)
-                    div = soup_faction.find("div", {"class": "submenu_list"})
-                    if div.find('a').get_text().encode('utf-8') == "ფრაქციის წევრები":
-                        print div.find('a').get("href")
-                print "-------------------------------"
+            if "qartuli-ocneba-tavisufali-demokratebi" not in party['url']:
+                soup = scrape.download_html_file(party['url'])
+                for each_a in soup.find("div", {"class": "submenu_list"}):
+                    if each_a.find('a'):
+                        continue
+                    else:
+                        name = each_a.get_text()
+                        faction_url = each_a.get('href')
+                        parliamentary_group = self.build_parliamentary_group_doc(name, faction_url)
+                        parties_list.append(parliamentary_group)
+                        # soup_faction = scrape.download_html_file(faction_url)
+                        # div = soup_faction.find("div", {"class": "submenu_list"})
+                        # if div.find('a').get_text().encode('utf-8') == "ფრაქციის წევრები":
+                        #     url_members = div.find('a').get("href")
+                        #     print url_members
+                        #     soup_members = scrape.download_html_file(url_members)
+                        #     for each_attr in soup_members.find("div", {"class": "mps_list"}):
+                        #         if each_attr.find('a'):
+                        #             continue
+                        #         else:
+                        #             full_name = each_attr.find('h4').next.encode('utf-8')
+                        #             print full_name
+            else:
+                parliamentary_group = self.build_parliamentary_group_doc(party['name'], party['url'])
+                parties_list.append(parliamentary_group)
+                # soup_faction = scrape.download_html_file(party['url'])
+                # div = soup_faction.find("div", {"class": "submenu_list"})
+                # if div.find('a').get_text().encode('utf-8') == "ფრაქციის წევრები":
+                #     url_members = div.find('a').get("href")
+                #     print url_members
+                #     soup_members = scrape.download_html_file(url_members)
+                #     for each_a in soup_members.find("div", {"class": "mps_list"}):
+                #         if each_a.find('a'):
+                #             continue
+                #         else:
+                #             full_name = each_a.find('h4').next.encode('utf-8')
+                #             print full_name
 
         print "\n\tScraping of Faction groups complete!"
+        return parties_list
+
+    def scrape_chamber(self):
+        chambers_list = []
+        chambers_list.append({
+            "classification": "chamber",
+            "name": "საქართველოს პარლამენტი - 2012-2016 წწ.",
+            "identifiers": [{
+                    "identifier": "2012",
+                    "scheme": "parliament.ge"
+                }],
+            "founding_date": "2012",
+            "dissolution_date": "2016-10",
+        })
+        chamber_list_html = "http://www.parliament.ge/ge/parlamentarebi/saqartvelos-wina-mowvevis-parlamentebi-1317"
+        scrape = scraper.Scraper()
+
+        soup = scrape.download_html_file(chamber_list_html)
+
+        for each_a in soup.find("div", {"class": "submenu_list"}):
+            if each_a.find('a'):
+                continue
+            else:
+                name = each_a.get_text()
+                years = re.findall(r'\d+', name)
+                source_url = each_a.get('href')
+                founding_year = years[0]
+                dissolution_date = years[1]
+                identifier = source_url[-4:]
+                if source_url[-2:] == "ww":
+                    identifier = "1990"
+                identifiers = {
+                    "identifier": identifier,
+                    "scheme": "parliament.ge"
+                }
+
+                chamber_json = self.build_chamber_doc(name, identifiers, founding_year, dissolution_date, source_url)
+                chambers_list.append(chamber_json)
+        return chambers_list
 
 
+    def build_parliamentary_group_doc(self, name, url):
+        return {
+            "classification": "parliamentary group",
+            "name": name,
+            "sources": [{
+                "note": "ვებგვერდი",
+                "url": url
+            }]
+        }
+
+    def build_chamber_doc(self, name, identifiers, founding_date, dissolution_date, url):
+        return {
+            "classification": "chamber",
+            "name": name,
+            "identifiers": [identifiers],
+            "founding_date": founding_date,
+            "dissolution_date": dissolution_date,
+            "sources": [{
+                "note": "ვებგვერდი",
+                "url": url
+            }]
+        }
 
     def build_json_doc(self, identifier, full_name, first_name, last_name, url, image_url,
                        phone_number, date_of_birth, gender):

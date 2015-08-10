@@ -28,29 +28,48 @@ def scrape(countries, people, votes):
     moldova = moldova_scraper.MoldovaScraper()
     references = {"georgia": georgia, "armenia": armenia, "ukraine": ukraine, "belarus": belarus, "moldova": moldova}
     if countries == "all":
-        armenia.scrape_mp_bio_data(people, votes, BASE_DIR)
-        georgia.scrape_mp_bio_data(people, votes, BASE_DIR)
-        belarus.scrape_mp_bio_data(people, votes, BASE_DIR)
+        armenia.scrape_mp_bio_data()
+        georgia.scrape_mp_bio_data()
+        belarus.scrape_mp_bio_data()
+        moldova.scrape_mp_bio_data()
+        moldova.scrape_mp_bio_data()
     else:
         countries_array = countries.split(',')
         for item in countries_array:
             if people == "yes":
-                mps_list = references[item.lower()].scrape_mp_bio_data(people, votes, BASE_DIR)
-                for member in mps_list:
-                    print member['identifiers'][0]
-                    existing = vpapi.getfirst('people', where={'identifiers': {'$elemMatch': member['identifiers'][0]}})
-                    if not existing:
-                        resp = vpapi.post('people', member)
-                    else:
-                        # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
-                        resp = vpapi.put('people', existing['id'], member, effective_date=effective_date)
-                    if resp["_status"] != "OK":
-                        raise Exception("Invalid status code")
-            if votes == "yes":
-                georgia.scrape_organization()
+                chambers_list = references[item.lower()].scrape_chamber()
+                mps_list = references[item.lower()].scrape_mp_bio_data()
+                parliamentary_groups = references[item.lower()].scrape_organization()
+                data_collections = {
+                    "chamber": chambers_list,
+                    "people": mps_list,
+                    "parliamentary_groups": parliamentary_groups
+                }
+                # inserts data for each data collection in Visegrad+ Api
+                for collection in data_collections:
+                    for json_doc in data_collections[collection]:
+                        if collection == "parliamentary_groups":
+                            where_condition = {'name': json_doc['name']}
+                            collection_of_data = "organizations"
+                        elif collection == "chamber":
+                            where_condition = {'identifiers': {'$elemMatch': json_doc['identifiers'][0]}}
+                            collection_of_data = "organizations"
+                        elif collection == "people":
+                            where_condition = {'identifiers': {'$elemMatch': json_doc['identifiers'][0]}}
+                            collection_of_data = "people"
 
 
+                        existing = vpapi.getfirst(collection_of_data, where=where_condition)
+                        if not existing:
+                            resp = vpapi.post(collection_of_data, json_doc)
+                        else:
+                            # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
+                            resp = vpapi.put(collection_of_data, existing['id'], json_doc, effective_date=effective_date)
+                        if resp["_status"] != "OK":
+                            raise Exception("Invalid status code")
 
+                        print existing
+                        print "----------------------------------------------------------------------------------------------------"
 
     # Download bio images and render thumbnails.
     #download_bio_images()
