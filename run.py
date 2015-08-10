@@ -37,26 +37,23 @@ def scrape(countries, people, votes):
         countries_array = countries.split(',')
         for item in countries_array:
             if people == "yes":
-                chambers_list = references[item.lower()].scrape_chamber()
-                mps_list = references[item.lower()].scrape_mp_bio_data()
-                parliamentary_groups = references[item.lower()].scrape_organization()
                 data_collections = {
-                    "chamber": chambers_list,
-                    "people": mps_list,
-                    "parliamentary_groups": parliamentary_groups
+                    "chamber": references[item.lower()].scrape_chamber(),
+                    "people": references[item.lower()].scrape_mp_bio_data(),
+                    "parliamentary_groups": references[item.lower()].scrape_organization()
                 }
                 # inserts data for each data collection in Visegrad+ Api
                 for collection in data_collections:
                     for json_doc in data_collections[collection]:
+                        if collection == "people":
+                            where_condition = {'identifiers': {'$elemMatch': json_doc['identifiers'][0]}}
+                            collection_of_data = "people"
                         if collection == "parliamentary_groups":
                             where_condition = {'name': json_doc['name']}
                             collection_of_data = "organizations"
-                        elif collection == "chamber":
+                        if collection == "chamber":
                             where_condition = {'identifiers': {'$elemMatch': json_doc['identifiers'][0]}}
                             collection_of_data = "organizations"
-                        elif collection == "people":
-                            where_condition = {'identifiers': {'$elemMatch': json_doc['identifiers'][0]}}
-                            collection_of_data = "people"
 
 
                         existing = vpapi.getfirst(collection_of_data, where=where_condition)
