@@ -44,6 +44,7 @@ def scrape(countries, people, votes):
                 }
                 # inserts data for each data collection in Visegrad+ Api
                 for collection in data_collections:
+                    print "\n\tPosting and updating data from %s data collection" % collection
                     for json_doc in data_collections[collection]:
                         if collection == "people":
                             where_condition = {'identifiers': {'$elemMatch': json_doc['identifiers'][0]}}
@@ -65,8 +66,10 @@ def scrape(countries, people, votes):
                         if resp["_status"] != "OK":
                             raise Exception("Invalid status code")
 
-                        print existing
-                        print "----------------------------------------------------------------------------------------------------"
+                        print "\t" + existing['id']
+                        print "\t----------------------------------------------------------------------------------------------------"
+
+                    print "\n\tFinished Posting and updating data from %s data collection" % collection
 
     # Download bio images and render thumbnails.
     #download_bio_images()

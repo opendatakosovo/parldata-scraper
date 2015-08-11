@@ -77,7 +77,6 @@ class GeorgiaScraper():
         '''
         mps_list = self.mps_list()
         db.mps_list.remove({})
-        print "\nScraping members data of the Georgian Parliament\nThis may take few moments, Please wait..."
         scrape = scraper.Scraper()
         counter = 0
         deputies = []
@@ -99,8 +98,6 @@ class GeorgiaScraper():
 
             json_doc = self.build_json_doc(json['identifiers'], json['name'], json['given_name'], json['family_name'],
                                            json['source_url'], json['image'], phone, date_of_birth, json['gender'])
-            print json_doc
-            print "\n--------------------------------------"
             deputies.append(json_doc)
 
             if phone == "":
