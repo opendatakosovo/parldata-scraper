@@ -37,6 +37,8 @@ def scrape(countries, people, votes):
         countries_array = countries.split(',')
         for item in countries_array:
             if people == "yes":
+                print "\n\tPosting and updating data from %s parliament" % item
+                print "\tThis may take a few minutes..."
                 data_collections = {
                     "chamber": references[item.lower()].scrape_chamber(),
                     "people": references[item.lower()].scrape_mp_bio_data(),
@@ -49,27 +51,29 @@ def scrape(countries, people, votes):
                         if collection == "people":
                             where_condition = {'identifiers': {'$elemMatch': json_doc['identifiers'][0]}}
                             collection_of_data = "people"
-                        if collection == "parliamentary_groups":
+                        elif collection == "parliamentary_groups":
                             where_condition = {'name': json_doc['name']}
                             collection_of_data = "organizations"
-                        if collection == "chamber":
+                        elif collection == "chamber":
                             where_condition = {'identifiers': {'$elemMatch': json_doc['identifiers'][0]}}
                             collection_of_data = "organizations"
 
 
                         existing = vpapi.getfirst(collection_of_data, where=where_condition)
                         if not existing:
+                            print "\t%s data collection item not found" % collection_of_data
                             resp = vpapi.post(collection_of_data, json_doc)
                         else:
+                            print "\tUpdating %s data collection item" % collection_of_data
                             # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
                             resp = vpapi.put(collection_of_data, existing['id'], json_doc, effective_date=effective_date)
                         if resp["_status"] != "OK":
                             raise Exception("Invalid status code")
 
-                        print "\t" + existing['id']
-                        print "\t----------------------------------------------------------------------------------------------------"
-
+                        print "\t------------------------------------------------"
                     print "\n\tFinished Posting and updating data from %s data collection" % collection
+            if votes == "yes":
+                references[item.lower()].scrape_membership()
 
     # Download bio images and render thumbnails.
     #download_bio_images()

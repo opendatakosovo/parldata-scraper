@@ -173,6 +173,47 @@ class GeorgiaScraper():
         print "\n\tScraping of Faction groups complete!"
         return parties_list
 
+    def scrape_membership(self):
+        scrape = scraper.Scraper()
+        mp_list = self.get_member_id()
+        parties = self.scrape_organization()
+        for party in parties:
+            party_url = party['sources'][0]['url']
+            soup_faction = scrape.download_html_file(party_url)
+            div = soup_faction.find("div", {"class": "submenu_list"})
+            if div.find('a').get_text().encode('utf-8') == "ფრაქციის წევრები":
+                url_members = div.find('a').get("href")
+                print url_members
+                soup_members = scrape.download_html_file(url_members)
+                for each_a in soup_members.find("div", {"class": "mps_list"}):
+                    if each_a.find('a'):
+                        continue
+                    else:
+                        full_name = each_a.find('h4').next.encode('utf-8')
+                        url = each_a.get('href').encode('utf-8')
+                        person_id_from_url = url.index('p/')
+                        person_id = url[person_id_from_url + 2:]
+                        if full_name.decode('utf-8') in mp_list:
+                            member_id = mp_list[full_name.decode('utf-8')]
+                        else:
+                            member_id = person_id
+                        print "\n\tName: %s \n\tId: %s" % (full_name, member_id)
+        return parties
+
+    def get_identifier(self, founding_year):
+        if founding_year == "2008":
+            return "7"
+        elif founding_year == "2004":
+            return "6"
+        elif founding_year == "1999":
+            return "5"
+        elif founding_year == "1995":
+            return "4"
+        elif founding_year == "1992":
+            return "3"
+        elif founding_year == "1990":
+            return "2"
+
     def scrape_chamber(self):
         chambers_list = []
         chambers_list.append({
@@ -199,9 +240,7 @@ class GeorgiaScraper():
                 source_url = each_a.get('href')
                 founding_year = years[0]
                 dissolution_date = years[1]
-                identifier = source_url[-4:]
-                if source_url[-2:] == "ww":
-                    identifier = "1990"
+                identifier = self.get_identifier(founding_year)
                 identifiers = {
                     "identifier": identifier,
                     "scheme": "parliament.ge"
