@@ -42,7 +42,8 @@ def scrape(countries, people, votes):
                 data_collections = {
                     "chamber": references[item.lower()].scrape_chamber(),
                     "people": references[item.lower()].scrape_mp_bio_data(),
-                    "parliamentary_groups": references[item.lower()].scrape_organization()
+                    "parliamentary_groups": references[item.lower()].scrape_organization(),
+                    "committe": references[item.lower()].scrape_committe()
                 }
                 # inserts data for each data collection in Visegrad+ Api
                 for collection in data_collections:
@@ -51,7 +52,7 @@ def scrape(countries, people, votes):
                         if collection == "people":
                             where_condition = {'identifiers': {'$elemMatch': json_doc['identifiers'][0]}}
                             collection_of_data = "people"
-                        elif collection == "parliamentary_groups":
+                        elif collection == "parliamentary_groups" or collection == "committe":
                             where_condition = {'name': json_doc['name']}
                             collection_of_data = "organizations"
                         elif collection == "chamber":
@@ -102,7 +103,7 @@ if __name__ == "__main__":
             try:
                 scrape(countries, people.lower(), votes.lower())
             except:
-                print "An error occured wile polling for changes."
+                print Exception.message
 
             # Wait for a bit before checking if there are any new edits.
             # But not too much that we would risk missing an edits (because we only look at the latest edit for now)
