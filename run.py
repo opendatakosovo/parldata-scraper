@@ -45,14 +45,12 @@ def scrape(countries, people, votes):
             members = references[item.lower()].scrape_mp_bio_data()
             chamber = references[item.lower()].scrape_chamber()
             parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
-            committe = references[item.lower()].scrape_committe()
-            membership = references[item.lower()].scrape_membership()
+            committee = references[item.lower()].scrape_committe()
             data_collections = {
-                # "a-people": members,
-                # "b-chamber": chamber,
-                # "c-parliamentary_groups": parliamentary_groups,
-                # "d-committe": committe,
-                "e-membership": membership,
+                "a-people": members,
+                "b-chamber": chamber,
+                "c-parliamentary_groups": parliamentary_groups,
+                "d-committe": committee
             }
             # inserts data for each data collection in Visegrad+ Api
             for collection in sorted(set(data_collections)):
@@ -67,11 +65,6 @@ def scrape(countries, people, votes):
                     elif collection == "b-chamber":
                         where_condition = {'identifiers': {'$elemMatch': json_doc['identifiers'][0]}}
                         collection_of_data = "organizations"
-                    elif collection == "e-membership":
-                        where_condition = {'organization_id': json_doc['organization_id'], "person_id": json_doc['person_id']}
-                        collection_of_data = "memberships"
-
-
 
                     existing = vpapi.getfirst(collection_of_data, where=where_condition)
                     if not existing:
@@ -87,6 +80,7 @@ def scrape(countries, people, votes):
                     print "\t------------------------------------------------"
                 print "\n\tFinished Posting and updating data from %s data collection" % collection[2:]
 
+            membership = references[item.lower()].scrape_membership()
             for json_doc in membership:
                 existing = vpapi.getfirst(collection_of_data, where={'organization_id': json_doc['organization_id'], "person_id": json_doc['person_id']})
                 if not existing:
