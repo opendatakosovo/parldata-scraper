@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from pymongo import MongoClient
-import scraper, re
+from app.mod_scraper import scraper
+import re
 import requests
 import pprint
 

@@ -5,7 +5,11 @@ from datetime import date
 import os
 import json
 import vpapi
-from app.mod_scraper import georgia_scraper, armenia_scraper, ukraine_scraper, belarus_scraper, moldova_scraper
+from app.mod_scraper.ukraine import ukraine_scraper
+from app.mod_scraper.moldova import moldova_scraper
+from app.mod_scraper.armenia import armenia_scraper
+from app.mod_scraper.georgia import georgia_scraper
+from app.mod_scraper.belarus_lowerhouse import belarus_scraper
 
 client = MongoClient()
 db = client.ge
@@ -27,54 +31,57 @@ def scrape(countries, people, votes):
     belarus = belarus_scraper.BelarusScraper()
     moldova = moldova_scraper.MoldovaScraper()
     references = {"georgia": georgia, "armenia": armenia, "ukraine": ukraine, "belarus": belarus, "moldova": moldova}
+    countries_array = []
     if countries == "all":
-        armenia.scrape_mp_bio_data()
-        georgia.scrape_mp_bio_data()
-        belarus.scrape_mp_bio_data()
-        moldova.scrape_mp_bio_data()
-        moldova.scrape_mp_bio_data()
+        for key in references:
+            countries_array.append(key)
     else:
         countries_array = countries.split(',')
-        for item in countries_array:
-            if people == "yes":
-                print "\n\tPosting and updating data from %s parliament" % item
-                print "\tThis may take a few minutes..."
-                data_collections = {
-                    "chamber": references[item.lower()].scrape_chamber(),
-                    "people": references[item.lower()].scrape_mp_bio_data(),
-                    "parliamentary_groups": references[item.lower()].scrape_organization(),
-                    "committe": references[item.lower()].scrape_committe()
-                }
-                # inserts data for each data collection in Visegrad+ Api
-                for collection in data_collections:
-                    print "\n\tPosting and updating data from %s data collection" % collection
-                    for json_doc in data_collections[collection]:
-                        if collection == "people":
-                            where_condition = {'identifiers': {'$elemMatch': json_doc['identifiers'][0]}}
-                            collection_of_data = "people"
-                        elif collection == "parliamentary_groups" or collection == "committe":
-                            where_condition = {'name': json_doc['name']}
-                            collection_of_data = "organizations"
-                        elif collection == "chamber":
-                            where_condition = {'identifiers': {'$elemMatch': json_doc['identifiers'][0]}}
-                            collection_of_data = "organizations"
+
+    for item in countries_array:
+        if people == "yes":
+            print "\n\tPosting and updating data from %s parliament" % item
+            print "\tThis may take a few minutes..."
+            data_collections = {
+                "people": references[item.lower()].scrape_mp_bio_data(),
+                "chamber": references[item.lower()].scrape_chamber(),
+                "parliamentary_groups": references[item.lower()].scrape_organization(),
+                "committe": references[item.lower()].scrape_committe(),
+                "membership": references[item.lower()].scrape_membership(),
+            }
+            # inserts data for each data collection in Visegrad+ Api
+            for collection in data_collections:
+                print "\n\tPosting and updating data from %s data collection" % collection
+                for json_doc in data_collections[collection]:
+                    if collection == "people":
+                        where_condition = {'identifiers': {'$elemMatch': json_doc['identifiers'][0]}}
+                        collection_of_data = "people"
+                    elif collection == "parliamentary_groups" or collection == "committe":
+                        where_condition = {'name': json_doc['name']}
+                        collection_of_data = "organizations"
+                    elif collection == "chamber":
+                        where_condition = {'identifiers': {'$elemMatch': json_doc['identifiers'][0]}}
+                        collection_of_data = "organizations"
+                    elif collection == "membership":
+                        where_condition = {'organization_id': json_doc['organization_id'], "person_id": json_doc['person_id']}
+                        collection_of_data = "memberships"
 
 
-                        existing = vpapi.getfirst(collection_of_data, where=where_condition)
-                        if not existing:
-                            print "\t%s data collection item not found" % collection_of_data
-                            resp = vpapi.post(collection_of_data, json_doc)
-                        else:
-                            print "\tUpdating %s data collection item" % collection_of_data
-                            # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
-                            resp = vpapi.put(collection_of_data, existing['id'], json_doc, effective_date=effective_date)
-                        if resp["_status"] != "OK":
-                            raise Exception("Invalid status code")
+                    existing = vpapi.getfirst(collection_of_data, where=where_condition)
+                    if not existing:
+                        print "\t%s data collection item not found" % collection_of_data
+                        resp = vpapi.post(collection_of_data, json_doc)
+                    else:
+                        print "\tUpdating %s data collection item" % collection_of_data
+                        # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
+                        resp = vpapi.put(collection_of_data, existing['id'], json_doc, effective_date=effective_date)
+                    if resp["_status"] != "OK":
+                        raise Exception("Invalid status code")
 
-                        print "\t------------------------------------------------"
-                    print "\n\tFinished Posting and updating data from %s data collection" % collection
-            if votes == "yes":
-                references[item.lower()].scrape_membership()
+                    print "\t------------------------------------------------"
+                print "\n\tFinished Posting and updating data from %s data collection" % collection
+        if votes == "yes":
+            references[item.lower()].scrape_membership()
 
     # Download bio images and render thumbnails.
     #download_bio_images()
@@ -102,8 +109,8 @@ if __name__ == "__main__":
         while True:
             try:
                 scrape(countries, people.lower(), votes.lower())
-            except:
-                print Exception.message
+            except BaseException as e:
+                print e.message
 
             # Wait for a bit before checking if there are any new edits.
             # But not too much that we would risk missing an edits (because we only look at the latest edit for now)

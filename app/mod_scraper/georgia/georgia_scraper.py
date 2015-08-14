@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from pymongo import MongoClient
-import scraper
+from app.mod_scraper import scraper
 from urllib2 import urlopen
 import os
 import vpapi
@@ -44,6 +44,7 @@ class GeorgiaScraper():
                 first_name = first_last_name[0]
                 last_name = first_last_name[1]
                 url = each.get('href')
+                membership = each.find('p').next.encode('utf-8')
                 image_url = each.find('img').get('src')
                 person_id_from_url = url.index('p/')
                 gender = self.guess_gender(first_name)
@@ -66,10 +67,27 @@ class GeorgiaScraper():
                     "family_name": last_name,
                     "gender": gender,
                     "image": image_url,
-                    "source_url": url
+                    "source_url": url,
+                    "membership": membership
                 }
                 mps_list.append(mp_json)
         return mps_list
+
+    def membership_correction(self):
+        return {
+            "პარლამენტის თავმჯდომარე": "chairman",
+            "პარლამენტის თავმჯდომარის მოადგილე": "vice-chairman",
+            "პარლამენტის წევრი": "member",
+            "პარლამენტის თავმჯდომარის პირველი მოადგილე": 'first-vice-chairwomen',
+            "კომიტეტის თავმჯდომარე": "chairman",
+            "კომიტეტის თავმჯდომარის პირველი მოადგილე": 'first-vice-chairman',
+            "კომიტეტის თავმჯდომარის მოადგილე": "vice-chairman",
+            "კომიტეტის წევრი": "member",
+            "ფრაქციის თავმჯდომარე": "chairman",
+            "ფრაქციის თავმჯდომარის მოადგილე": "vice-chairman",
+            "ფრაქციის მდივანი": "secretary",
+            "ფრაქციის წევრი": "member"
+        }
 
     def scrape_mp_bio_data(self):
         '''
@@ -106,11 +124,14 @@ class GeorgiaScraper():
         print "\n\tScraping completed! \n\tScraped " + str(counter) + " deputies"
         return deputies
 
-    def get_id(self, collection, identifier):
+    def get_id(self, collection, identifier, type=None):
         if collection != "organizations":
             existing = vpapi.getfirst(collection, where={'identifiers': {'$elemMatch': {'identifier': identifier}}})
         else:
-            existing = vpapi.getfirst(collection, where={'name': identifier})
+            if type:
+                existing = vpapi.getfirst(collection, where={'identifiers': {'$elemMatch': {'identifier': identifier}}})
+            else:
+                existing = vpapi.getfirst(collection, where={'name': identifier})
 
         if existing:
             p_id = existing['id']
@@ -203,78 +224,113 @@ class GeorgiaScraper():
 
     def scrape_committe(self):
         scrape = scraper.Scraper()
-        committes_list = []
-        committes = self.parliamentary_committes_list()
-        for committe in committes:
-            if committe['url'] != "http://www.parliament.ge/ge/saparlamento-saqmianoba/komitetebi/diasporisa-da-kavkasiis-sakitxta-komiteti":
-                soup_committes = scrape.download_html_file(committe['url'])
-                contact = soup_committes.find('a', text="დაგვიკავშირდით")
-                if contact:
-                    soup_committe_contact = scrape.download_html_file(contact.get('href'))
-                    for each_p in soup_committe_contact('div', {'class': 'txt'}):
+        committees_list = []
+        committees = self.parliamentary_committes_list()
+        for committee in committees:
+            # if committee['url'] != "http://www.parliament.ge/ge/saparlamento-saqmianoba/komitetebi/diasporisa-da-kavkasiis-sakitxta-komiteti":
+            soup_committees = scrape.download_html_file(committee['url'])
+            contact = soup_committees.find('a', text="დაგვიკავშირდით")
+            if contact:
+                soup_committee_contact = scrape.download_html_file(contact.get('href'))
+                if soup_committee_contact('div', {'class': 'txt'}):
+                    for each_p in soup_committee_contact('div', {'class': 'txt'}):
                         if each_p.find('a'):
                             email = each_p.find('a').get_text()
-                            committe_json = self.build_organizations_doc("committe", committe['name'], committe['url'])
-                            committe_json['contact_details'] = [{
+                            committee_json = self.build_organizations_doc("committe", committee['name'], committee['url'])
+                            committee_json['contact_details'] = [{
                                 'type': "email",
                                 'value': email
                             }]
-                            committes_list.append(committe_json)
+                            committees_list.append(committee_json)
 
+                        else:
+                            committee_json = self.build_organizations_doc("committe", committee['name'], committee['url'])
+                            committees_list.append(committee_json)
                 else:
-                    committe_json = self.build_organizations_doc("committe", committe['name'], committe['url'])
-                    committes_list.append(committe_json)
-        return committes_list
+                    committee_json = self.build_organizations_doc("committe", committee['name'], committee['url'])
+                    committees_list.append(committee_json)
+            else:
+                committee_json = self.build_organizations_doc("committe", committee['name'], committee['url'])
+                committees_list.append(committee_json)
+        print "length: " + str(len(committees_list))
+        return committees_list
 
     def scrape_membership(self):
         scrape = scraper.Scraper()
+        membership_array = []
         mp_list = self.get_member_id()
+        members_list = self.mps_list()
         parties = self.parliamentary_grous_list()
-        committes = self.parliamentary_committes_list()
-        print committes
-        for element in committes:
-            print element
+        committees = self.parliamentary_committes_list()
         data_collections = {
+            "chambers": members_list,
             "parties": parties,
-            "committes": committes
+            "committes": committees
         }
+        membership_groups = self.membership_correction()
+        counter = 0
         for collection in data_collections:
-            for item in data_collections[collection]:
-                url = item['url']
-                name = item['name']
-                soup_faction = scrape.download_html_file(url)
-                div = soup_faction.find("div", {"class": "submenu_list"})
-                members_tag = div.find('a').get_text(strip=True)
-                if "წევრები" in members_tag.encode('utf-8'):
-                    # or div.find('a').get_text().encode('utf-8') == "კომიტეტის წევრები":
-                    url_members = div.find('a').get("href")
-                    # print url_members
-                    soup_members = scrape.download_html_file(url_members)
-                    counter = 0
-                    for each_a in soup_members.find("div", {"class": "mps_list"}):
-                        if each_a.find('a'):
-                            continue
-                        else:
-                            counter += 1
-                            full_name = each_a.find('h4').next.encode('utf-8')
-                            member = each_a.find('p').next.encode('utf-8')
-                            url = each_a.get('href').encode('utf-8')
-                            person_id_from_url = url.index('p/')
-                            person_id = url[person_id_from_url + 2:]
-                            if full_name.decode('utf-8') in mp_list:
-                                member_id = mp_list[full_name.decode('utf-8')]
+            print "\n\t\tScraping %s membership\n\n" % collection
+            if collection == "chambers":
+                for item in data_collections[collection]:
+                    counter += 1
+                    identifier = item['identifiers']['identifier']
+                    o_id = self.get_id("organizations", "8", "chamber")
+                    p_id = self.get_id("people", identifier)
+                    member = item['membership']
+                    role = membership_groups[item['membership']]
+                    url = "http://www.parliament.ge/ge/parlamentarebi/deputatebis-sia"
+                    if p_id != "Not found" and o_id != "Not found":
+                        membership_json = self.build_memberships_doc(p_id, o_id, member, role, url)
+                        membership_array.append(membership_json)
+            else:
+                for item in data_collections[collection]:
+                    url = item['url']
+                    name = item['name']
+                    soup_faction = scrape.download_html_file(url)
+                    div = soup_faction.find("div", {"class": "submenu_list"})
+                    members_tag = div.find('a').get_text(strip=True)
+                    if "წევრები" in members_tag.encode('utf-8'):
+                        # or div.find('a').get_text().encode('utf-8') == "კომიტეტის წევრები":
+                        url_members = div.find('a').get("href")
+                        # print url_members
+                        soup_members = scrape.download_html_file(url_members)
+                        for each_a in soup_members.find("div", {"class": "mps_list"}):
+                            if each_a.find('a'):
+                                continue
                             else:
-                                member_id = person_id
+                                counter += 1
+                                full_name = each_a.find('h4').next.encode('utf-8')
+                                member = each_a.find('p').next.encode('utf-8')
+                                url = each_a.get('href').encode('utf-8')
+                                person_id_from_url = url.index('p/')
+                                person_id = url[person_id_from_url + 2:]
+                                if full_name.decode('utf-8') in mp_list:
+                                    member_id = mp_list[full_name.decode('utf-8')]
+                                else:
+                                    member_id = person_id
 
-                            print "\n\tName: %s \n\tId: %s \n\tmember: %s" % (full_name, member_id, member)
-                            o_id = self.get_id("organizations", name)
-                            p_id = self.get_id("people", member_id)
-                            if p_id != "Not found":
-                                print "\tAPI_Person_ID: " + p_id
-                            if o_id != "Not found":
-                                print "\tAPI_Organization_ID: " + o_id
-                    print "scraped %s items" % counter
-        return parties
+                                o_id = self.get_id("organizations", name.encode('utf-8'))
+                                p_id = self.get_id("people", member_id)
+                                role = membership_groups[member]
+                                if p_id != "Not found" and o_id != "Not found":
+                                    membership_json = self.build_memberships_doc(p_id, o_id, member, role, url_members)
+                                    membership_array.append(membership_json)
+        print "scraped %s items" % counter
+        return membership_array
+
+    def build_memberships_doc(self, person_id, organization_id, label, role, url):
+        json_doc = {
+            "person_id": person_id,
+            "organization_id": organization_id,
+            "label": label,
+            "role": role,
+            "sources": [{
+                "url": url,
+                "note": "ვებგვერდი"
+            }]
+        }
+        return json_doc
 
     def get_chamber_identifier(self, founding_year):
         if founding_year == "2008":
@@ -296,7 +352,7 @@ class GeorgiaScraper():
             "classification": "chamber",
             "name": "საქართველოს პარლამენტი - 2012-2016 წწ.",
             "identifiers": [{
-                    "identifier": "2012",
+                    "identifier": "8",
                     "scheme": "parliament.ge"
                 }],
             "founding_date": "2012",

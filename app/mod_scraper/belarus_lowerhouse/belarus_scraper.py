@@ -1,3 +1,5 @@
+from app.mod_scraper import scraper
+
 class BelarusScraper():
     def scrape_mp_bio_data(self):
         print "Scraping Belarus People data"
