@@ -42,34 +42,40 @@ def scrape(countries, people, votes):
         if people == "yes":
             print "\n\tPosting and updating data from %s parliament" % item
             print "\tThis may take a few minutes..."
+            members = references[item.lower()].scrape_mp_bio_data()
+            chamber = references[item.lower()].scrape_chamber()
+            parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
+            committe = references[item.lower()].scrape_committe()
+            membership = references[item.lower()].scrape_membership()
             data_collections = {
-                "people": references[item.lower()].scrape_mp_bio_data(),
-                "chamber": references[item.lower()].scrape_chamber(),
-                "parliamentary_groups": references[item.lower()].scrape_organization(),
-                "committe": references[item.lower()].scrape_committe(),
-                "membership": references[item.lower()].scrape_membership(),
+                # "a-people": members,
+                # "b-chamber": chamber,
+                # "c-parliamentary_groups": parliamentary_groups,
+                # "d-committe": committe,
+                "e-membership": membership,
             }
             # inserts data for each data collection in Visegrad+ Api
-            for collection in data_collections:
-                print "\n\tPosting and updating data from %s data collection" % collection
+            for collection in sorted(set(data_collections)):
+                print "\n\tPosting and updating data from %s data collection" % collection[2:]
                 for json_doc in data_collections[collection]:
-                    if collection == "people":
+                    if collection == "a-people":
                         where_condition = {'identifiers': {'$elemMatch': json_doc['identifiers'][0]}}
                         collection_of_data = "people"
-                    elif collection == "parliamentary_groups" or collection == "committe":
+                    elif collection == "c-parliamentary_groups" or collection == "d-committe":
                         where_condition = {'name': json_doc['name']}
                         collection_of_data = "organizations"
-                    elif collection == "chamber":
+                    elif collection == "b-chamber":
                         where_condition = {'identifiers': {'$elemMatch': json_doc['identifiers'][0]}}
                         collection_of_data = "organizations"
-                    elif collection == "membership":
+                    elif collection == "e-membership":
                         where_condition = {'organization_id': json_doc['organization_id'], "person_id": json_doc['person_id']}
                         collection_of_data = "memberships"
 
 
+
                     existing = vpapi.getfirst(collection_of_data, where=where_condition)
                     if not existing:
-                        print "\t%s data collection item not found" % collection_of_data
+                        print "\t%s data collection item not found \n\tPosting new item to the API." % collection_of_data
                         resp = vpapi.post(collection_of_data, json_doc)
                     else:
                         print "\tUpdating %s data collection item" % collection_of_data
@@ -79,7 +85,22 @@ def scrape(countries, people, votes):
                         raise Exception("Invalid status code")
 
                     print "\t------------------------------------------------"
-                print "\n\tFinished Posting and updating data from %s data collection" % collection
+                print "\n\tFinished Posting and updating data from %s data collection" % collection[2:]
+
+            for json_doc in membership:
+                existing = vpapi.getfirst(collection_of_data, where={'organization_id': json_doc['organization_id'], "person_id": json_doc['person_id']})
+                if not existing:
+                    print "\tMembership's data collection item not found \n\tPosting new item to the API."
+                    resp = vpapi.post("memberships", json_doc)
+                else:
+                    print "\tUpdating membership's data collection item"
+                    # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
+                    resp = vpapi.put("memberships", existing['id'], json_doc, effective_date=effective_date)
+                if resp["_status"] != "OK":
+                    raise Exception("Invalid status code")
+
+                print "\t------------------------------------------------"
+            print "\n\tFinished Posting and updating data from memberships data collection"
         if votes == "yes":
             references[item.lower()].scrape_membership()
 

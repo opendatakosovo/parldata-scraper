@@ -2,9 +2,7 @@
 from pymongo import MongoClient
 from app.mod_scraper import scraper
 from urllib2 import urlopen
-import os
 import vpapi
-from datetime import date
 import json
 import re
 
@@ -96,11 +94,10 @@ class GeorgiaScraper():
         mps_list = self.mps_list()
         db.mps_list.remove({})
         scrape = scraper.Scraper()
-        counter = 0
         deputies = []
+        print "\n\tScraping people data from Georgia's parliament..."
         #iterate through each deputy in the deputies list.
         for json in mps_list: #iterate over loop [above sections]8
-            counter += 1
             soup_deputy = scrape.download_html_file(json['source_url'])
             phone = ""
             date_of_birth = ""
@@ -121,7 +118,7 @@ class GeorgiaScraper():
             if phone == "":
                 del json_doc['contact_details']
 
-        print "\n\tScraping completed! \n\tScraped " + str(counter) + " deputies"
+        print "\n\tScraping completed! \n\tScraped " + str(len(deputies)) + " members"
         return deputies
 
     def get_id(self, collection, identifier, type=None):
@@ -173,13 +170,14 @@ class GeorgiaScraper():
                 committes.append(committe_json)
         return committes
 
-    def scrape_organization(self):
+    def scrape_parliamentary_groups(self):
         '''
         Scapres organisation data from the official web page of Georgian parliament
         '''
         parties_list = []
         scrape = scraper.Scraper()
         parties = self.parliamentary_grous_list()
+        print "\n\tScraping parliamentary groups data from Georgia's parliament..."
         for party in parties:
             if "qartuli-ocneba-tavisufali-demokratebi" not in party['url']:
                 soup = scrape.download_html_file(party['url'])
@@ -191,41 +189,18 @@ class GeorgiaScraper():
                         faction_url = each_a.get('href')
                         parliamentary_group = self.build_organizations_doc("parliamentary group", name, faction_url)
                         parties_list.append(parliamentary_group)
-                        # soup_faction = scrape.download_html_file(faction_url)
-                        # div = soup_faction.find("div", {"class": "submenu_list"})
-                        # if div.find('a').get_text().encode('utf-8') == "ფრაქციის წევრები":
-                        #     url_members = div.find('a').get("href")
-                        #     print url_members
-                        #     soup_members = scrape.download_html_file(url_members)
-                        #     for each_attr in soup_members.find("div", {"class": "mps_list"}):
-                        #         if each_attr.find('a'):
-                        #             continue
-                        #         else:
-                        #             full_name = each_attr.find('h4').next.encode('utf-8')
-                        #             print full_name
             else:
                 parliamentary_group = self.build_organizations_doc("parliamentary group", party['name'], party['url'])
                 parties_list.append(parliamentary_group)
-                # soup_faction = scrape.download_html_file(party['url'])
-                # div = soup_faction.find("div", {"class": "submenu_list"})
-                # if div.find('a').get_text().encode('utf-8') == "ფრაქციის წევრები":
-                #     url_members = div.find('a').get("href")
-                #     print url_members
-                #     soup_members = scrape.download_html_file(url_members)
-                #     for each_a in soup_members.find("div", {"class": "mps_list"}):
-                #         if each_a.find('a'):
-                #             continue
-                #         else:
-                #             full_name = each_a.find('h4').next.encode('utf-8')
-                #             print full_name
 
-        print "\n\tScraping of Faction groups complete!"
+        print "\n\tScraping completed! \n\tScraped " + str(len(parties_list)) + " parliamentary groups"
         return parties_list
 
     def scrape_committe(self):
         scrape = scraper.Scraper()
         committees_list = []
         committees = self.parliamentary_committes_list()
+        print "\n\tScraping committees data from Georgia's parliament..."
         for committee in committees:
             # if committee['url'] != "http://www.parliament.ge/ge/saparlamento-saqmianoba/komitetebi/diasporisa-da-kavkasiis-sakitxta-komiteti":
             soup_committees = scrape.download_html_file(committee['url'])
@@ -252,7 +227,8 @@ class GeorgiaScraper():
             else:
                 committee_json = self.build_organizations_doc("committe", committee['name'], committee['url'])
                 committees_list.append(committee_json)
-        print "length: " + str(len(committees_list))
+
+        print "\n\tScraping completed! \n\tScraped " + str(len(committees_list)) + " committees"
         return committees_list
 
     def scrape_membership(self):
@@ -268,12 +244,11 @@ class GeorgiaScraper():
             "committes": committees
         }
         membership_groups = self.membership_correction()
-        counter = 0
+        print "\n\tScraping membership's data from Georgia's parliament..."
         for collection in data_collections:
             print "\n\t\tScraping %s membership\n\n" % collection
             if collection == "chambers":
                 for item in data_collections[collection]:
-                    counter += 1
                     identifier = item['identifiers']['identifier']
                     o_id = self.get_id("organizations", "8", "chamber")
                     p_id = self.get_id("people", identifier)
@@ -299,7 +274,6 @@ class GeorgiaScraper():
                             if each_a.find('a'):
                                 continue
                             else:
-                                counter += 1
                                 full_name = each_a.find('h4').next.encode('utf-8')
                                 member = each_a.find('p').next.encode('utf-8')
                                 url = each_a.get('href').encode('utf-8')
@@ -316,7 +290,8 @@ class GeorgiaScraper():
                                 if p_id != "Not found" and o_id != "Not found":
                                     membership_json = self.build_memberships_doc(p_id, o_id, member, role, url_members)
                                     membership_array.append(membership_json)
-        print "scraped %s items" % counter
+        print membership_array
+        print "\n\tScraping completed! \n\tScraped " + str(len(membership_array)) + " members"
         return membership_array
 
     def build_memberships_doc(self, person_id, organization_id, label, role, url):
@@ -363,6 +338,7 @@ class GeorgiaScraper():
 
         soup = scrape.download_html_file(chamber_list_html)
 
+        print "\n\tScraping chamber's data from Georgia's parliament..."
         for each_a in soup.find("div", {"class": "submenu_list"}):
             if each_a.find('a'):
                 continue
@@ -380,8 +356,8 @@ class GeorgiaScraper():
 
                 chamber_json = self.build_chamber_doc(name, identifiers, founding_year, dissolution_date, source_url)
                 chambers_list.append(chamber_json)
+        print "\n\tScraping completed! \n\tScraped " + str(len(chambers_list)) + " chambers"
         return chambers_list
-
 
     def build_organizations_doc(self, classification, name, url):
         json_doc = {
