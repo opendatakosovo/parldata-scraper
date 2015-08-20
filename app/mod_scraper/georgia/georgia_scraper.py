@@ -9,9 +9,10 @@ import re
 
 client = MongoClient()
 db = client.ge
-
+scrape = scraper.Scraper()
 
 class GeorgiaScraper():
+
     def get_member_id(self):
         url = "http://votes.parliament.ge/ka/api/v1/members"
         result = urlopen(url).read()
@@ -306,6 +307,54 @@ class GeorgiaScraper():
             }]
         }
         return json_doc
+
+    def events_list(self):
+        url = "http://www.parliament.ge/ge/saparlamento-saqmianoba/plenaruli-sxdomebi/plenaruli-sxdomis-dgis-wesrigi"
+        soup = scrape.download_html_file(url)
+        events = []
+        pages = soup.find('div', {'class': 'paging'}).findAll('a')
+        latest_page_url = pages[len(pages) - 1].get('href')
+        latest_page_index = latest_page_url.index('0/')
+        latest_page = latest_page_url[latest_page_index + 2:]
+
+        names_array = []
+        for i in range(0, int(latest_page) + 10, 10):
+            url_pages = url + "/0/" + str(i)
+            soup_pages = scrape.download_html_file(url_pages)
+            for each_a in soup_pages.find('div', {'class': 'news_list'}).findAll('a', {'class': "item"}):
+                url_motion = each_a.get('href')
+                name = each_a.get_text().strip().replace("  ", " ")
+                name = name.replace("                                    ", "")
+                start_date = ""
+                if name not in names_array:
+                    names_array.append(name)
+                    json_event = {
+                        "name": name,
+                        "url": url_motion,
+                        "start_date": start_date
+                    }
+                    events.append(json_event)
+        #             print json_event
+        #             print "---------------------------\n"
+        #
+        # print len(names_array)
+        return events
+
+    def scrape_events(self):
+        events_list = self.events_list()
+        url_array = []
+        counter = 0
+        for event in events_list:
+            print "event nr: %s ---------------------->" % str(counter)
+            soup = scrape.download_html_file(event['url'])
+            a_tag = soup.find('div', {'class': 'inner_page'}).findAll('a')
+            if len(a_tag) > 0:
+                for each_a in a_tag:
+                    url = each_a.get('href')
+                    if url and "/ge/law/" in url and url not in url_array:
+                        url_array.append(url)
+            counter += 1
+        print len(url_array)
 
     def get_chamber_identifier(self, founding_year):
         if founding_year == "2008":

@@ -96,7 +96,7 @@ def scrape(countries, people, votes):
                 print "\t------------------------------------------------"
             print "\n\tFinished Posting and updating data from memberships data collection"
         if votes == "yes":
-            references[item.lower()].scrape_membership()
+            references[item.lower()].scrape_events()
 
     # Download bio images and render thumbnails.
     #download_bio_images()
