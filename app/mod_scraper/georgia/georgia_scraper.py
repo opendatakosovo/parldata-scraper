@@ -5,7 +5,10 @@ from urllib2 import urlopen
 import vpapi
 import json
 import re
-
+from bs4 import BeautifulSoup
+import progressbar
+from time import sleep
+import sys
 
 client = MongoClient()
 db = client.ge
@@ -176,7 +179,6 @@ class GeorgiaScraper():
         Scapres organisation data from the official web page of Georgian parliament
         '''
         parties_list = []
-        scrape = scraper.Scraper()
         parties = self.parliamentary_grous_list()
         print "\n\tScraping parliamentary groups data from Georgia's parliament..."
         for party in parties:
@@ -198,7 +200,6 @@ class GeorgiaScraper():
         return parties_list
 
     def scrape_committe(self):
-        scrape = scraper.Scraper()
         committees_list = []
         committees = self.parliamentary_committes_list()
         print "\n\tScraping committees data from Georgia's parliament..."
@@ -233,16 +234,15 @@ class GeorgiaScraper():
         return committees_list
 
     def scrape_membership(self):
-        scrape = scraper.Scraper()
         membership_array = []
         mp_list = self.get_member_id()
         members_list = self.mps_list()
-        parties = self.parliamentary_grous_list()
+        parties = self.scrape_parliamentary_groups()
         committees = self.parliamentary_committes_list()
         data_collections = {
-            "chambers": members_list,
+            # "chambers": members_list,
             "parties": parties,
-            "committes": committees
+            # "committes": committees
         }
         membership_groups = self.membership_correction()
         print "\n\tScraping membership's data from Georgia's parliament..."
@@ -261,7 +261,10 @@ class GeorgiaScraper():
                         membership_array.append(membership_json)
             else:
                 for item in data_collections[collection]:
-                    url = item['url']
+                    if collection == "parties":
+                        url = item['sources'][0]['url']
+                    else:
+                        url = item['url']
                     name = item['name']
                     soup_faction = scrape.download_html_file(url)
                     div = soup_faction.find("div", {"class": "submenu_list"})
@@ -277,8 +280,8 @@ class GeorgiaScraper():
                             else:
                                 full_name = each_a.find('h4').next.encode('utf-8')
                                 member = each_a.find('p').next.encode('utf-8')
-                                url = each_a.get('href').encode('utf-8')
-                                person_id_from_url = url.index('p/')
+                                url_m = each_a.get('href').encode('utf-8')
+                                person_id_from_url = url_m.index('p/')
                                 person_id = url[person_id_from_url + 2:]
                                 if full_name.decode('utf-8') in mp_list:
                                     member_id = mp_list[full_name.decode('utf-8')]
@@ -291,7 +294,6 @@ class GeorgiaScraper():
                                 if p_id != "Not found" and o_id != "Not found":
                                     membership_json = self.build_memberships_doc(p_id, o_id, member, role, url_members)
                                     membership_array.append(membership_json)
-        print membership_array
         print "\n\tScraping completed! \n\tScraped " + str(len(membership_array)) + " members"
         return membership_array
 
@@ -316,34 +318,59 @@ class GeorgiaScraper():
         latest_page_url = pages[len(pages) - 1].get('href')
         latest_page_index = latest_page_url.index('0/')
         latest_page = latest_page_url[latest_page_index + 2:]
+        months = {
+            "იანვარი": "01",
+            "თებერვალი": "02",
+            "მარტი": "03",
+            "აპრილი": "04",
+            "მაისი": "05",
+            "ივნისი": "06",
+            "ივლისი": "07",
+            "აგვისტო": "08",
+            "სექტემბერი": "09",
+            "ოქტომბერი": "10",
+            "ნოემბერი": "11",
+            "დეკემბერი": "12"
+        }
 
         names_array = []
         for i in range(0, int(latest_page) + 10, 10):
             url_pages = url + "/0/" + str(i)
             soup_pages = scrape.download_html_file(url_pages)
             for each_a in soup_pages.find('div', {'class': 'news_list'}).findAll('a', {'class': "item"}):
-                url_motion = each_a.get('href')
-                name = each_a.get_text().strip().replace("  ", " ")
-                name = name.replace("                                    ", "")
-                start_date = ""
+
+                name = each_a.find('p').get_text().strip()
                 if name not in names_array:
-                    names_array.append(name)
+                    url_motion = each_a.get('href')
+                    # category = each_a.find('span', {'class': "category"}).get_text()
+                    # date = each_a.find('span', {'class': "date"}).get_text()
+                    # # index_of_year = name.index('2015')
+                    # start_date_array = date.split(" ")
+                    # start_date_string = str(start_date_array[2] + "-" +
+                    #                         months[start_date_array[1].encode('utf-8')] + "-" +
+                    #                         start_date_array[0])
+                    # identifier = start_date_string.replace("-", "")
                     json_event = {
-                        "name": name,
+                        # "identifier": identifier,
+                        "description": name,
                         "url": url_motion,
-                        "start_date": start_date
+                        # "start_date": start_date_string,
+                        # "name": category
                     }
+                    # print name
                     events.append(json_event)
-        #             print json_event
-        #             print "---------------------------\n"
+                    # print identifier
+                    print "---------------------------"
         #
-        # print len(names_array)
+        print len(events)
         return events
 
     def scrape_events(self):
         events_list = self.events_list()
+        events = []
         url_array = []
         counter = 0
+
         for event in events_list:
             print "event nr: %s ---------------------->" % str(counter)
             soup = scrape.download_html_file(event['url'])
@@ -352,9 +379,78 @@ class GeorgiaScraper():
                 for each_a in a_tag:
                     url = each_a.get('href')
                     if url and "/ge/law/" in url and url not in url_array:
+                        name = each_a.get_text().strip()
+                        chars_to_remove = ["“".decode('utf-8'), "„".decode('utf-8'), ""]
+                        for char in chars_to_remove:
+                            name.replace(char, "")
+                        print name[1:len(name) - 1]
                         url_array.append(url)
+                        event_json = {
+                            "name": name[1:len(name) - 1],
+                            "url": url,
+                        }
+                        events.append(event_json)
+                        # print each_a.get_text().strip()
             counter += 1
-        print len(url_array)
+        print len(events)
+        return events
+
+    def events(self):
+        events = self.scrape_events()
+        laws_url = "http://votes.parliament.ge/en/search/passed_laws?sEcho=1&iColumns=7&sColumns=&iDisplayStart=0" \
+                   "&iDisplayLength=30000&mDataProp_0=0&mDataProp_1=1&mDataProp_2=2&mDataProp_3=3&mDataProp_4=4" \
+                   "&mDataProp_5=5&mDataProp_6=6&sSearch=&bRegex=false&sSearch_0=&bRegex_0=false" \
+                   "&bSearchable_0=true&sSearch_1=&bRegex_1=false&bSearchable_1=true&sSearch_2=" \
+                   "&bRegex_2=false&bSearchable_2=true&sSearch_3=&bRegex_3=false&bSearchable_3=true&sSearch_4=" \
+                   "&bRegex_4=false&bSearchable_4=true&sSearch_5=&bRegex_5=false&bSearchable_5=true&sSearch_6=" \
+                   "&bRegex_6=false&bSearchable_6=true&iSortCol_0=0&sSortDir_0=desc&iSortingCols=1&bSortable_0=true" \
+                   "&bSortable_1=true&bSortable_2=true&bSortable_3=true&bSortable_4=true&bSortable_5=true" \
+                   "&bSortable_6=true&parliament=1&start_date=&end_date=&_=1440146282982"
+
+        result = urlopen(laws_url).read()
+        json_result = json.loads(result)
+        print len(json_result['aaData'])
+        laws_array = []
+        array = []
+        array_not_found = []
+        for event in events:
+            name = event['name']
+            for item in json_result['aaData']:
+                soup = BeautifulSoup(item[1], 'html.parser')
+                api_name = soup.get_text()
+                if name in api_name and name not in laws_array:
+                    laws_array.append(name)
+                    array.append(item[0])
+                    # print "FOUND: " + item[0]
+                else:
+                    array_not_found.append(item[3])
+
+        for element in sorted(array):
+            print element
+        print "\t" + str(len(array)) + " Items found"
+        print "\t" + str(len(array_not_found)) + " Items NOT found"
+        # soup = scrape.download_html_file(laws_url)
+        # laws_table = soup.find("table", {"id": "passed_laws_datatable"}).find('tbody').findAll('tr')
+        # print laws_table
+
+        # for event in events:
+        #     name = event['name']
+        # for each_row in laws_table.find('tbody').findAll('tr'):
+        #     print each_row
+
+    def scrape_votes(self):
+        members = self.mps_list()
+        for member in members:
+            print member['identifiers']['identifier']
+            identifier = member['identifiers']['identifier']
+            print len(identifier)
+            if len(identifier) < 4:
+                url_member_votes = "http://votes.parliament.ge/ka/api/v1/member_votes?member_id=%s&with_laws=true" % identifier
+                result = urlopen(url_member_votes).read()
+                json_result = json.loads(result)
+                print json_result['member']['name']
+                print json_result['member']['internal_id']
+                print "---------------------"
 
     def get_chamber_identifier(self, founding_year):
         if founding_year == "2008":

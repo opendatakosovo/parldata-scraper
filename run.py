@@ -42,15 +42,15 @@ def scrape(countries, people, votes):
         if people == "yes":
             print "\n\tPosting and updating data from %s parliament" % item
             print "\tThis may take a few minutes..."
-            members = references[item.lower()].scrape_mp_bio_data()
-            chamber = references[item.lower()].scrape_chamber()
-            parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
-            committee = references[item.lower()].scrape_committe()
+            # members = references[item.lower()].scrape_mp_bio_data()
+            # chamber = references[item.lower()].scrape_chamber()
+            # parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
+            # committee = references[item.lower()].scrape_committe()
             data_collections = {
-                "a-people": members,
-                "b-chamber": chamber,
-                "c-parliamentary_groups": parliamentary_groups,
-                "d-committe": committee
+                # "a-people": members,
+                # "b-chamber": chamber,
+                # "c-parliamentary_groups": parliamentary_groups,
+                # "d-committe": committee
             }
             # inserts data for each data collection in Visegrad+ Api
             for collection in sorted(set(data_collections)):
@@ -82,7 +82,7 @@ def scrape(countries, people, votes):
 
             membership = references[item.lower()].scrape_membership()
             for json_doc in membership:
-                existing = vpapi.getfirst(collection_of_data, where={'organization_id': json_doc['organization_id'], "person_id": json_doc['person_id']})
+                existing = vpapi.getfirst("memberships", where={'organization_id': json_doc['organization_id'], "person_id": json_doc['person_id']})
                 if not existing:
                     print "\tMembership's data collection item not found \n\tPosting new item to the API."
                     resp = vpapi.post("memberships", json_doc)
@@ -96,7 +96,7 @@ def scrape(countries, people, votes):
                 print "\t------------------------------------------------"
             print "\n\tFinished Posting and updating data from memberships data collection"
         if votes == "yes":
-            references[item.lower()].scrape_events()
+            references[item.lower()].scrape_votes()
 
     # Download bio images and render thumbnails.
     #download_bio_images()
