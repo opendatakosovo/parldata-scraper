@@ -4,3 +4,4 @@ beautifulsoup4==4.4.0
 requests[security]>=2.2
 Unidecode==0.04.17
 pytz>=2015.4
+python-dateutil>=2.4

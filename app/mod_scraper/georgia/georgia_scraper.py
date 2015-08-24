@@ -6,15 +6,19 @@ import vpapi
 import json
 import re
 from bs4 import BeautifulSoup
-import progressbar
-from time import sleep
-import sys
+import dateutil.parser
 
 client = MongoClient()
 db = client.ge
 scrape = scraper.Scraper()
 
 class GeorgiaScraper():
+    def local_to_utc(self, dt_str):
+        dt = dateutil.parser.parse(dt_str, dayfirst=True)
+        if ':' in dt_str:
+            return vpapi.local_to_utc(dt, to_string=True)
+        else:
+            return dt.strftime('%Y-%m-%d')
 
     def get_member_id(self):
         url = "http://votes.parliament.ge/ka/api/v1/members"
@@ -395,8 +399,7 @@ class GeorgiaScraper():
         print len(events)
         return events
 
-    def events(self):
-        events = self.scrape_events()
+    def laws(self):
         laws_url = "http://votes.parliament.ge/en/search/passed_laws?sEcho=1&iColumns=7&sColumns=&iDisplayStart=0" \
                    "&iDisplayLength=30000&mDataProp_0=0&mDataProp_1=1&mDataProp_2=2&mDataProp_3=3&mDataProp_4=4" \
                    "&mDataProp_5=5&mDataProp_6=6&sSearch=&bRegex=false&sSearch_0=&bRegex_0=false" \
@@ -411,24 +414,53 @@ class GeorgiaScraper():
         json_result = json.loads(result)
         print len(json_result['aaData'])
         laws_array = []
-        array = []
-        array_not_found = []
-        for event in events:
-            name = event['name']
-            for item in json_result['aaData']:
-                soup = BeautifulSoup(item[1], 'html.parser')
-                api_name = soup.get_text()
-                if name in api_name and name not in laws_array:
-                    laws_array.append(name)
-                    array.append(item[0])
-                    # print "FOUND: " + item[0]
-                else:
-                    array_not_found.append(item[3])
-
-        for element in sorted(array):
-            print element
-        print "\t" + str(len(array)) + " Items found"
-        print "\t" + str(len(array_not_found)) + " Items NOT found"
+        existing = vpapi.getfirst("organizations", where={"identifiers": {"$elemMatch": {"identifier": "8", "scheme": "parliament.ge"}}})
+        if existing:
+            organization_id = existing['id']
+        for item in json_result['aaData']:
+            soup = BeautifulSoup(item[1], 'html.parser')
+            api_name = soup.get_text()
+            url = "http://votes.parliament.ge" + soup.find('a').get('href')
+            index_of_id = url.index('laws/')
+            index = index_of_id + 5
+            motion_id = url[index:]
+            date = self.local_to_utc(item[0] + " 00:00")
+            votes_for = str(item[3])
+            votes_against = str(item[4])
+            # votes_abstain = str(item[5])
+            votes_not_present = str(item[6])
+            json_motion = {
+                "date": date,
+                "start_date": date,
+                "sources": [{
+                    "url": url,
+                    "note": "ვებგვერდი"
+                }],
+                "id": motion_id,
+                "identifier": motion_id,
+                "motion_id": motion_id,
+                "organization_id": organization_id,
+                "text": api_name,
+                "result": "pass",
+                "counts": [
+                    {
+                        "option": "yes",
+                        "value": votes_for
+                    },
+                    {
+                        "option": "no",
+                        "value": votes_against
+                    },
+                    {
+                        "option": "absent",
+                        "value": votes_not_present
+                    }
+                ]
+            }
+            # print json_motion
+            laws_array.append(json_motion)
+        print "\t" + str(len(laws_array)) + " Items found"
+        return laws_array
         # soup = scrape.download_html_file(laws_url)
         # laws_table = soup.find("table", {"id": "passed_laws_datatable"}).find('tbody').findAll('tr')
         # print laws_table
@@ -438,19 +470,52 @@ class GeorgiaScraper():
         # for each_row in laws_table.find('tbody').findAll('tr'):
         #     print each_row
 
+    def vote_events(self):
+        laws_list = self.laws()
+        vote_events = []
+        for law in laws_list:
+            del law['text']
+            del law['sources']
+            del law['date']
+            vote_events.append(law)
+            print law
+            print "---------------------------------\n"
+        return vote_events
+
+
+    def motions(self):
+        laws_list = self.laws()
+        motions = []
+        for motion in laws_list:
+            del motion['counts']
+            del motion['motion_id']
+            del motion['start_date']
+            motions.append(motion)
+            print motion
+            print "---------------------------------\n"
+        return motions
+
     def scrape_votes(self):
-        members = self.mps_list()
-        for member in members:
-            print member['identifiers']['identifier']
-            identifier = member['identifiers']['identifier']
-            print len(identifier)
-            if len(identifier) < 4:
-                url_member_votes = "http://votes.parliament.ge/ka/api/v1/member_votes?member_id=%s&with_laws=true" % identifier
-                result = urlopen(url_member_votes).read()
-                json_result = json.loads(result)
-                print json_result['member']['name']
-                print json_result['member']['internal_id']
-                print "---------------------"
+        laws_list = self.laws()
+        votes_array = []
+        for law in laws_list:
+            voting_results_url = "http://votes.parliament.ge/en/search/voting_results/%s?get_all_3_sessions=false" \
+                             "&iDisplayLength=200000" % law['id']
+            result = urlopen(voting_results_url).read()
+            json_result = json.loads(result)
+            json_doc = {
+                "data": json_result['aaData']
+            }
+            votes_array.append(json_doc)
+            print json_result['aaData']
+        print len(votes_array)
+        # if len(identifier) < 4:
+        #     url_member_votes = "http://votes.parliament.ge/ka/api/v1/member_votes?member_id=%s&with_laws=true" % identifier
+        #     result = urlopen(url_member_votes).read()
+        #     json_result = json.loads(result)
+        #     print json_result['member']['name']
+        #     print json_result['member']['internal_id']
+        #     print "---------------------"
 
     def get_chamber_identifier(self, founding_year):
         if founding_year == "2008":
