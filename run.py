@@ -49,15 +49,15 @@ def scrape(countries, people, votes):
             vpapi.timezone(creds[item.lower()]['timezone'])
             vpapi.authorize(creds[item.lower()]['api_user'], creds[item.lower()]['password'])
             if people == "yes":
-                # members = references[item.lower()].scrape_mp_bio_data()
-                # chamber = references[item.lower()].scrape_chamber()
-                # parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
-                # committee = references[item.lower()].scrape_committe()
+                members = references[item.lower()].scrape_mp_bio_data()
+                chamber = references[item.lower()].scrape_chamber()
+                parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
+                committee = references[item.lower()].scrape_committe()
                 data_collections = {
-                    # "a-people": members,
-                    # "b-chamber": chamber,
-                    # "c-parliamentary_groups": parliamentary_groups,
-                    # "d-committe": committee
+                    "a-people": members,
+                    "b-chamber": chamber,
+                    "c-parliamentary_groups": parliamentary_groups,
+                    "d-committe": committee
                 }
                 # inserts data for each data collection in Visegrad+ Api
                 for collection in sorted(set(data_collections)):
@@ -103,25 +103,33 @@ def scrape(countries, people, votes):
                     print "\t------------------------------------------------"
                 print "\n\tFinished Posting and updating data from memberships data collection"
             if votes == "yes":
-                voting_data_collections = {
-                    # "motions": references[item.lower()].motions(),
-                    "vote-events": references[item.lower()].vote_events(),
-                }
-                for collection in voting_data_collections:
-                    for json_doc in voting_data_collections[collection]:
-                        existing = vpapi.getfirst(collection, where={'identifier': json_doc['identifier']})
-                        if not existing:
-                            print "\t%s's data collection item not found \n\tPosting new item to the API." % collection
-                            resp = vpapi.post(collection, json_doc)
-                        else:
-                            print "\tUpdating %s's data collection item" % collection
-                            # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
-                            resp = vpapi.put(collection, existing['id'], json_doc, effective_date=effective_date)
-                        if resp["_status"] != "OK":
-                            raise Exception("Invalid status code")
+                # print "VPAPI ORGANIZATION ID: " + vpapi.getfirst("memberships", where={"person_id": "55dc35ec273a393eb89ba110", "classification": "parliamentary group"})
+                # voting_data_collections = {
+                #     "motions": references[item.lower()].motions(),
+                #     "vote-events": references[item.lower()].vote_events(),
+                # }
 
-                        print "\t------------------------------------------------"
-                    print "\n\tFinished Posting and updating data from %s data collection" % collection
+                # for collection in voting_data_collections:
+                #     for json_doc in voting_data_collections[collection]:
+                #         existing = vpapi.getfirst(collection, where={'identifier': json_doc['identifier']})
+                #         if not existing:
+                #             print "\t%s's data collection item not found \n\tPosting new item to the API." % collection
+                #             resp = vpapi.post(collection, json_doc)
+                #         else:
+                #             print "\tUpdating %s's data collection item" % collection
+                #             del json_doc['id']
+                #             # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
+                #             resp = vpapi.put(collection, existing['id'], json_doc, effective_date=effective_date)
+                #         if resp["_status"] != "OK":
+                #             raise Exception("Invalid status code")
+                #
+                #         print "\t------------------------------------------------"
+                #     print "\n\tFinished Posting and updating data from %s data collection" % collection
+
+                votes = references[item.lower()].get_group_id()
+
+
+
 
     else:
         print "\n\tInvalid country/ies added"

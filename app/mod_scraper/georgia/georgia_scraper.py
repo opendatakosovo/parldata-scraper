@@ -7,12 +7,41 @@ import json
 import re
 from bs4 import BeautifulSoup
 import dateutil.parser
+from datetime import date
 
 client = MongoClient()
 db = client.ge
 scrape = scraper.Scraper()
 
 class GeorgiaScraper():
+    def effective_date(self):
+        return date.today().isoformat()
+
+    names_to_fix_json = {
+        "როლანდი ახალაია": "როლანდ ახალაია",
+        "მახირ დარზიევი": "მახირი დარზიევი",
+        "დავითი დარცმელიძე": "დავით დარცმელიძე",
+        "ლევან თარხნიშვილი": "ლევანი თარხნიშვილი",
+        "თამარ კორძაია": "თამარი კორძაია",
+        "ვახტანგი ლემონჯავა": "ვახტანგ ლემონჯავა",
+        "ტარიელი ლონდარიძე": "ტარიელ ლონდარიძე",
+        "თემურ მაისურაძე": "თემური მაისურაძე",
+        "მიხეილი მაჭავარიანი": "მიხეილ მაჭავარიანი",
+        "თამაზ მეჭიაური": "თამაზი მეჭიაური",
+        "გურამი მისაბიშვილი": "გურამ მისაბიშვილი",
+        "თეიმურაზ ნერგაძე": "თეიმურაზი ნერგაძე",
+        "მირიანი წიკლაური": "მირიან წიკლაური",
+        "დარეჯან ჩხეტიანი": "დარეჯანი ჩხეტიანი",
+        "ოთარ ჩრდილელი": "ოთარი ჩრდილელი",
+        "ზურაბი ჩილინგარაშვილი": "ზურაბ ჩილინგარაშვილი",
+        "თამაზ შიოშვილი": "თამაზი შიოშვილი",
+        "ნიკოლოზ ყიფშიძე": "ნიკოლოზი ყიფშიძე",
+        "გედევან ფოფხაძე": "გედევანი ფოფხაძე",
+        "გიორგი ჟვანია": "გოგლა ჟვანია",
+        "ფრიდონ საყვარელიძე": "ფრიდონი საყვარელიძე",
+        "სამველ პეტროსიან": "სამველ პეტროსიანი",
+    }
+
     def local_to_utc(self, dt_str):
         dt = dateutil.parser.parse(dt_str, dayfirst=True)
         if ':' in dt_str:
@@ -34,6 +63,13 @@ class GeorgiaScraper():
             mp_list[mp] = str(member_id)
         return mp_list
 
+    def names_to_fix(self, name):
+        if name in self.names_to_fix_json:
+            first_name = self.names_to_fix_json[name]
+        else:
+            first_name = name
+        return first_name
+
     def mps_list(self):
         mps_list = []
         deputy_list_url = "http://www.parliament.ge/ge/parlamentarebi/deputatebis-sia"
@@ -46,9 +82,9 @@ class GeorgiaScraper():
             else:
                 full_name = each.find('h4').next.encode('utf-8')
                 first_last_name = full_name.split(' ')
-
                 first_name = first_last_name[0]
                 last_name = first_last_name[1]
+                full_name_final = self.names_to_fix(full_name)
                 url = each.get('href')
                 membership = each.find('p').next.encode('utf-8')
                 image_url = each.find('img').get('src')
@@ -56,8 +92,8 @@ class GeorgiaScraper():
                 gender = self.guess_gender(first_name)
                 person_id = url[person_id_from_url + 2:]
 
-                if full_name.decode('utf-8') in mp_list:
-                    member_id = mp_list[full_name.decode('utf-8')]
+                if full_name_final.decode('utf-8') in mp_list:
+                    member_id = mp_list[full_name_final.decode('utf-8')]
                 else:
                     member_id = person_id
 
@@ -67,7 +103,7 @@ class GeorgiaScraper():
                 }
 
                 mp_json = {
-                    "name": full_name,
+                    "name": full_name_final,
                     "identifiers": identifiers,
                     "given_name": first_name,
                     "family_name": last_name,
@@ -76,6 +112,7 @@ class GeorgiaScraper():
                     "source_url": url,
                     "membership": membership
                 }
+                print "identifier: " + mp_json['identifiers']['identifier']
                 mps_list.append(mp_json)
         return mps_list
 
@@ -244,9 +281,9 @@ class GeorgiaScraper():
         parties = self.scrape_parliamentary_groups()
         committees = self.parliamentary_committes_list()
         data_collections = {
-            # "chambers": members_list,
+            "chambers": members_list,
             "parties": parties,
-            # "committes": committees
+            "committes": committees
         }
         membership_groups = self.membership_correction()
         print "\n\tScraping membership's data from Georgia's parliament..."
@@ -283,12 +320,13 @@ class GeorgiaScraper():
                                 continue
                             else:
                                 full_name = each_a.find('h4').next.encode('utf-8')
+                                full_name_final = self.names_to_fix(full_name)
                                 member = each_a.find('p').next.encode('utf-8')
                                 url_m = each_a.get('href').encode('utf-8')
                                 person_id_from_url = url_m.index('p/')
                                 person_id = url[person_id_from_url + 2:]
-                                if full_name.decode('utf-8') in mp_list:
-                                    member_id = mp_list[full_name.decode('utf-8')]
+                                if full_name_final.decode('utf-8') in mp_list:
+                                    member_id = mp_list[full_name_final.decode('utf-8')]
                                 else:
                                     member_id = person_id
 
@@ -412,7 +450,6 @@ class GeorgiaScraper():
 
         result = urlopen(laws_url).read()
         json_result = json.loads(result)
-        print len(json_result['aaData'])
         laws_array = []
         existing = vpapi.getfirst("organizations", where={"identifiers": {"$elemMatch": {"identifier": "8", "scheme": "parliament.ge"}}})
         if existing:
@@ -424,7 +461,7 @@ class GeorgiaScraper():
             index_of_id = url.index('laws/')
             index = index_of_id + 5
             motion_id = url[index:]
-            date = self.local_to_utc(item[0] + " 00:00")
+            date = self.local_to_utc(item[0] + " 04:00")
             votes_for = str(item[3])
             votes_against = str(item[4])
             # votes_abstain = str(item[5])
@@ -459,7 +496,6 @@ class GeorgiaScraper():
             }
             # print json_motion
             laws_array.append(json_motion)
-        print "\t" + str(len(laws_array)) + " Items found"
         return laws_array
         # soup = scrape.download_html_file(laws_url)
         # laws_table = soup.find("table", {"id": "passed_laws_datatable"}).find('tbody').findAll('tr')
@@ -478,10 +514,7 @@ class GeorgiaScraper():
             del law['sources']
             del law['date']
             vote_events.append(law)
-            print law
-            print "---------------------------------\n"
         return vote_events
-
 
     def motions(self):
         laws_list = self.laws()
@@ -491,31 +524,81 @@ class GeorgiaScraper():
             del motion['motion_id']
             del motion['start_date']
             motions.append(motion)
-            print motion
-            print "---------------------------------\n"
         return motions
 
+    def get_group_id(self):
+        groups = {}
+        all_groups = vpapi.getall("organizations", where={"classification": "parliamentary group"})
+        for group in all_groups:
+            groups[group['id']] = []
+
+        for group in groups:
+            memberships = vpapi.getall("memberships", where={"organization_id": group})
+            for member in memberships:
+                if member['organization_id'] in groups:
+                    groups[member['organization_id']].append(member['person_id'])
+        print groups
+        return groups
+
     def scrape_votes(self):
-        laws_list = self.laws()
+        vote_events = self.vote_events()
         votes_array = []
-        for law in laws_list:
+        options_correction = {
+            "Yes": "yes",
+            "No": "no",
+            "Abstain / Not Present*": "absent"
+        }
+        print "\n\tScraping votes data from Georgia's parliament...\n\tPlease wait. This may take a few minutes..."
+        counter = 0
+        for law in vote_events:
+            counter += 1
+            print "\n\t\tlaw: %s counter: %s" % (law['id'], str(counter))
             voting_results_url = "http://votes.parliament.ge/en/search/voting_results/%s?get_all_3_sessions=false" \
-                             "&iDisplayLength=200000" % law['id']
+                             "&iDisplayLength=200000" % str(law['id'])
             result = urlopen(voting_results_url).read()
             json_result = json.loads(result)
-            json_doc = {
-                "data": json_result['aaData']
-            }
-            votes_array.append(json_doc)
-            print json_result['aaData']
-        print len(votes_array)
-        # if len(identifier) < 4:
-        #     url_member_votes = "http://votes.parliament.ge/ka/api/v1/member_votes?member_id=%s&with_laws=true" % identifier
-        #     result = urlopen(url_member_votes).read()
-        #     json_result = json.loads(result)
-        #     print json_result['member']['name']
-        #     print json_result['member']['internal_id']
-        #     print "---------------------"
+            for item in json_result['aaData']:
+                a_tag = BeautifulSoup(item[0], 'html.parser')
+                url = a_tag.find('a').get('href')
+                index = url.index('members/')
+                member_id = url[index + 8:]
+                option = item[1]
+                existing = vpapi.getfirst('people', where={"identifiers": {"$elemMatch": {"identifier": member_id, "scheme": "parliament.ge"}}})
+                if existing:
+                    member_id_API = existing['id']
+
+                memberships = self.get_group_id()
+                for element in memberships:
+                    for array in element:
+                        if member_id_API in element:
+                            print array
+
+                if group_id:
+                    json_doc = {
+                        "vote_event_id": law['id'],
+                        "option": options_correction[option],
+                        "voter_id": member_id_API,
+                        "group_id": group_id
+                    }
+                    collection = "votes"
+                    existing = vpapi.getfirst(collection, where={'vote_event_id': json_doc['vote_event_id'], "voter_id": json_doc['voter_id']})
+                    if not existing:
+                        print "\t%s's data collection item not found \n\tPosting new item to the API." % collection
+                        resp = vpapi.post(collection, json_doc)
+                    else:
+                        print "\tUpdating %s's data collection item" % collection
+                        # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
+                        resp = vpapi.put(collection, existing['id'], json_doc, effective_date=self.effective_date())
+                    if resp["_status"] != "OK":
+                        raise Exception("Invalid status code")
+
+                    print "\t------------------------------------------------"
+                    votes_array.append(json_doc)
+                # url = a_tag.find('a').get('href')
+                # print "a_tag: " + a_tag
+                # print "url: " + url
+        print "\n\tScraping completed! \n\tScraped " + str(len(votes_array)) + " votes"
+        return votes_array
 
     def get_chamber_identifier(self, founding_year):
         if founding_year == "2008":
@@ -543,7 +626,7 @@ class GeorgiaScraper():
             "founding_date": "2012",
             "dissolution_date": "2016-10",
         })
-        chamber_list_html = "http://www.parliament.ge/ge/parlamentarebi/saqartvelos-wina-mowvevis-parlamentebi-1317"
+        chamber_list_html = "http://www.parliament.ge/ge/parlamentarebi/wina-mowvevis-parlamentebi"
         scrape = scraper.Scraper()
 
         soup = scrape.download_html_file(chamber_list_html)
@@ -565,6 +648,7 @@ class GeorgiaScraper():
                 }
 
                 chamber_json = self.build_chamber_doc(name, identifiers, founding_year, dissolution_date, source_url)
+                print chamber_json
                 chambers_list.append(chamber_json)
         print "\n\tScraping completed! \n\tScraped " + str(len(chambers_list)) + " chambers"
         return chambers_list
