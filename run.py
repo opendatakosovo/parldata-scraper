@@ -126,7 +126,6 @@ def scrape(countries, people, votes):
                     print "\n\tFinished Posting and updating data from %s data collection" % collection
 
                 votes = references[item.lower()].scrape_votes()
-                vpapi.delete('votes')
                 try:
                     vpapi.post("votes", votes)
                 except BaseException as ex:

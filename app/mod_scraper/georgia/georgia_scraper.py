@@ -451,10 +451,25 @@ class GeorgiaScraper():
         result = urlopen(laws_url).read()
         json_result = json.loads(result)
         laws_array = []
+        last_item = vpapi.getfirst("vote-events")
+
+        index_counter = 0
+        if last_item:
+            law_url = "/en/laws/" + last_item['id']
+            for element in json_result['aaData']:
+                soup = BeautifulSoup(element[1], "html.parser")
+                url_soup = soup.find('a').get('href')
+                if law_url == url_soup:
+                    break
+                index_counter += 1
+        else:
+            index_counter = len(json_result['aaData'])
+
         existing = vpapi.getfirst("organizations", where={"identifiers": {"$elemMatch": {"identifier": "8", "scheme": "parliament.ge"}}})
         if existing:
             organization_id = existing['id']
-        for item in json_result['aaData']:
+
+        for item in json_result['aaData'][:index_counter]:
             soup = BeautifulSoup(item[1], 'html.parser')
             api_name = soup.get_text()
             url = "http://votes.parliament.ge" + soup.find('a').get('href')
