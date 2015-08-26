@@ -103,43 +103,39 @@ def scrape(countries, people, votes):
                     print "\t------------------------------------------------"
                 print "\n\tFinished Posting and updating data from memberships data collection"
             if votes == "yes":
-                # print "VPAPI ORGANIZATION ID: " + vpapi.getfirst("memberships", where={"person_id": "55dc35ec273a393eb89ba110", "classification": "parliamentary group"})
-                # voting_data_collections = {
-                #     "motions": references[item.lower()].motions(),
-                #     "vote-events": references[item.lower()].vote_events(),
-                # }
+                voting_data_collections = {
+                    "motions": references[item.lower()].motions(),
+                    "vote-events": references[item.lower()].vote_events(),
+                }
 
-                # for collection in voting_data_collections:
-                #     for json_doc in voting_data_collections[collection]:
-                #         existing = vpapi.getfirst(collection, where={'identifier': json_doc['identifier']})
-                #         if not existing:
-                #             print "\t%s's data collection item not found \n\tPosting new item to the API." % collection
-                #             resp = vpapi.post(collection, json_doc)
-                #         else:
-                #             print "\tUpdating %s's data collection item" % collection
-                #             del json_doc['id']
-                #             # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
-                #             resp = vpapi.put(collection, existing['id'], json_doc, effective_date=effective_date)
-                #         if resp["_status"] != "OK":
-                #             raise Exception("Invalid status code")
-                #
-                #         print "\t------------------------------------------------"
-                #     print "\n\tFinished Posting and updating data from %s data collection" % collection
+                for collection in voting_data_collections:
+                    for json_doc in voting_data_collections[collection]:
+                        existing = vpapi.getfirst(collection, where={'identifier': json_doc['identifier']})
+                        if not existing:
+                            print "\t%s's data collection item not found \n\tPosting new item to the API." % collection
+                            resp = vpapi.post(collection, json_doc)
+                        else:
+                            print "\tUpdating %s's data collection item" % collection
+                            del json_doc['id']
+                            # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
+                            resp = vpapi.put(collection, existing['id'], json_doc, effective_date=effective_date)
+                        if resp["_status"] != "OK":
+                            raise Exception("Invalid status code")
 
-                votes = references[item.lower()].get_group_id()
+                        print "\t------------------------------------------------"
+                    print "\n\tFinished Posting and updating data from %s data collection" % collection
 
-
-
-
+                votes = references[item.lower()].scrape_votes()
+                vpapi.delete('votes')
+                try:
+                    vpapi.post("votes", votes)
+                except BaseException as ex:
+                    print ex.message
     else:
         print "\n\tInvalid country/ies added"
-    # Download bio images and render thumbnails.
-    #download_bio_images()
 
 
-# Funtction which will scrape MP's bio data
 # Define the arguments.
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("\nArguments should be written like this: \n\t$1-countries $2-people $3-votes")
     parser.add_argument("--countries", help="Import countries data..", default="all")
@@ -148,7 +144,7 @@ if __name__ == "__main__":
     parser.add_argument("--time_out", help="TimeOut..", default="yes")
     parser.add_argument("--time_out_seconds", help="TimeOut seconds..", default="86400")
 
-    # Parse arguemnts and run the app.
+    # Parse arguments and run the app.
     args = parser.parse_args()
     countries = args.countries
     people = args.people

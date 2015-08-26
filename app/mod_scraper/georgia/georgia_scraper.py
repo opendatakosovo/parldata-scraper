@@ -528,20 +528,32 @@ class GeorgiaScraper():
 
     def get_group_id(self):
         groups = {}
+        parties_ids = []
         all_groups = vpapi.getall("organizations", where={"classification": "parliamentary group"})
         for group in all_groups:
-            groups[group['id']] = []
+            parties_ids.append(group['id'])
 
-        for group in groups:
-            memberships = vpapi.getall("memberships", where={"organization_id": group})
-            for member in memberships:
-                if member['organization_id'] in groups:
-                    groups[member['organization_id']].append(member['person_id'])
-        print groups
+        memberships = vpapi.getall("memberships")
+        for member in memberships:
+            if member['organization_id'] in parties_ids:
+                groups[member['person_id']] = member['organization_id']
+            else:
+                groups[member['person_id']] = None
         return groups
+
+    def get_all_member_ids_for_votes(self):
+        members = {}
+        api_members = vpapi.getall("people")
+
+        for member in api_members:
+            members[member['identifiers'][0]['identifier']] = member['id']
+
+        return members
 
     def scrape_votes(self):
         vote_events = self.vote_events()
+        memberships = self.get_group_id()
+        members = self.get_all_member_ids_for_votes()
         votes_array = []
         options_correction = {
             "Yes": "yes",
@@ -563,37 +575,21 @@ class GeorgiaScraper():
                 index = url.index('members/')
                 member_id = url[index + 8:]
                 option = item[1]
-                existing = vpapi.getfirst('people', where={"identifiers": {"$elemMatch": {"identifier": member_id, "scheme": "parliament.ge"}}})
-                if existing:
-                    member_id_API = existing['id']
+                if member_id in members:
+                    member_id_API = members[member_id]
 
-                memberships = self.get_group_id()
-                for element in memberships:
-                    for array in element:
-                        if member_id_API in element:
-                            print array
+                    group_id = memberships[member_id_API]
+                    if group_id:
+                        print "\t" + member_id_API
+                        json_doc = {
+                            "vote_event_id": law['id'],
+                            "option": options_correction[option],
+                            "voter_id": member_id_API,
+                            "group_id": group_id
+                        }
+                        votes_array.append(json_doc)
+                        print "\t------------------------------------------------"
 
-                if group_id:
-                    json_doc = {
-                        "vote_event_id": law['id'],
-                        "option": options_correction[option],
-                        "voter_id": member_id_API,
-                        "group_id": group_id
-                    }
-                    collection = "votes"
-                    existing = vpapi.getfirst(collection, where={'vote_event_id': json_doc['vote_event_id'], "voter_id": json_doc['voter_id']})
-                    if not existing:
-                        print "\t%s's data collection item not found \n\tPosting new item to the API." % collection
-                        resp = vpapi.post(collection, json_doc)
-                    else:
-                        print "\tUpdating %s's data collection item" % collection
-                        # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
-                        resp = vpapi.put(collection, existing['id'], json_doc, effective_date=self.effective_date())
-                    if resp["_status"] != "OK":
-                        raise Exception("Invalid status code")
-
-                    print "\t------------------------------------------------"
-                    votes_array.append(json_doc)
                 # url = a_tag.find('a').get('href')
                 # print "a_tag: " + a_tag
                 # print "url: " + url
