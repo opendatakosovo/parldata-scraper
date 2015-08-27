@@ -49,15 +49,16 @@ def scrape(countries, people, votes):
             vpapi.timezone(creds[item.lower()]['timezone'])
             vpapi.authorize(creds[item.lower()]['api_user'], creds[item.lower()]['password'])
             if people == "yes":
+                references[item.lower()].scrape_mp_bio_data()
                 members = references[item.lower()].scrape_mp_bio_data()
-                chamber = references[item.lower()].scrape_chamber()
-                parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
-                committee = references[item.lower()].scrape_committe()
+                # chamber = references[item.lower()].scrape_chamber()
+                # parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
+                # committee = references[item.lower()].scrape_committe()
                 data_collections = {
                     "a-people": members,
-                    "b-chamber": chamber,
-                    "c-parliamentary_groups": parliamentary_groups,
-                    "d-committe": committee
+                    # "b-chamber": chamber,
+                    # "c-parliamentary_groups": parliamentary_groups,
+                    # "d-committe": committee
                 }
                 # inserts data for each data collection in Visegrad+ Api
                 for collection in sorted(set(data_collections)):
@@ -86,50 +87,52 @@ def scrape(countries, people, votes):
 
                         print "\t------------------------------------------------"
                     print "\n\tFinished Posting and updating data from %s data collection" % collection[2:]
-
-                membership = references[item.lower()].scrape_membership()
-                for json_doc in membership:
-                    existing = vpapi.getfirst("memberships", where={'organization_id': json_doc['organization_id'], "person_id": json_doc['person_id']})
-                    if not existing:
-                        print "\tMembership's data collection item not found \n\tPosting new item to the API."
-                        resp = vpapi.post("memberships", json_doc)
-                    else:
-                        print "\tUpdating membership's data collection item"
-                        # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
-                        resp = vpapi.put("memberships", existing['id'], json_doc, effective_date=effective_date)
-                    if resp["_status"] != "OK":
-                        raise Exception("Invalid status code")
-
-                    print "\t------------------------------------------------"
-                print "\n\tFinished Posting and updating data from memberships data collection"
+                #
+                # membership = references[item.lower()].scrape_membership()
+                # for json_doc in membership:
+                #     existing = vpapi.getfirst("memberships", where={'organization_id': json_doc['organization_id'], "person_id": json_doc['person_id']})
+                #     if not existing:
+                #         print "\tMembership's data collection item not found \n\tPosting new item to the API."
+                #         resp = vpapi.post("memberships", json_doc)
+                #     else:
+                #         print "\tUpdating membership's data collection item"
+                #         # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
+                #         resp = vpapi.put("memberships", existing['id'], json_doc, effective_date=effective_date)
+                #     if resp["_status"] != "OK":
+                #         raise Exception("Invalid status code")
+                #
+                #     print "\t------------------------------------------------"
+                # print "\n\tFinished Posting and updating data from People, Organizations, Memberships data collection"
+                # print "\t------------------------------------------------"
             if votes == "yes":
+                print "\n\tScraping and updating Vote Events, Motions and Votes"
                 voting_data_collections = {
                     "motions": references[item.lower()].motions(),
                     "vote-events": references[item.lower()].vote_events(),
                 }
 
                 for collection in voting_data_collections:
-                    for json_doc in voting_data_collections[collection]:
-                        existing = vpapi.getfirst(collection, where={'identifier': json_doc['identifier']})
-                        if not existing:
-                            print "\t%s's data collection item not found \n\tPosting new item to the API." % collection
-                            resp = vpapi.post(collection, json_doc)
+                    try:
+                        if len(voting_data_collections[collection]) > 0:
+                            resp = vpapi.post(collection, voting_data_collections[collection])
+                            if resp["_status"] != "OK":
+                                raise Exception("Invalid status code")
+                            print "\n\tFinished Posting and updating data from %s data collection" % collection
                         else:
-                            print "\tUpdating %s's data collection item" % collection
-                            del json_doc['id']
-                            # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
-                            resp = vpapi.put(collection, existing['id'], json_doc, effective_date=effective_date)
-                        if resp["_status"] != "OK":
-                            raise Exception("Invalid status code")
-
-                        print "\t------------------------------------------------"
-                    print "\n\tFinished Posting and updating data from %s data collection" % collection
+                            print "\n\tThere are no new data for %s data collection" % collection
+                    except BaseException as ex:
+                        print ex.message
 
                 votes = references[item.lower()].scrape_votes()
                 try:
-                    vpapi.post("votes", votes)
+                    if len(votes) > 0:
+                        vpapi.post("votes", votes)
+                    else:
+                        print "\n\tThere are no new data for votes data collection"
                 except BaseException as ex:
                     print ex.message
+                print "\n\tFinished Scraping and updating Vote Events, Motions and Votes"
+                print "\t------------------------------------------------"
     else:
         print "\n\tInvalid country/ies added"
 
