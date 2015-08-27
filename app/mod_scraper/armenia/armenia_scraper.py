@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from app.mod_scraper import scraper
+import vpapi
+from datetime import date
 import re
 from collections import OrderedDict
 
@@ -17,9 +19,7 @@ class ArmeniaScraper():
         }
         names_deputies = []
         for term in list(reversed(sorted(terms.keys()))):
-            print term
             url = "http://www.parliament.am/deputies.php?lang=arm&sel=full&ord=alpha&show_session=" + term
-            print url
             soup = scrape.download_html_file(url)
             for each_div in soup.findAll('div', {'class': 'dep_name_list'}):
                 url_deputy = each_div.findAll("a")
@@ -49,6 +49,7 @@ class ArmeniaScraper():
                     names_deputies.append(name_ordered)
                     # print "name: %s " % name_ordered
                     members_json = {
+                        "term": term,
                         "membership": membership,
                         "member_id": member_id,
                         "url": url_deputy_final,
@@ -58,15 +59,7 @@ class ArmeniaScraper():
                         "sort_name": last_name + ", " + first_name,
                         "distinct_id": distinct_id,
                     }
-                    # soup_deputy = scrape.download_html_file(url_deputy)
-                    # for each_row in soup_deputy.find('div', {'class': 'dep_description'}).find('tbody').findAll("tr"):
-                    #     print each_row
-                    # print "\n\nname: %s \nId: %s" % (name.strip(), distinct_id)
-                    # print "url: http://www.parliament.am" + url[1].get('href')
                     mps_list.append(members_json)
-                    print members_json
-                    print "-------------------------------------------"
-        print "\tScraped %s members" % str(len(mps_list))
         return mps_list
         # print array
 
@@ -83,7 +76,10 @@ class ArmeniaScraper():
     def build_json_doc(self, identifier, full_name, first_name, last_name, url, image_url,
                        email, date_of_birth, gender, biography):
         json_doc = {
-            "identifiers": [identifier],
+            "identifiers": [{
+                "identifier": identifier,
+                "scheme": "parliament.am"
+            }],
             "gender": gender,
             "name": full_name,
             "given_name": first_name,
@@ -108,21 +104,25 @@ class ArmeniaScraper():
         mps_list = self.mps_list()
         members_list = []
         print "\n\tScraping people data from Armenia's parliament..."
+        print "\tThis may take a few minutes..."
         for member in mps_list:
             birth_date = ""
             email = ""
             soup = scrape.download_html_file(member['url'])
             each_tr = soup.find("div", {'class': "dep_description"}).find('table', {"width": "480"}).findAll('tr')
             if each_tr[0].find('td', {'rowspan': "8"}).find('img'):
-                image_url = "url: http://www.parliament.am/" + each_tr[0].find('td', {'rowspan': "8"}).find('img').get('src')
+                image_url = "http://www.parliament.am/" + each_tr[0].find('td', {'rowspan': "8"}).find('img').get('src')
+                image_url.replace("big", "small")
             else:
-                image_url = "http://snapparcel.com/wp-content/uploads/2014/10/url-150x150.png"
+                image_url = None
 
             if each_tr[1].find('td'):
                 birth_date = each_tr[1].find('div', {'class': "description_2"}).get_text()
 
             if each_tr[len(each_tr) - 1].find('a'):
                 email = each_tr[len(each_tr) - 1].find('a').get_text()
+                if email[-2:] != "am":
+                    email = None
             else:
                 email = None
 
@@ -136,9 +136,16 @@ class ArmeniaScraper():
 
             if not email:
                 del member_json['contact_details']
+
+            if not image_url:
+                del member_json['image']
+
             members_list.append(member_json)
         print "\n\tScraping completed! \n\tScraped " + str(len(members_list)) + " members"
         return members_list
+
+    def effective_date(self):
+        return date.today().isoformat()
 
     def scrape_organization(self):
             print "scraping Armenia Votes data"

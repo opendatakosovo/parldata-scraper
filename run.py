@@ -49,7 +49,6 @@ def scrape(countries, people, votes):
             vpapi.timezone(creds[item.lower()]['timezone'])
             vpapi.authorize(creds[item.lower()]['api_user'], creds[item.lower()]['password'])
             if people == "yes":
-                references[item.lower()].scrape_mp_bio_data()
                 members = references[item.lower()].scrape_mp_bio_data()
                 # chamber = references[item.lower()].scrape_chamber()
                 # parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
