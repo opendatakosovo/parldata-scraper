@@ -240,7 +240,7 @@ class GeorgiaScraper():
         print "\n\tScraping completed! \n\tScraped " + str(len(parties_list)) + " parliamentary groups"
         return parties_list
 
-    def scrape_committe(self):
+    def scrape_committee(self):
         committees_list = []
         committees = self.parliamentary_committes_list()
         print "\n\tScraping committees data from Georgia's parliament..."

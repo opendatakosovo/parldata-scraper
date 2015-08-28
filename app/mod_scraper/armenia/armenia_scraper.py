@@ -2,6 +2,7 @@
 from app.mod_scraper import scraper
 from datetime import date
 import vpapi
+import re
 
 scrape = scraper.Scraper()
 
@@ -240,6 +241,36 @@ class ArmeniaScraper():
                 parties_list.append(party_json)
         print "\n\tScraping completed! \n\tScraped " + str(len(parties_list)) + " parliametary groups"
         return parties_list
+
+    def committee_list(self):
+        committee_list = []
+        for i in range(3, 6):
+            url = "http://www.parliament.am/committees.php?lang=arm&show_session=" + str(i)
+            soup = scrape.download_html_file(url)
+            for each_tr in soup.find("table", {"class": "com-table"}).findAll('tr', {"valign": "top"}):
+                for each_td in each_tr.findAll('td'):
+                    name = each_td.find('a', {"class": "blue_mid_b"}).get_text()
+                    url = "http://www.parliament.am" + each_td.find('a', {"class": "blue_mid_b"}).get("href")
+                    identifier = re.findall(r'\d+', url)
+                    committee_json = {
+                        "name": name,
+                        "url": url,
+                        "identifier": identifier
+                    }
+                    committee_list.append(committee_json)
+        return committee_list
+
+    def scrape_committee(self):
+        committees = self.committee_list()
+        for committee in committees:
+            url = committee['url'].replace('show', "members")
+            soup = scrape.download_html_file(url)
+            if soup.find("div", {"style": "border-bottom:1px solid #E2E2E2;"}).find('a').get_text() != "":
+                email = soup.find("div", {"style": "border-bottom:1px solid #E2E2E2;"}).find('a').get_text()
+            else:
+                email = "Not found"
+            print email
+            # email = soup.find("div", {"style": "border-bottom:1px solid #E2E2E2;"}).find('a').get('href')
 
 
     def effective_date(self):
