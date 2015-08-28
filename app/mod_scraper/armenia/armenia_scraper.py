@@ -1,24 +1,38 @@
 # -*- coding: utf-8 -*-
 from app.mod_scraper import scraper
-import vpapi
 from datetime import date
-import re
-from collections import OrderedDict
+import vpapi
 
 scrape = scraper.Scraper()
 
 class ArmeniaScraper():
+    terms = {
+        "1": {
+            "start_date": "1995-07-27",
+            "end_date": "1999-06-09"
+        },
+        "2": {
+            "start_date": "1999-06-10",
+            "end_date": "2003-05-14"
+        },
+        "3": {
+            "start_date": "2003-06-10",
+            "end_date": "2007-04-09"
+        },
+        "4": {
+            "start_date": "2007-06-07",
+            "end_date": "2012-05-31"
+        },
+        "5": {
+            "start_date": "2012-05-31",
+            "end_date": ""
+        }
+    }
+
     def mps_list(self):
         mps_list = []
-        terms = {
-            "5": "ԱԺ հինգերորդ գումարում",
-            "4": "ԱԺ չորրորդ գումարում",
-            "3": "ԱԺ երրորդ գումարում",
-            "2": "ԱԺ երկրորդ գումարում",
-            "1": "ԱԺ առաջին գումարում",
-        }
         names_deputies = []
-        for term in list(reversed(sorted(terms.keys()))):
+        for term in list(reversed(sorted(self.terms.keys()))):
             url = "http://www.parliament.am/deputies.php?lang=arm&sel=full&ord=alpha&show_session=" + term
             soup = scrape.download_html_file(url)
             for each_div in soup.findAll('div', {'class': 'dep_name_list'}):
@@ -49,7 +63,6 @@ class ArmeniaScraper():
                     names_deputies.append(name_ordered)
                     # print "name: %s " % name_ordered
                     members_json = {
-                        "term": term,
                         "membership": membership,
                         "member_id": member_id,
                         "url": url_deputy_final,
@@ -144,8 +157,125 @@ class ArmeniaScraper():
         print "\n\tScraping completed! \n\tScraped " + str(len(members_list)) + " members"
         return members_list
 
+    def build_organization_doc(self, classification, name, identifier, founding_date,
+                               dissolution_date, url, email, parent_id):
+        return {
+            "classification": classification,
+            "name": name,
+            "identifiers": [{
+                "identifier": identifier,
+                "scheme": "parliament.am"
+            }],
+            "founding_date": founding_date,
+            "contact_details": [{
+                "label": "Էլ. փոստ",
+                "type": "email",
+                "value": email
+            }],
+            "dissolution_date": dissolution_date,
+            "sources": [{
+                "note": "վեբ էջ",
+                "url": url
+            }],
+            "parent_id": parent_id
+        }
+
+    def scrape_parliamentary_groups(self):
+        parties_list = []
+        terms_ids = {}
+
+        all_terms = vpapi.getall("organizations", where={"classification": "chamber"})
+
+        print "\n\tScraping parliamentary groups from Armenia's parliament..."
+        for term in all_terms:
+            terms_ids[term['identifiers'][0]['identifier']] = term['id']
+
+        for term in list(reversed(sorted(self.terms.keys()))):
+            url = "http://www.parliament.am/deputies.php?lang=arm&sel=factions&SubscribeEmail=&show_session=" + term
+            soup = scrape.download_html_file(url)
+            parties_doc = {}
+            for each_a in soup.find("div", {"class": "level3menu"}).findAll("a"):
+                url = "http://www.parliament.am" + each_a.get('href')
+                party_name = each_a.get_text().encode('utf-8')
+                party_name_ordered = party_name.replace(" խմբակցություն", "").strip()
+                index_start = url.index("ID=")
+                index_end = url.index("&lang")
+                identifier = url[index_start + 3:index_end]
+                if identifier != "0":
+                    parties_doc[party_name_ordered.decode('utf-8')] = {
+                        "url": url,
+                        "identifier": identifier,
+                    }
+
+            for each_div in soup.findAll('div', {"class": "content"}):
+                name = each_div.find("center").find("b").get_text()
+                name_ordered = name.replace("  ", " ")
+                if name in parties_doc:
+                    identifier = parties_doc[name]['identifier']
+                else:
+                    identifier = None
+                founding_date = self.terms[term]["start_date"]
+                parent_id = terms_ids[term]
+
+                if each_div.find("center").find("a"):
+                    email = each_div.find("center").find("a").get_text()
+
+                if term != "5":
+                    dissolution_date = self.terms[term]["end_date"]
+                else:
+                    dissolution_date = None
+
+                party_json = self.build_organization_doc("parliamentary group", name_ordered, identifier, founding_date,
+                                                         dissolution_date, url, email, parent_id)
+
+                if not dissolution_date:
+                    del party_json['dissolution_date']
+
+                if email or email != None:
+                    del party_json['contact_details']
+
+                if identifier or identifier == None:
+                    del party_json['identifiers']
+
+                parties_list.append(party_json)
+        print "\n\tScraping completed! \n\tScraped " + str(len(parties_list)) + " parliametary groups"
+        return parties_list
+
+
     def effective_date(self):
         return date.today().isoformat()
 
+    def scrape_chamber(self):
+        url = "http://www.parliament.am/deputies.php?sel=ful&ord=photo&show_session=5&lang=arm&enc=utf8"
+        soup = scrape.download_html_file(url)
+        chambers_list = []
+        print "\n\tScraping chambers from Armenia's parliament..."
+        for each_option in soup.find("select", {"name": "show_session"}).findAll("option"):
+            identifier = each_option.get('value')
+            name = each_option.get_text()
+            url = "http://www.parliament.am/deputies.php?lang=arm&sel=&ord=&show_session=" + identifier
+            if "100" not in identifier:
+                founding_date = self.terms[identifier]["start_date"]
+                dissolution_date = self.terms[identifier]["end_date"]
+                chamber_json = self.build_organization_doc("chamber", name, identifier, founding_date,
+                                                           dissolution_date, url, "", "")
+
+                del chamber_json['contact_details']
+                del chamber_json['parent_id']
+                if identifier == "5":
+                    del chamber_json['dissolution_date']
+
+                existing = vpapi.getfirst("organizations", where={'identifiers': {'$elemMatch': chamber_json['identifiers'][0]}})
+                if not existing:
+                    resp = vpapi.post("organizations", chamber_json)
+                else:
+                    # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
+                    resp = vpapi.put("organizations", existing['id'], chamber_json, effective_date=self.effective_date())
+                if resp["_status"] != "OK":
+                    raise Exception("Invalid status code")
+                chambers_list.append(chamber_json)
+        print "\n\tScraping completed! \n\tScraped " + str(len(chambers_list)) + " chambers"
+        return chambers_list
+
     def scrape_organization(self):
-            print "scraping Armenia Votes data"
+        print "scraping Armenia Votes data"

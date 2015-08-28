@@ -49,25 +49,29 @@ def scrape(countries, people, votes):
             vpapi.timezone(creds[item.lower()]['timezone'])
             vpapi.authorize(creds[item.lower()]['api_user'], creds[item.lower()]['password'])
             if people == "yes":
-                members = references[item.lower()].scrape_mp_bio_data()
-                # chamber = references[item.lower()].scrape_chamber()
-                # parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
+                # references[item.lower()].parliamentary_groups_list()
+                # members = references[item.lower()].scrape_mp_bio_data()
+                chamber = references[item.lower()].scrape_chamber()
+                parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
                 # committee = references[item.lower()].scrape_committe()
                 data_collections = {
-                    "a-people": members,
-                    # "b-chamber": chamber,
-                    # "c-parliamentary_groups": parliamentary_groups,
+                    # "a-people": members,
+                    "b-chamber": chamber,
+                    "c-parliamentary_groups": parliamentary_groups,
                     # "d-committe": committee
                 }
                 # inserts data for each data collection in Visegrad+ Api
                 for collection in sorted(set(data_collections)):
-                    print "\n\tPosting and updating data from %s data collection" % collection[2:]
+                    print "\n\tPosting and updating data from %s data collection\n\n" % collection[2:]
                     for json_doc in data_collections[collection]:
                         if collection == "a-people":
                             where_condition = {'identifiers': {'$elemMatch': json_doc['identifiers'][0]}}
                             collection_of_data = "people"
                         elif collection == "c-parliamentary_groups" or collection == "d-committe":
-                            where_condition = {'name': json_doc['name']}
+                            if item.lower() == "armenia":
+                                where_condition = {'name': json_doc['name'], "parent_id": json_doc['parent_id']}
+                            else:
+                                where_condition = {'name': json_doc['name']}
                             collection_of_data = "organizations"
                         elif collection == "b-chamber":
                             where_condition = {'identifiers': {'$elemMatch': json_doc['identifiers'][0]}}
