@@ -244,6 +244,10 @@ class ArmeniaScraper():
 
     def committee_list(self):
         committee_list = []
+        chambers = {}
+        all_chambers = vpapi.getall("organizations", where={"classification": "chamber"})
+        for chamber in all_chambers:
+            chambers[chamber['identifiers'][0]['identifier']] = chamber['id']
         for i in range(3, 6):
             url = "http://www.parliament.am/committees.php?lang=arm&show_session=" + str(i)
             soup = scrape.download_html_file(url)
@@ -255,22 +259,36 @@ class ArmeniaScraper():
                     committee_json = {
                         "name": name,
                         "url": url,
-                        "identifier": identifier
+                        "identifier": identifier[0],
+                        "parent_id": chambers[str(i)]
                     }
                     committee_list.append(committee_json)
         return committee_list
 
     def scrape_committee(self):
         committees = self.committee_list()
+        committees_list = []
+        print "\n\tScraping committee groups from Armenia's parliament..."
         for committee in committees:
             url = committee['url'].replace('show', "members")
             soup = scrape.download_html_file(url)
             if soup.find("div", {"style": "border-bottom:1px solid #E2E2E2;"}).find('a').get_text() != "":
                 email = soup.find("div", {"style": "border-bottom:1px solid #E2E2E2;"}).find('a').get_text()
             else:
-                email = "Not found"
-            print email
+                email = None
+
+            committee_json = self.build_organization_doc("committe", committee['name'], committee['identifier'],
+                                                        "", "", url, email, committee['parent_id'])
+
+            if not email:
+                del committee_json['contact_details']
+            del committee_json['dissolution_date']
+            del committee_json['founding_date']
+
+            committees_list.append(committee_json)
             # email = soup.find("div", {"style": "border-bottom:1px solid #E2E2E2;"}).find('a').get('href')
+        print "\n\tScraping completed! \n\tScraped " + str(len(committees_list)) + " committee groups"
+        return committees_list
 
 
     def effective_date(self):
