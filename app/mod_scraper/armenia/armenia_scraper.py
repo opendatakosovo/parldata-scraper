@@ -105,6 +105,15 @@ class ArmeniaScraper():
             "անդամ": "member"
         }
 
+    def scrape_parliamentary_group_membership(self):
+        groups = {}
+        all_grouos = vpapi.getall('organizations', where={"classification": "parliamentary group"})
+
+        for group in all_grouos:
+            groups[group['sources'][0]['url']] = group['id']
+
+        print len(groups)
+
     def scrape_membership(self):
         mps = self.members_list()
         memberships = []
@@ -244,6 +253,7 @@ class ArmeniaScraper():
     def scrape_parliamentary_groups(self):
         parties_list = []
         terms_ids = {}
+        url_prevent_duplicates = []
 
         all_terms = vpapi.getall("organizations", where={"classification": "chamber"})
 
@@ -262,43 +272,42 @@ class ArmeniaScraper():
                 index_start = url.index("ID=")
                 index_end = url.index("&lang")
                 identifier = url[index_start + 3:index_end]
-                if identifier != "0":
-                    parties_doc[party_name_ordered.decode('utf-8')] = {
-                        "url": url,
-                        "identifier": identifier,
-                        }
-
+                parties_doc[party_name_ordered.decode('utf-8')] = {
+                    "url": url,
+                    "identifier": identifier,
+                    }
             for each_div in soup.findAll('div', {"class": "content"}):
                 name = each_div.find("center").find("b").get_text()
                 name_ordered = name.replace("  ", " ")
                 if name in parties_doc:
                     identifier = parties_doc[name]['identifier']
-                else:
-                    identifier = None
-                founding_date = self.terms[term]["start_date"]
-                parent_id = terms_ids[term]
+                    url_faction = parties_doc[name]['url']
+                    if url_faction not in url_prevent_duplicates:
+                        url_prevent_duplicates.append(url_faction)
+                        founding_date = self.terms[term]["start_date"]
+                        parent_id = terms_ids[term]
 
-                if each_div.find("center").find("a"):
-                    email = each_div.find("center").find("a").get_text()
+                        if each_div.find("center").find("a"):
+                            email = each_div.find("center").find("a").get_text()
 
-                if term != "5":
-                    dissolution_date = self.terms[term]["end_date"]
-                else:
-                    dissolution_date = None
+                        if term != "5":
+                            dissolution_date = self.terms[term]["end_date"]
+                        else:
+                            dissolution_date = None
 
-                party_json = self.build_organization_doc("parliamentary group", name_ordered, identifier, founding_date,
-                                                         dissolution_date, url, email, parent_id)
+                        party_json = self.build_organization_doc("parliamentary group", name_ordered, identifier,
+                                                                 founding_date, dissolution_date, url_faction, email, parent_id)
 
-                if not dissolution_date:
-                    del party_json['dissolution_date']
+                        if not dissolution_date:
+                            del party_json['dissolution_date']
 
-                if email or email != None:
-                    del party_json['contact_details']
+                        if not email or email == None:
+                            del party_json['contact_details']
 
-                if identifier or identifier == None:
-                    del party_json['identifiers']
+                        if not identifier:
+                            del party_json['identifiers']
 
-                parties_list.append(party_json)
+                        parties_list.append(party_json)
         print "\n\tScraping completed! \n\tScraped " + str(len(parties_list)) + " parliametary groups"
         return parties_list
 
