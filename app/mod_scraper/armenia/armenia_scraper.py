@@ -106,13 +106,46 @@ class ArmeniaScraper():
         }
 
     def scrape_parliamentary_group_membership(self):
+        chambers = {}
         groups = {}
-        all_grouos = vpapi.getall('organizations', where={"classification": "parliamentary group"})
+        members = {}
 
-        for group in all_grouos:
+        all_chambers = vpapi.getall("organizations", where={"classification": "chamber"})
+        for chamber in all_chambers:
+            chambers[chamber['identifiers'][0]["identifier"]] = chamber['id']
+
+        all_groups = vpapi.getall('organizations', where={"classification": "parliamentary group"})
+        for group in all_groups:
             groups[group['sources'][0]['url']] = group['id']
 
-        print len(groups)
+        all_members = vpapi.getall("people")
+        for member in all_members:
+            members[member['name']] = member['id']
+
+        for term in list(reversed(sorted(self.terms.keys()))):
+            url = "http://www.parliament.am/deputies.php?lang=arm&sel=factions&SubscribeEmail=&show_session=" + str(term)
+            soup = scrape.download_html_file(url)
+            for each_div in soup.findAll('div', {"class": "content"}):
+                name = each_div.find("center").find("b").get_text()
+                name_ordered = name.replace("  ", " ")
+                print "name: " + name_ordered
+                exist = vpapi.getfirst("organizations", where={'name': name_ordered, "parent_id": chambers[str(term)]})
+                if exist:
+                    print "PARTY_ID: " + exist['id']
+                for each_tr in each_div.find('table', {"style": "margin-top:10px; margin-bottom:10px;"}).findAll('tr'):
+                    if each_tr.has_attr('bgcolor'):
+                        continue
+                    else:
+                        td_array = each_tr.findAll('td')
+                        names = td_array[0].find('a').get_text().split(' ')
+                        first_name = names[1]
+                        last_name = names[0]
+                        middle_name = names[2]
+                        name_ordered = "%s %s %s" % (first_name, middle_name, last_name)
+                        print "Person_name: " + name_ordered
+                        print "Person_id: " + members[name_ordered]
+                print "--------------------------------------------"
+
 
     def scrape_membership(self):
         mps = self.members_list()
@@ -275,39 +308,37 @@ class ArmeniaScraper():
                 parties_doc[party_name_ordered.decode('utf-8')] = {
                     "url": url,
                     "identifier": identifier,
-                    }
+                }
             for each_div in soup.findAll('div', {"class": "content"}):
                 name = each_div.find("center").find("b").get_text()
                 name_ordered = name.replace("  ", " ")
                 if name in parties_doc:
                     identifier = parties_doc[name]['identifier']
                     url_faction = parties_doc[name]['url']
-                    if url_faction not in url_prevent_duplicates:
-                        url_prevent_duplicates.append(url_faction)
-                        founding_date = self.terms[term]["start_date"]
-                        parent_id = terms_ids[term]
+                    founding_date = self.terms[term]["start_date"]
+                    parent_id = terms_ids[term]
 
-                        if each_div.find("center").find("a"):
-                            email = each_div.find("center").find("a").get_text()
+                    if each_div.find("center").find("a"):
+                        email = each_div.find("center").find("a").get_text()
 
-                        if term != "5":
-                            dissolution_date = self.terms[term]["end_date"]
-                        else:
-                            dissolution_date = None
+                    if term != "5":
+                        dissolution_date = self.terms[term]["end_date"]
+                    else:
+                        dissolution_date = None
 
-                        party_json = self.build_organization_doc("parliamentary group", name_ordered, identifier,
-                                                                 founding_date, dissolution_date, url_faction, email, parent_id)
+                    party_json = self.build_organization_doc("parliamentary group", name_ordered, identifier,
+                                                             founding_date, dissolution_date, url_faction, email, parent_id)
 
-                        if not dissolution_date:
-                            del party_json['dissolution_date']
+                    if not dissolution_date:
+                        del party_json['dissolution_date']
 
-                        if not email or email == None:
-                            del party_json['contact_details']
+                    if not email or email == None:
+                        del party_json['contact_details']
 
-                        if not identifier:
-                            del party_json['identifiers']
+                    if not identifier:
+                        del party_json['identifiers']
 
-                        parties_list.append(party_json)
+                    parties_list.append(party_json)
         print "\n\tScraping completed! \n\tScraped " + str(len(parties_list)) + " parliametary groups"
         return parties_list
 
