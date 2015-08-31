@@ -49,17 +49,17 @@ def scrape(countries, people, votes):
             vpapi.timezone(creds[item.lower()]['timezone'])
             vpapi.authorize(creds[item.lower()]['api_user'], creds[item.lower()]['password'])
             if people == "yes":
-                vpapi.delete("organizations")
-                # references[item.lower()].scrape_committee()
+                # references[item.lower()].mps_list()
+                # references[item.lower()].members_list()
                 # members = references[item.lower()].scrape_mp_bio_data()
-                chamber = references[item.lower()].scrape_chamber()
-                parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
-                committee = references[item.lower()].scrape_committee()
+                # chamber = references[item.lower()].scrape_chamber()
+                # parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
+                # committee = references[item.lower()].scrape_committee()
                 data_collections = {
                     # "a-people": members,
-                    "b-chamber": chamber,
-                    "c-parliamentary_groups": parliamentary_groups,
-                    "d-committe": committee
+                    # "b-chamber": chamber,
+                    # "c-parliamentary_groups": parliamentary_groups,
+                    # "d-committe": committee
                 }
                 # inserts data for each data collection in Visegrad+ Api
                 for collection in sorted(set(data_collections)):
@@ -92,22 +92,22 @@ def scrape(countries, people, votes):
                         print "\t------------------------------------------------"
                     print "\n\tFinished Posting and updating data from %s data collection" % collection[2:]
                 #
-                # membership = references[item.lower()].scrape_membership()
-                # for json_doc in membership:
-                #     existing = vpapi.getfirst("memberships", where={'organization_id': json_doc['organization_id'], "person_id": json_doc['person_id']})
-                #     if not existing:
-                #         print "\tMembership's data collection item not found \n\tPosting new item to the API."
-                #         resp = vpapi.post("memberships", json_doc)
-                #     else:
-                #         print "\tUpdating membership's data collection item"
-                #         # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
-                #         resp = vpapi.put("memberships", existing['id'], json_doc, effective_date=effective_date)
-                #     if resp["_status"] != "OK":
-                #         raise Exception("Invalid status code")
-                #
-                #     print "\t------------------------------------------------"
-                # print "\n\tFinished Posting and updating data from People, Organizations, Memberships data collection"
-                # print "\t------------------------------------------------"
+                membership = references[item.lower()].scrape_membership()
+                for json_doc in membership:
+                    existing = vpapi.getfirst("memberships", where={'organization_id': json_doc['organization_id'], "person_id": json_doc['person_id']})
+                    if not existing:
+                        print "\tMembership's data collection item not found \n\tPosting new item to the API."
+                        resp = vpapi.post("memberships", json_doc)
+                    else:
+                        print "\tUpdating membership's data collection item"
+                        # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
+                        resp = vpapi.put("memberships", existing['id'], json_doc, effective_date=effective_date)
+                    if resp["_status"] != "OK":
+                        raise Exception("Invalid status code")
+
+                    print "\t------------------------------------------------"
+                print "\n\tFinished Posting and updating data from People, Organizations, Memberships data collection"
+                print "\t------------------------------------------------"
             if votes == "yes":
                 print "\n\tScraping and updating Vote Events, Motions and Votes"
                 voting_data_collections = {

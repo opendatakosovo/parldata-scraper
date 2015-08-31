@@ -30,9 +30,8 @@ class ArmeniaScraper():
         }
     }
 
-    def mps_list(self):
+    def members_list(self):
         mps_list = []
-        names_deputies = []
         for term in list(reversed(sorted(self.terms.keys()))):
             url = "http://www.parliament.am/deputies.php?lang=arm&sel=full&ord=alpha&show_session=" + term
             soup = scrape.download_html_file(url)
@@ -51,7 +50,7 @@ class ArmeniaScraper():
                     membership = full_text[index + 1: len(full_text) - 1]
                 # print "This is FULL TEXT: " + full_text
                 else:
-                    membership = "member"
+                    membership = "անդամ".decode('utf-8')
                 distinct_id = full_text[:3]
                 name_unordered = full_text.replace(distinct_id, "").strip()
                 names = name_unordered.split(' ')
@@ -60,22 +59,31 @@ class ArmeniaScraper():
                 middle_name = names[2]
                 name_ordered = "%s %s %s" % (first_name, middle_name, last_name)
 
-                if name_ordered not in names_deputies:
-                    names_deputies.append(name_ordered)
-                    # print "name: %s " % name_ordered
-                    members_json = {
-                        "membership": membership,
-                        "member_id": member_id,
-                        "url": url_deputy_final,
-                        "name": name_ordered,
-                        "given_name": first_name,
-                        "family_name": last_name,
-                        "sort_name": last_name + ", " + first_name,
-                        "distinct_id": distinct_id,
+                # print "name: %s " % name_ordered
+                members_json = {
+                    "term": str(term),
+                    "membership": membership,
+                    "member_id": member_id,
+                    "url": url_deputy_final,
+                    "name": name_ordered,
+                    "given_name": first_name,
+                    "family_name": last_name,
+                    "sort_name": last_name + ", " + first_name,
+                    "distinct_id": distinct_id,
                     }
-                    mps_list.append(members_json)
+                mps_list.append(members_json)
         return mps_list
         # print array
+
+    def mps_list(self):
+        members_list = []
+        names_deputies = []
+        mps = self.members_list()
+        for member in mps:
+            if member['name'] not in names_deputies:
+                names_deputies.append(member['name'])
+                members_list.append(member)
+        return members_list
 
     def guess_gender(self, first_name):
         females = ["Հերմինե", "Հեղինե", "Մարգարիտ", "Նաիրա", "Արփինե", "Մարինե", "Ռուզաննա", "Շուշան",
@@ -87,27 +95,79 @@ class ArmeniaScraper():
         else:
             return "male"
 
+    def membership_correction(self):
+        return {
+            "Ազգային ժողովի նախագահ": "chairman",
+            "Ազգային ժողովի նախագահի տեղակալ": "vice-chairman",
+            "հանձնաժողովի նախագահ": "chairman",
+            "ղեկավար": "chairman",
+            "քարտուղար": "secretary",
+            "անդամ": "member"
+        }
+
+    def scrape_membership(self):
+        mps = self.members_list()
+        memberships = []
+        roles = self.membership_correction()
+        chambers = {}
+        all_chambers = vpapi.getall("organizations", where={"classification": "chamber"})
+        for chamber in all_chambers:
+            chambers[chamber['identifiers'][0]["identifier"]] = chamber['id']
+
+        members = {}
+        all_members = vpapi.getall("people")
+        for member in all_members:
+            members[member['name']] = member['id']
+
+        print "\n\tScraping membership's data from Armenia's parliament..."
+        for member in mps:
+            p_id = members[member['name']]
+            o_id = chambers[member['term']]
+            role = ""
+            membership_label = member['membership']
+            if member['membership'].encode('utf-8') in roles:
+                role = roles["անդամ"]
+            url = "http://www.parliament.am/deputies.php?lang=arm&sel=full&ord=alpha&show_session=" + member['term']
+            membership_json = self.build_memberships_doc(p_id, o_id, membership_label, role, url)
+            memberships.append(membership_json)
+
+        print "\n\tScraping completed! \n\tScraped " + str(len(memberships)) + " members"
+        return memberships
+
+    def build_memberships_doc(self, person_id, organization_id, label, role, url):
+        json_doc = {
+            "person_id": person_id,
+            "organization_id": organization_id,
+            "label": label,
+            "role": role,
+            "sources": [{
+                "url": url,
+                "note": "վեբ էջ"
+            }]
+        }
+        return json_doc
+
     def build_json_doc(self, identifier, full_name, first_name, last_name, url, image_url,
                        email, date_of_birth, gender, biography):
         json_doc = {
             "identifiers": [{
-                "identifier": identifier,
-                "scheme": "parliament.am"
-            }],
+                                "identifier": identifier,
+                                "scheme": "parliament.am"
+                            }],
             "gender": gender,
             "name": full_name,
             "given_name": first_name,
             "family_name": last_name,
             "sources": [{
-                "note": "վեբ էջ",
-                "url": url
-            }],
+                            "note": "վեբ էջ",
+                            "url": url
+                        }],
             "image": image_url,
             "contact_details": [{
-                "label": "Էլ. փոստ",
-                "type": "email",
-                "value": email
-            }],
+                                    "label": "Էլ. փոստ",
+                                    "type": "email",
+                                    "value": email
+                                }],
             "sort_name": last_name + ", " + first_name,
             "birth_date": date_of_birth,
             "biography": biography
@@ -164,20 +224,20 @@ class ArmeniaScraper():
             "classification": classification,
             "name": name,
             "identifiers": [{
-                "identifier": identifier,
-                "scheme": "parliament.am"
-            }],
+                                "identifier": identifier,
+                                "scheme": "parliament.am"
+                            }],
             "founding_date": founding_date,
             "contact_details": [{
-                "label": "Էլ. փոստ",
-                "type": "email",
-                "value": email
-            }],
+                                    "label": "Էլ. փոստ",
+                                    "type": "email",
+                                    "value": email
+                                }],
             "dissolution_date": dissolution_date,
             "sources": [{
-                "note": "վեբ էջ",
-                "url": url
-            }],
+                            "note": "վեբ էջ",
+                            "url": url
+                        }],
             "parent_id": parent_id
         }
 
@@ -206,7 +266,7 @@ class ArmeniaScraper():
                     parties_doc[party_name_ordered.decode('utf-8')] = {
                         "url": url,
                         "identifier": identifier,
-                    }
+                        }
 
             for each_div in soup.findAll('div', {"class": "content"}):
                 name = each_div.find("center").find("b").get_text()
@@ -278,7 +338,7 @@ class ArmeniaScraper():
                 email = None
 
             committee_json = self.build_organization_doc("committe", committee['name'], committee['identifier'],
-                                                        "", "", url, email, committee['parent_id'])
+                                                         "", "", url, email, committee['parent_id'])
 
             if not email:
                 del committee_json['contact_details']
@@ -289,7 +349,6 @@ class ArmeniaScraper():
             # email = soup.find("div", {"style": "border-bottom:1px solid #E2E2E2;"}).find('a').get('href')
         print "\n\tScraping completed! \n\tScraped " + str(len(committees_list)) + " committee groups"
         return committees_list
-
 
     def effective_date(self):
         return date.today().isoformat()
