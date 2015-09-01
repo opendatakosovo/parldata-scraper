@@ -51,15 +51,15 @@ def scrape(countries, people, votes):
             if people == "yes":
                 # references[item.lower()].scrape_committee_membership()
                 # references[item.lower()].members_list()
-                # members = references[item.lower()].scrape_mp_bio_data()
-                # chamber = references[item.lower()].scrape_chamber()
-                # parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
-                # committee = references[item.lower()].scrape_committee()
+                members = references[item.lower()].scrape_mp_bio_data()
+                chamber = references[item.lower()].scrape_chamber()
+                parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
+                committee = references[item.lower()].scrape_committee()
                 data_collections = {
-                    # "a-people": members,
-                    # "b-chamber": chamber,
-                    # "c-parliamentary_groups": parliamentary_groups,
-                    # "d-committe": committee
+                    "a-people": members,
+                    "b-chamber": chamber,
+                    "c-parliamentary_groups": parliamentary_groups,
+                    "d-committe": committee
                 }
                 # inserts data for each data collection in Visegrad+ Api
                 for collection in sorted(set(data_collections)):
@@ -94,8 +94,8 @@ def scrape(countries, people, votes):
 
                 if item.lower() == "armenia":
                     memberships = {
-                        # "chambers": references[item.lower()].scrape_membership(),
-                        # "parliamentary_groups": references[item.lower()].scrape_parliamentary_group_membership(),
+                        "chambers": references[item.lower()].scrape_membership(),
+                        "parliamentary_groups": references[item.lower()].scrape_parliamentary_group_membership(),
                         "committees": references[item.lower()].scrape_committee_membership()
                     }
                 elif item.lower() == "georgia":
@@ -117,7 +117,7 @@ def scrape(countries, people, votes):
                             raise Exception("Invalid status code")
 
                         print "\t------------------------------------------------"
-                    print "\n\tFinished Posting and updating data from People, Organizations, Memberships data collection\n"
+                    print "\n\tFinished Posted and updated data from %s membership data collection\n" % data_collection
             if votes == "yes":
                 print "\n\tScraping and updating Vote Events, Motions and Votes"
                 voting_data_collections = {
@@ -147,6 +147,7 @@ def scrape(countries, people, votes):
                     print ex.message
                 print "\n\tFinished Scraping and updating Vote Events, Motions and Votes"
                 print "\t------------------------------------------------"
+            vpapi.deauthorize()
     else:
         print "\n\tInvalid country/ies added"
 

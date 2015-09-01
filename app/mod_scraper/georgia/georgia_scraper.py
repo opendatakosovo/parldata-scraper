@@ -658,7 +658,6 @@ class GeorgiaScraper():
                 }
 
                 chamber_json = self.build_chamber_doc(name, identifiers, founding_year, dissolution_date, source_url)
-                print chamber_json
                 chambers_list.append(chamber_json)
         print "\n\tScraping completed! \n\tScraped " + str(len(chambers_list)) + " chambers"
         return chambers_list
