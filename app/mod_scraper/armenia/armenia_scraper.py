@@ -102,13 +102,67 @@ class ArmeniaScraper():
             "հանձնաժողովի նախագահ": "chairman",
             "ղեկավար": "chairman",
             "քարտուղար": "secretary",
-            "անդամ": "member"
+            "անդամ": "member",
+            "հանձնաժողովի նախագահի տեղակալ": "vice-chairman",
         }
+
+    def scrape_committee_membership(self):
+        committees = self.committee_list()
+        committee_membership = []
+        chambers = {}
+        groups = {}
+        members = {}
+        memberships = self.membership_correction()
+
+        all_chambers = vpapi.getall("organizations", where={"classification": "chamber"})
+        for chamber in all_chambers:
+            chambers[chamber['identifiers'][0]["identifier"]] = chamber['id']
+
+        all_groups = vpapi.getall('organizations', where={"classification": "committe"})
+        for group in all_groups:
+            groups[group['sources'][0]['url']] = group['id']
+
+        all_members = vpapi.getall("people")
+        for member in all_members:
+            members[member['name']] = member['id']
+        print "\n\tScraping committee groups from Armenia's parliament..."
+        for committee in committees:
+            url = committee['url'].replace('show', "members")
+            soup = scrape.download_html_file(url)
+            for each_tr in soup.find('table', {"style": "margin-top:10px; margin-bottom:10px;"}).findAll('tr'):
+                if each_tr.has_attr('bgcolor'):
+                    continue
+                else:
+                    td_array = each_tr.findAll('td')
+                    if td_array:
+                        names = td_array[0].find('a').get_text().split(' ')
+                        first_name = names[1]
+                        last_name = names[0]
+                        middle_name = names[2]
+                        name_ordered = "%s %s %s" % (first_name, middle_name, last_name)
+                        membership = each_tr.find('span', {'class': "news_date"}).get_text()
+
+                        if url in groups:
+                            o_id = groups[url]
+
+                        if membership == "":
+                            membership = "անդամ".decode('utf-8')
+                        else:
+                            membership = membership[1:len(membership)-1]
+
+                        role = memberships[membership.encode('utf-8')]
+                        if name_ordered in members:
+                            p_id = members[name_ordered]
+                        party_membership_json = self.build_memberships_doc(p_id, o_id, membership, role, url)
+                        committee_membership.append(party_membership_json)
+        print "\n\tScraping completed! \n\tScraped " + str(len(committee_membership)) + " committee groups"
+        return committee_membership
 
     def scrape_parliamentary_group_membership(self):
         chambers = {}
         groups = {}
         members = {}
+        memberships = self.membership_correction()
 
         all_chambers = vpapi.getall("organizations", where={"classification": "chamber"})
         for chamber in all_chambers:
@@ -122,16 +176,18 @@ class ArmeniaScraper():
         for member in all_members:
             members[member['name']] = member['id']
 
+        parties_membership = []
+        print "\n\tScraping parliamentary groups membership from Armenia's parliament..."
         for term in list(reversed(sorted(self.terms.keys()))):
             url = "http://www.parliament.am/deputies.php?lang=arm&sel=factions&SubscribeEmail=&show_session=" + str(term)
             soup = scrape.download_html_file(url)
             for each_div in soup.findAll('div', {"class": "content"}):
-                name = each_div.find("center").find("b").get_text()
-                name_ordered = name.replace("  ", " ")
-                print "name: " + name_ordered
-                exist = vpapi.getfirst("organizations", where={'name': name_ordered, "parent_id": chambers[str(term)]})
+                party_name = each_div.find("center").find("b").get_text()
+                party_name_ordered = party_name.replace("  ", " ")
+                exist = vpapi.getfirst("organizations", where={'name': party_name_ordered,
+                                                               "parent_id": chambers[str(term)]})
                 if exist:
-                    print "PARTY_ID: " + exist['id']
+                    o_id = exist['id']
                 for each_tr in each_div.find('table', {"style": "margin-top:10px; margin-bottom:10px;"}).findAll('tr'):
                     if each_tr.has_attr('bgcolor'):
                         continue
@@ -142,10 +198,21 @@ class ArmeniaScraper():
                         last_name = names[0]
                         middle_name = names[2]
                         name_ordered = "%s %s %s" % (first_name, middle_name, last_name)
-                        print "Person_name: " + name_ordered
-                        print "Person_id: " + members[name_ordered]
-                print "--------------------------------------------"
+                        membership = each_tr.find('span', {'class': "news_date"}).get_text()
 
+                        if membership == "":
+                            membership = "անդամ".decode('utf-8')
+                        else:
+                            membership = membership[1:len(membership)-1]
+
+                        role = memberships[membership.encode('utf-8')]
+                        if name_ordered in members:
+                            p_id = members[name_ordered]
+                        party_membership_json = self.build_memberships_doc(p_id, o_id, membership, role, url)
+                        parties_membership.append(party_membership_json)
+        print "\n\tScraping completed! \n\tScraped " + str(len(parties_membership)) + " members of parliamentary groups"
+        return parties_membership
+        # print counter
 
     def scrape_membership(self):
         mps = self.members_list()
@@ -283,40 +350,60 @@ class ArmeniaScraper():
             "parent_id": parent_id
         }
 
-    def scrape_parliamentary_groups(self):
-        parties_list = []
-        terms_ids = {}
-        url_prevent_duplicates = []
-
-        all_terms = vpapi.getall("organizations", where={"classification": "chamber"})
-
-        print "\n\tScraping parliamentary groups from Armenia's parliament..."
-        for term in all_terms:
-            terms_ids[term['identifiers'][0]['identifier']] = term['id']
-
+    def parliamentary_groups(self):
+        parties_doc = {}
+        parties_correction = {
+            "«ԺՈՂՈՎՐԴԱԿԱՆ ՊԱՏԳԱՄԱՎՈՐ» պատգամավորական խումբ": "«ԺՈՂՈՎՐԴԱԿԱՆ ՊԱՏԳԱՄԱՎՈՐ»",
+            "«ՀԱՅԱՍՏԱՆ» պատգամավորական խումբ": "«ՀԱՅԱՍՏԱՆ»",
+            "«ԱԳՐՈԱՐԴՅՈՒՆԱԲԵՐԱԿԱՆ ԺՈՂՈՎՐԴԱԿԱՆ ՄԻԱՎՈՐՈՒՄ» պատգամավորական խումբ": "«ԱԳՐՈԱՐԴՅՈՒՆԱԲԵՐԱԿԱՆ ԺՈՂՈՎՐԴԱԿԱՆ ՄԻԱՎՈՐՈՒՄ»",
+            "«ԺՈՂՈՎՐԴԻ ՁԱՅՆ» պատգամավորական խումբ": "«ԺՈՂՈՎՐԴԻ ՁԱՅՆ»",
+            "«Օրինաց  երկիր»": "«Օրինաց երկիր»",
+            "«Ժողովրդական պատգամավոր» պատգամավորական խումբ": "«Ժողովրդական պատգամավոր»",
+            "«Գործարար» պատգամավորական խումբ": "«Գործարար»",
+            "«Բարեփոխումներ» պատգամավորական խումբ": "«Բարեփոխումներ»"
+        }
         for term in list(reversed(sorted(self.terms.keys()))):
             url = "http://www.parliament.am/deputies.php?lang=arm&sel=factions&SubscribeEmail=&show_session=" + term
             soup = scrape.download_html_file(url)
-            parties_doc = {}
+            parties_doc[str(term)] = {}
             for each_a in soup.find("div", {"class": "level3menu"}).findAll("a"):
                 url = "http://www.parliament.am" + each_a.get('href')
                 party_name = each_a.get_text().encode('utf-8')
                 party_name_ordered = party_name.replace(" խմբակցություն", "").strip()
+                if party_name_ordered in parties_correction:
+                    party_name_ordered = parties_correction[party_name_ordered]
                 index_start = url.index("ID=")
                 index_end = url.index("&lang")
                 identifier = url[index_start + 3:index_end]
-                parties_doc[party_name_ordered.decode('utf-8')] = {
+                parties_doc[str(term)][party_name_ordered.decode('utf-8')] = {
                     "url": url,
                     "identifier": identifier,
                 }
+        return parties_doc
+
+    def scrape_parliamentary_groups(self):
+        parties_list = []
+        terms_ids = {}
+
+        all_terms = vpapi.getall("organizations", where={"classification": "chamber"})
+
+        for term in all_terms:
+            terms_ids[term['identifiers'][0]['identifier']] = term['id']
+
+        parties_doc = self.parliamentary_groups()
+
+        print "\n\tScraping parliamentary groups from Armenia's parliament..."
+        for term in parties_doc:
+            url = "http://www.parliament.am/deputies.php?lang=arm&sel=factions&SubscribeEmail=&show_session=" + term
+            soup = scrape.download_html_file(url)
             for each_div in soup.findAll('div', {"class": "content"}):
                 name = each_div.find("center").find("b").get_text()
                 name_ordered = name.replace("  ", " ")
-                if name in parties_doc:
-                    identifier = parties_doc[name]['identifier']
-                    url_faction = parties_doc[name]['url']
+                if name_ordered in parties_doc[term]:
+                    identifier = parties_doc[term][name_ordered]['identifier']
+                    url_faction = parties_doc[term][name_ordered]['url']
                     founding_date = self.terms[term]["start_date"]
-                    parent_id = terms_ids[term]
+                    parent_id = terms_ids[str(term)]
 
                     if each_div.find("center").find("a"):
                         email = each_div.find("center").find("a").get_text()
@@ -339,6 +426,8 @@ class ArmeniaScraper():
                         del party_json['identifiers']
 
                     parties_list.append(party_json)
+                else:
+                    print "term: %s \nname: %s" % (term, name_ordered)
         print "\n\tScraping completed! \n\tScraped " + str(len(parties_list)) + " parliametary groups"
         return parties_list
 

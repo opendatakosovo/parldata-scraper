@@ -112,7 +112,6 @@ class GeorgiaScraper():
                     "source_url": url,
                     "membership": membership
                 }
-                print "identifier: " + mp_json['identifiers']['identifier']
                 mps_list.append(mp_json)
         return mps_list
 
