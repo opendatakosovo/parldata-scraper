@@ -14,7 +14,7 @@
   "moldova": {
       "api_user": "scraper",
       "password": "secret",
-      "parliament": "md/parliament",
+      "parliament": "md/parlament",
       "timezone": "Europe/Chisinau"
   },
   "ukraine": {
