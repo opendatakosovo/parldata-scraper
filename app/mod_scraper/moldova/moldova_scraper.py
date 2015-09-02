@@ -138,6 +138,49 @@ class MoldovaScraper():
         return members
         # print "Scraped %s members" % str(counter)
 
+    def parliamentary_group_list(self):
+        url = "http://www.parlament.md/StructuraParlamentului/Fractiuniparlamentare/" \
+              "tabid/83/language/ro-RO/Default.aspx"
+        soup = scrape.download_html_file(url)
+        parties_list = []
+        for each_tr in soup.find('table', {"id": "dnn_ctr482_ViewFraction_grdView"}).findAll("tr"):
+            if each_tr.find('th'):
+                continue
+            else:
+                all_a_tags = each_tr.findAll('a', {"class": "fractionTitle"})
+                for a_tag in all_a_tags:
+                    name = a_tag.get_text()
+                    url = a_tag.get('href')
+                    index_start = url.index("/Id/") + 4
+                    index_end = url.index("/language")
+                    identifier = url[index_start:index_end]
+                    parties_json = {
+                        "name": name,
+                        "url": url,
+                        "identifier": identifier
+                    }
+                    parties_list.append(parties_json)
+        return parties_list
+
+    def scrape_parliamentary_groups(self):
+        chamber_id = vpapi.getfirst("organizations",
+                                    where={"identifiers": {
+                                        "$elemMatch": {
+                                            "identifier": "20", "scheme": "parlament.md"
+                                        }
+                                    }})
+        parties_list = self.parliamentary_group_list()
+        parties = []
+        print "\n\tScraping parliamentary groups from Moldova's parliament..."
+        for party in parties_list:
+            founding_date = self.terms["20"]["start_date"]
+            party_json = self.build_organization_doc("parliamentary group", party['name'],
+                                                     party['identifier'], founding_date, "",
+                                                     party['url'], "", chamber_id['id'])
+            del party_json['contact_details']
+            del party_json['dissolution_date']
+            parties.append(party_json)
+        return parties
     def scrape_chamber(self):
         url = "http://www.parlament.md/Parlamentarismul%C3%AEnRepublicaMoldova/" \
               "Istorie%C8%99ievolu%C8%9Bie/tabid/96/language/ro-RO/Default.aspx"
