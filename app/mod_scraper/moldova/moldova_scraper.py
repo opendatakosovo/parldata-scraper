@@ -138,6 +138,12 @@ class MoldovaScraper():
         return members
         # print "Scraped %s members" % str(counter)
 
+    def committee_list(self):
+        url = "http://www.parlament.md/StructuraParlamentului/Comisiipermanente/tabid/84/language/ro-RO/Default.aspx"
+        soup = scrape.download_html_file(url)
+        for each_tr in soup.find("table", {"id": "dnn_ctr486_ViewCommissionPermanent_ctrlViewCommissionType_dlCommissions"}).findAll('tr'):
+            print each_tr.find("a").get_text()
+
     def parliamentary_group_list(self):
         url = "http://www.parlament.md/StructuraParlamentului/Fractiuniparlamentare/" \
               "tabid/83/language/ro-RO/Default.aspx"
@@ -181,6 +187,7 @@ class MoldovaScraper():
             del party_json['dissolution_date']
             parties.append(party_json)
         return parties
+
     def scrape_chamber(self):
         url = "http://www.parlament.md/Parlamentarismul%C3%AEnRepublicaMoldova/" \
               "Istorie%C8%99ievolu%C8%9Bie/tabid/96/language/ro-RO/Default.aspx"
