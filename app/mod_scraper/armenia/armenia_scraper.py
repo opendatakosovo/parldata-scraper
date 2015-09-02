@@ -333,20 +333,20 @@ class ArmeniaScraper():
             "classification": classification,
             "name": name,
             "identifiers": [{
-                                "identifier": identifier,
-                                "scheme": "parliament.am"
-                            }],
+                "identifier": identifier,
+                "scheme": "parliament.am"
+            }],
             "founding_date": founding_date,
             "contact_details": [{
-                                    "label": "Էլ. փոստ",
-                                    "type": "email",
-                                    "value": email
-                                }],
+                "label": "Էլ. փոստ",
+                "type": "email",
+                "value": email
+            }],
             "dissolution_date": dissolution_date,
             "sources": [{
-                            "note": "վեբ էջ",
-                            "url": url
-                        }],
+                "note": "վեբ էջ",
+                "url": url
+            }],
             "parent_id": parent_id
         }
 
