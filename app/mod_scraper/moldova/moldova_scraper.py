@@ -159,7 +159,9 @@ class MoldovaScraper():
         return chamber_membership
 
     def scrape_parliamentary_group_membership(self):
+        print "\n\tScraping parliamentary groups membership from Moldova's parliament..."
         parties_list = self.parliamentary_group_list()
+        membership_correction = self.membership_correction()
         parties = {}
         all_parties = vpapi.getall("organizations", where={'classification': "parliamentary group"})
         for party in all_parties:
@@ -170,6 +172,7 @@ class MoldovaScraper():
         for member in all_members:
             members[member['identifiers'][0]['identifier']] = member['id']
 
+        parties_membership = []
         for party in parties_list:
             party_identifier = party['identifier']
             soup_party = scrape.download_html_file(party['url'])
@@ -179,16 +182,16 @@ class MoldovaScraper():
                 index_start = link.index('/Id/') + 4
                 index_end = link.index('/la')
                 member_identifier = link[index_start:index_end]
-                role = td_array[2].get_text().strip()
-                if role == "":
-                    role = "Membru"
-                print link
-                print "name: " + td_array[1].find('a').get_text()
-                print "identifier: " + member_identifier
-                print "person_id: " + members[member_identifier]
-                print "role: " + role
-                print "-----------------------------------"
-
+                membership = td_array[2].get_text().strip()
+                member_id = members[member_identifier]
+                o_id = parties[party_identifier]
+                if membership == "":
+                    membership = "Membru"
+                role = membership_correction[membership.encode('utf-8')]
+                party_membership_json = self.build_memberships_doc(member_id, o_id, membership, role, party['url'])
+                parties_membership.append(party_membership_json)
+        print "\n\tScraping completed! \n\tScraped " + str(len(parties_membership)) + " members of parties \n"
+        return parties_membership
 
     def build_memberships_doc(self, person_id, organization_id, label, role, url):
         json_doc = {
