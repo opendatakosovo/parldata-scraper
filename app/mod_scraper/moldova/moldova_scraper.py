@@ -130,7 +130,8 @@ class MoldovaScraper():
             "Vicepreşedinte": "vice-chairman",
             "Vicepreşedintele Parlamentului": "vice-chairman",
             "Membru": "member",
-            "Deputat": "member"
+            "Deputat": "member",
+            "Secretar": "secretary"
         }
 
     def scrape_membership(self):
@@ -156,6 +157,37 @@ class MoldovaScraper():
                                                                  role, deputy_list_url)
             chamber_membership.append(chamber_membership_json)
         return chamber_membership
+
+    def scrape_parliamentary_group_membership(self):
+        parties_list = self.parliamentary_group_list()
+        parties = {}
+        all_parties = vpapi.getall("organizations", where={'classification': "parliamentary group"})
+        for party in all_parties:
+            parties[party['identifiers'][0]['identifier']] = party['id']
+
+        members = {}
+        all_members = vpapi.getall("people")
+        for member in all_members:
+            members[member['identifiers'][0]['identifier']] = member['id']
+
+        for party in parties_list:
+            party_identifier = party['identifier']
+            soup_party = scrape.download_html_file(party['url'])
+            for each_tr in soup_party.find("fieldset", {"id": "dnn_ctr482_ViewFraction_fsMembers"}).findAll('tr'):
+                td_array = each_tr.findAll('td')
+                link = td_array[1].find('a').get('href')
+                index_start = link.index('/Id/') + 4
+                index_end = link.index('/la')
+                member_identifier = link[index_start:index_end]
+                role = td_array[2].get_text().strip()
+                if role == "":
+                    role = "Membru"
+                print "name: " + td_array[1].find('a').get_text()
+                print "identifier: " + member_identifier
+                print "person_id: " + members[member_identifier]
+                print "role: " + role
+                print "-----------------------------------"
+
 
     def build_memberships_doc(self, person_id, organization_id, label, role, url):
         json_doc = {
