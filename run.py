@@ -51,15 +51,15 @@ def scrape(countries, people, votes):
             if people == "yes":
                 # references[item.lower()].scrape_committee_membership()
                 # references[item.lower()].members_list()
-                # members = references[item.lower()].scrape_mp_bio_data()
-                # chamber = references[item.lower()].scrape_chamber()
-                # parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
-                # committee = references[item.lower()].scrape_committee()
+                members = references[item.lower()].scrape_mp_bio_data()
+                chamber = references[item.lower()].scrape_chamber()
+                parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
+                committee = references[item.lower()].scrape_committee()
                 data_collections = {
-                    # "a-people": members,
-                    # "b-chamber": chamber,
-                    # "c-parliamentary_groups": parliamentary_groups,
-                    # "d-committe": committee
+                    "a-people": members,
+                    "b-chamber": chamber,
+                    "c-parliamentary_groups": parliamentary_groups,
+                    "d-committe": committee
                 }
                 # inserts data for each data collection in Visegrad+ Api
                 for collection in sorted(set(data_collections)):
@@ -94,7 +94,7 @@ def scrape(countries, people, votes):
 
                 if item.lower() == "armenia" or item.lower() == "moldova":
                     memberships = {
-                        # "chambers": references[item.lower()].scrape_membership(),
+                        "chambers": references[item.lower()].scrape_membership(),
                         "parliamentary_groups": references[item.lower()].scrape_parliamentary_group_membership(),
                         "committees": references[item.lower()].scrape_committee_membership()
                     }
@@ -104,6 +104,7 @@ def scrape(countries, people, votes):
                     }
 
                 for data_collection in memberships:
+                    print "\n\tScraping and updating data from %s membership data collection\n" % data_collection
                     for json_doc in memberships[data_collection]:
                         existing = vpapi.getfirst("memberships", where={'organization_id': json_doc['organization_id'], "person_id": json_doc['person_id']})
                         if not existing:

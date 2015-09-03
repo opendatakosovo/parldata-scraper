@@ -135,11 +135,11 @@ class GeorgiaScraper():
         '''
         Scraping members data of the Georgian Parliament.
         '''
+        print "\n\tScraping people data from Georgia's parliament..."
         mps_list = self.mps_list()
         db.mps_list.remove({})
         scrape = scraper.Scraper()
         deputies = []
-        print "\n\tScraping people data from Georgia's parliament..."
         #iterate through each deputy in the deputies list.
         for json in mps_list: #iterate over loop [above sections]8
             soup_deputy = scrape.download_html_file(json['source_url'])
@@ -218,9 +218,9 @@ class GeorgiaScraper():
         '''
         Scapres organisation data from the official web page of Georgian parliament
         '''
+        print "\n\tScraping parliamentary groups data from Georgia's parliament..."
         parties_list = []
         parties = self.parliamentary_grous_list()
-        print "\n\tScraping parliamentary groups data from Georgia's parliament..."
         for party in parties:
             if "qartuli-ocneba-tavisufali-demokratebi" not in party['url']:
                 soup = scrape.download_html_file(party['url'])
@@ -351,91 +351,6 @@ class GeorgiaScraper():
         }
         return json_doc
 
-    def events_list(self):
-        url = "http://www.parliament.ge/ge/saparlamento-saqmianoba/plenaruli-sxdomebi/plenaruli-sxdomis-dgis-wesrigi"
-        soup = scrape.download_html_file(url)
-        events = []
-        pages = soup.find('div', {'class': 'paging'}).findAll('a')
-        latest_page_url = pages[len(pages) - 1].get('href')
-        latest_page_index = latest_page_url.index('0/')
-        latest_page = latest_page_url[latest_page_index + 2:]
-        months = {
-            "იანვარი": "01",
-            "თებერვალი": "02",
-            "მარტი": "03",
-            "აპრილი": "04",
-            "მაისი": "05",
-            "ივნისი": "06",
-            "ივლისი": "07",
-            "აგვისტო": "08",
-            "სექტემბერი": "09",
-            "ოქტომბერი": "10",
-            "ნოემბერი": "11",
-            "დეკემბერი": "12"
-        }
-
-        names_array = []
-        for i in range(0, int(latest_page) + 10, 10):
-            url_pages = url + "/0/" + str(i)
-            soup_pages = scrape.download_html_file(url_pages)
-            for each_a in soup_pages.find('div', {'class': 'news_list'}).findAll('a', {'class': "item"}):
-
-                name = each_a.find('p').get_text().strip()
-                if name not in names_array:
-                    url_motion = each_a.get('href')
-                    # category = each_a.find('span', {'class': "category"}).get_text()
-                    # date = each_a.find('span', {'class': "date"}).get_text()
-                    # # index_of_year = name.index('2015')
-                    # start_date_array = date.split(" ")
-                    # start_date_string = str(start_date_array[2] + "-" +
-                    #                         months[start_date_array[1].encode('utf-8')] + "-" +
-                    #                         start_date_array[0])
-                    # identifier = start_date_string.replace("-", "")
-                    json_event = {
-                        # "identifier": identifier,
-                        "description": name,
-                        "url": url_motion,
-                        # "start_date": start_date_string,
-                        # "name": category
-                    }
-                    # print name
-                    events.append(json_event)
-                    # print identifier
-                    print "---------------------------"
-        #
-        print len(events)
-        return events
-
-    def scrape_events(self):
-        events_list = self.events_list()
-        events = []
-        url_array = []
-        counter = 0
-
-        for event in events_list:
-            print "event nr: %s ---------------------->" % str(counter)
-            soup = scrape.download_html_file(event['url'])
-            a_tag = soup.find('div', {'class': 'inner_page'}).findAll('a')
-            if len(a_tag) > 0:
-                for each_a in a_tag:
-                    url = each_a.get('href')
-                    if url and "/ge/law/" in url and url not in url_array:
-                        name = each_a.get_text().strip()
-                        chars_to_remove = ["“".decode('utf-8'), "„".decode('utf-8'), ""]
-                        for char in chars_to_remove:
-                            name.replace(char, "")
-                        print name[1:len(name) - 1]
-                        url_array.append(url)
-                        event_json = {
-                            "name": name[1:len(name) - 1],
-                            "url": url,
-                        }
-                        events.append(event_json)
-                        # print each_a.get_text().strip()
-            counter += 1
-        print len(events)
-        return events
-
     def laws(self):
         laws_url = "http://votes.parliament.ge/en/search/passed_laws?sEcho=1&iColumns=7&sColumns=&iDisplayStart=0" \
                    "&iDisplayLength=30000&mDataProp_0=0&mDataProp_1=1&mDataProp_2=2&mDataProp_3=3&mDataProp_4=4" \
@@ -565,6 +480,7 @@ class GeorgiaScraper():
         return members
 
     def scrape_votes(self):
+        print "\n\tScraping votes data from Georgia's parliament...\n\tPlease wait. This may take a few minutes..."
         vote_events = self.vote_events()
         memberships = self.get_group_id()
         members = self.get_all_member_ids_for_votes()
@@ -574,7 +490,6 @@ class GeorgiaScraper():
             "No": "no",
             "Abstain / Not Present*": "absent"
         }
-        print "\n\tScraping votes data from Georgia's parliament...\n\tPlease wait. This may take a few minutes..."
         counter = 0
         for law in vote_events:
             counter += 1
@@ -625,6 +540,7 @@ class GeorgiaScraper():
             return "2"
 
     def scrape_chamber(self):
+        print "\n\tScraping chamber's data from Georgia's parliament..."
         chambers_list = []
         chambers_list.append({
             "classification": "chamber",
@@ -641,7 +557,6 @@ class GeorgiaScraper():
 
         soup = scrape.download_html_file(chamber_list_html)
 
-        print "\n\tScraping chamber's data from Georgia's parliament..."
         for each_a in soup.find("div", {"class": "submenu_list"}):
             if each_a.find('a'):
                 continue
@@ -716,55 +631,3 @@ class GeorgiaScraper():
             return "female"
         else:
             return "male"
-
-    '''
-    sample_identifier = {
-        'identifier': '046454286',
-        'scheme': 'SIN'
-    }
-    sample_link = {
-        'url': 'http://en.wikipedia.org/wiki/John_Q._Public',
-        'note': 'Wikipedia page'
-    }
-    sample_image_url = 'http://www.google.com/images/srpr/logo11w.png'
-    sample_person = {
-        'name': 'Mr. John Q. Public, Esq.',
-        'identifiers': [
-            sample_identifier
-        ],
-        'email': 'jqpublic@xyz.example.com',
-        'gender': 'male',
-        'birth_date': '1920-01',
-        'death_date': '2010-01-01',
-        'image': sample_image_url,
-        'summary': 'A hypothetical member of society deemed a "common man"',
-        'biography': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. ...',
-        'national_identity': 'Scottish',
-        'contact_details': [
-            {
-                'label': 'Mobile number',
-                'type': 'tel',
-                'value': '+1-555-555-0100',
-                'note': 'Free evenings and weekends'
-            }
-        ],
-        'links': [
-            sample_link
-        ]
-    }
-    person_with_id = {
-        'id': 'bilbo-baggins',
-        'name': 'Bilbo Baggins',
-    }
-    sample_organization = {
-        "name": "ABC, Inc.",
-        "founding_date": "1950-01-01",
-        "dissolution_date": "2000-01-01",
-    }
-    sample_membership = {
-        "label": "Kitchen assistant at ABC, Inc.",
-        "role": "Kitchen assistant",
-        "start_date": "1970-01",
-        "end_date": "1971-12-31",
-    }
-    '''

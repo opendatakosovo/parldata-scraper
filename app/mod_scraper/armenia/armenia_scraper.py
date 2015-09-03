@@ -107,6 +107,7 @@ class ArmeniaScraper():
         }
 
     def scrape_committee_membership(self):
+        print "\n\tScraping committee groups from Armenia's parliament..."
         committees = self.committee_list()
         committee_membership = []
         chambers = {}
@@ -125,7 +126,6 @@ class ArmeniaScraper():
         all_members = vpapi.getall("people")
         for member in all_members:
             members[member['name']] = member['id']
-        print "\n\tScraping committee groups from Armenia's parliament..."
         for committee in committees:
             url = committee['url'].replace('show', "members")
             soup = scrape.download_html_file(url)
@@ -159,6 +159,7 @@ class ArmeniaScraper():
         return committee_membership
 
     def scrape_parliamentary_group_membership(self):
+        print "\n\tScraping parliamentary groups membership from Armenia's parliament..."
         chambers = {}
         groups = {}
         members = {}
@@ -177,7 +178,6 @@ class ArmeniaScraper():
             members[member['name']] = member['id']
 
         parties_membership = []
-        print "\n\tScraping parliamentary groups membership from Armenia's parliament..."
         for term in list(reversed(sorted(self.terms.keys()))):
             url = "http://www.parliament.am/deputies.php?lang=arm&sel=factions&SubscribeEmail=&show_session=" + str(term)
             soup = scrape.download_html_file(url)
@@ -215,6 +215,7 @@ class ArmeniaScraper():
         # print counter
 
     def scrape_membership(self):
+        print "\n\tScraping membership's data from Armenia's parliament..."
         mps = self.members_list()
         memberships = []
         roles = self.membership_correction()
@@ -228,7 +229,6 @@ class ArmeniaScraper():
         for member in all_members:
             members[member['name']] = member['id']
 
-        print "\n\tScraping membership's data from Armenia's parliament..."
         for member in mps:
             p_id = members[member['name']]
             o_id = chambers[member['term']]
@@ -284,13 +284,12 @@ class ArmeniaScraper():
         return json_doc
 
     def scrape_mp_bio_data(self):
-        mps_list = self.mps_list()
-        members_list = []
         print "\n\tScraping people data from Armenia's parliament..."
         print "\tThis may take a few minutes..."
+        mps_list = self.mps_list()
+        members_list = []
         for member in mps_list:
             birth_date = ""
-            email = ""
             soup = scrape.download_html_file(member['url'])
             each_tr = soup.find("div", {'class': "dep_description"}).find('table', {"width": "480"}).findAll('tr')
             if each_tr[0].find('td', {'rowspan': "8"}).find('img'):
@@ -455,9 +454,9 @@ class ArmeniaScraper():
         return committee_list
 
     def scrape_committee(self):
+        print "\n\tScraping committee groups from Armenia's parliament..."
         committees = self.committee_list()
         committees_list = []
-        print "\n\tScraping committee groups from Armenia's parliament..."
         for committee in committees:
             url = committee['url'].replace('show', "members")
             soup = scrape.download_html_file(url)
@@ -513,6 +512,3 @@ class ArmeniaScraper():
                 chambers_list.append(chamber_json)
         print "\n\tScraping completed! \n\tScraped " + str(len(chambers_list)) + " chambers"
         return chambers_list
-
-    def scrape_organization(self):
-        print "scraping Armenia Votes data"
