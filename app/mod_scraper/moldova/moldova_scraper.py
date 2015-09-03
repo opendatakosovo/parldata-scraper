@@ -139,10 +139,65 @@ class MoldovaScraper():
         # print "Scraped %s members" % str(counter)
 
     def committee_list(self):
+        committee_list = []
         url = "http://www.parlament.md/StructuraParlamentului/Comisiipermanente/tabid/84/language/ro-RO/Default.aspx"
         soup = scrape.download_html_file(url)
         for each_tr in soup.find("table", {"id": "dnn_ctr486_ViewCommissionPermanent_ctrlViewCommissionType_dlCommissions"}).findAll('tr'):
-            print each_tr.find("a").get_text()
+            name = each_tr.find("a").get_text()
+            committee_url = each_tr.find("a").get('href')
+
+            index_start = committee_url.index("nId/") + 4
+            index_end = committee_url.index("/language")
+            identifier = committee_url[index_start:index_end]
+            committee_json = {
+                "name": name,
+                "url": committee_url,
+                "identifier": identifier
+            }
+            committee_list.append(committee_json)
+        return committee_list
+
+    def scrape_committee(self):
+        committees = self.committee_list()
+        chamber_id = vpapi.getfirst("organizations",
+                                    where={"identifiers": {
+                                        "$elemMatch": {
+                                            "identifier": "20", "scheme": "parlament.md"
+                                        }
+                                    }})
+        committees_list = []
+        print "\n\tScraping parliamentary committees from Moldova's parliament..."
+        for committee in committees:
+            soup = scrape.download_html_file(committee['url'])
+            email_tag = soup.find("span", {"id": "dnn_ctr486_ViewCommissionPermanent_ctrlViewCommissionType_lblCommissionContacts"}).find('a')
+            phone = soup.find("span", {"id": "dnn_ctr486_ViewCommissionPermanent_ctrlViewCommissionType_lblCommissionContacts"}).find('p')
+            if phone.get_text().strip() != "":
+                phone_number = phone.get_text()[6:].strip()
+            else:
+                phone_number = None
+            if email_tag:
+                email = email_tag.get_text()
+            else:
+                email = None
+
+            committee_json = self.build_organization_doc("committe", committee['name'], committee['identifier'],
+                                                         "", "", committee['url'], email, chamber_id['id'], )
+
+            del committee_json['founding_date']
+            del committee_json['dissolution_date']
+            if not email:
+                del committee_json['contact_details']
+            elif not phone_number:
+                del committee_json['contact_details']
+            else:
+                committee_json['contact_details'].append({
+                    "label": "Tel.",
+                    "type": "tel",
+                    "value": phone_number
+                })
+            committees_list.append(committee_json)
+        print "\n\tScraping completed! \n\tScraped " + str(len(committees_list)) + " committees"
+        return committees_list
 
     def parliamentary_group_list(self):
         url = "http://www.parlament.md/StructuraParlamentului/Fractiuniparlamentare/" \
