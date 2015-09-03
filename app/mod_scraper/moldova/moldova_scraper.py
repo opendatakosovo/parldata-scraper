@@ -136,6 +136,7 @@ class MoldovaScraper():
 
     def scrape_membership(self):
         chamber_membership = []
+        print "\n\tScraping chambers membership from Moldova's parliament..."
         mps_list = self.mps_list()
         members = {}
         membership_correction = self.membership_correction()
@@ -156,6 +157,7 @@ class MoldovaScraper():
             chamber_membership_json = self.build_memberships_doc(p_id, chamber_id['id'], member['membership'],
                                                                  role, deputy_list_url)
             chamber_membership.append(chamber_membership_json)
+        print "\n\tScraping completed! \n\tScraped " + str(len(chamber_membership)) + " members of chambers \n"
         return chamber_membership
 
     def scrape_parliamentary_group_membership(self):
