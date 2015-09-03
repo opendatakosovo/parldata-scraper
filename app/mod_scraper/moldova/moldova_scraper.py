@@ -210,10 +210,10 @@ class MoldovaScraper():
 
 
     def scrape_mp_bio_data(self):
-        mps_list = self.mps_list()
-        members = []
         print "\n\tScraping people data from Moldova's parliament..."
         print "\tThis may take a few minutes..."
+        mps_list = self.mps_list()
+        members = []
         for member in mps_list:
             # identifier, full_name, first_name, last_name, url, image_url, gender
             member_json = self.build_json_doc(member['identifier'], member['name'], member['given_name'],
@@ -244,6 +244,7 @@ class MoldovaScraper():
         return committee_list
 
     def scrape_committee(self):
+        print "\n\tScraping parliamentary committees from Moldova's parliament..."
         committees = self.committee_list()
         chamber_id = vpapi.getfirst("organizations",
                                     where={"identifiers": {
@@ -252,7 +253,6 @@ class MoldovaScraper():
                                         }
                                     }})
         committees_list = []
-        print "\n\tScraping parliamentary committees from Moldova's parliament..."
         for committee in committees:
             soup = scrape.download_html_file(committee['url'])
             email_tag = soup.find("span", {"id": "dnn_ctr486_ViewCommissionPermanent_ctrlViewCommissionType_lblCommissionContacts"}).find('a')
