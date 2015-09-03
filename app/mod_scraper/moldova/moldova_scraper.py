@@ -372,6 +372,43 @@ class MoldovaScraper():
         print "\n\tScraping completed! \n\tScraped " + str(len(chambers)) + " chambers"
         return chambers
 
+    def scrape_committee_membership(self):
+        print "\n\tScraping committees membership from Moldova's parliament..."
+        committees_list = self.committee_list()
+        membership_correction = self.membership_correction()
+        committees = {}
+        all_committees = vpapi.getall("organizations", where={"classification": "committe"})
+        for committe in all_committees:
+            committees[committe['identifiers'][0]['identifier']] = committe['id']
+
+        members = {}
+        all_members = vpapi.getall("people")
+        for member in all_members:
+            members[member['identifiers'][0]['identifier']] = member['id']
+
+        committees_membership = []
+        for committee in committees_list:
+            committee_identifier = committee['identifier']
+            soup_party = scrape.download_html_file(committee['url'])
+            for each_tr in soup_party.find("fieldset", {"id": "dnn_ctr486_ViewCommissionPermanent_ctrlViewCommissionType_fsMembers"}).findAll('tr'):
+                td_array = each_tr.findAll('td')
+                link = td_array[1].find('a').get('href')
+                index_start = link.index('/Id/') + 4
+                index_end = link.index('/la')
+                member_identifier = link[index_start:index_end]
+                membership = td_array[2].get_text().strip()
+                member_id = members[member_identifier]
+                o_id = committees[committee_identifier]
+                if membership == "":
+                    membership = "Membru"
+                role = membership_correction[membership.encode('utf-8')]
+                committees_membership_json = self.build_memberships_doc(member_id, o_id, membership,
+                                                                        role, committee['url'])
+                committees_membership.append(committees_membership_json)
+        print "\n\tScraping completed! \n\tScraped " + str(len(committees_membership)) + " members of committee groups\n"
+        return committees_membership
+
+
     def effective_date(self):
         return date.today().isoformat()
 

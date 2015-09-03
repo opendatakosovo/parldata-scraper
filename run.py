@@ -49,7 +49,7 @@ def scrape(countries, people, votes):
             vpapi.timezone(creds[item.lower()]['timezone'])
             vpapi.authorize(creds[item.lower()]['api_user'], creds[item.lower()]['password'])
             if people == "yes":
-                # references[item.lower()].scrape_parliamentary_group_membership()
+                # references[item.lower()].scrape_committee_membership()
                 # references[item.lower()].members_list()
                 # members = references[item.lower()].scrape_mp_bio_data()
                 # chamber = references[item.lower()].scrape_chamber()
@@ -92,13 +92,13 @@ def scrape(countries, people, votes):
                         print "\t------------------------------------------------"
                     print "\n\tFinished Posting and updating data from %s data collection\n" % collection[2:]
 
-                if item.lower() == "armenia":
+                if item.lower() == "armenia" or item.lower() == "moldova":
                     memberships = {
-                        "chambers": references[item.lower()].scrape_membership(),
+                        # "chambers": references[item.lower()].scrape_membership(),
                         "parliamentary_groups": references[item.lower()].scrape_parliamentary_group_membership(),
                         "committees": references[item.lower()].scrape_committee_membership()
                     }
-                elif item.lower() == "georgia" or item.lower() == "moldova":
+                elif item.lower() == "georgia":
                     memberships = {
                         "chambers": references[item.lower()].scrape_parliamentary_group_membership(),
                     }
