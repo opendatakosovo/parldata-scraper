@@ -93,7 +93,7 @@ class MoldovaScraper():
         each = soup.find("div", {"class": "allTitle"}).find("table", {"cellspacing": "4"}).findAll('tr')
 
         for tr in each:
-            name = tr.find("td").find("img").get("alt")
+            name = tr.find("td").find("img").get("alt").replace("  ", " ")
             link = tr.find("td", {"valign": "top"}).find("a").get("href")
             # fraction_link = tr.find("td", {"valign": "top"}).find("a", {"class": "FractionLink"}).get("href")
             # fraction = tr.find("td", {"valign": "top"}).find("a", {"class": "FractionLink"}).next
@@ -122,6 +122,54 @@ class MoldovaScraper():
             }
             deputy_list.append(deputy_json)
         return deputy_list
+
+    def membership_correction(self):
+        return {
+            "Preşedinte": "chairman",
+            "Preşedintele Parlamentului": "chairman",
+            "Vicepreşedinte": "vice-chairman",
+            "Vicepreşedintele Parlamentului": "vice-chairman",
+            "Membru": "member",
+            "Deputat": "member"
+        }
+
+    def scrape_membership(self):
+        chamber_membership = []
+        mps_list = self.mps_list()
+        members = {}
+        membership_correction = self.membership_correction()
+        all_members = vpapi.getall("people")
+        for member in all_members:
+            members[member['identifiers'][0]['identifier']] = member['id']
+        chamber_id = vpapi.getfirst("organizations",
+                                    where={"identifiers": {
+                                        "$elemMatch": {
+                                            "identifier": "20", "scheme": "parlament.md"
+                                        }
+                                    }})
+        deputy_list_url = "http://www.parlament.md/StructuraParlamentului/" \
+                          "Deputies/tabid/87/language/ro-RO/Default.aspx"
+        for member in mps_list:
+            p_id = members[member['identifier']]
+            role = membership_correction[member['membership'].encode('utf-8')]
+            chamber_membership_json = self.build_memberships_doc(p_id, chamber_id['id'], member['membership'],
+                                                                 role, deputy_list_url)
+            chamber_membership.append(chamber_membership_json)
+        return chamber_membership
+
+    def build_memberships_doc(self, person_id, organization_id, label, role, url):
+        json_doc = {
+            "person_id": person_id,
+            "organization_id": organization_id,
+            "label": label,
+            "role": role,
+            "sources": [{
+                "url": url,
+                "note": "Pagină web"
+            }]
+        }
+        return json_doc
+
 
     def scrape_mp_bio_data(self):
         mps_list = self.mps_list()
