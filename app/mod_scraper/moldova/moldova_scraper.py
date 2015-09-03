@@ -182,6 +182,7 @@ class MoldovaScraper():
                 role = td_array[2].get_text().strip()
                 if role == "":
                     role = "Membru"
+                print link
                 print "name: " + td_array[1].find('a').get_text()
                 print "identifier: " + member_identifier
                 print "person_id: " + members[member_identifier]
