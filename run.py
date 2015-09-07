@@ -24,9 +24,10 @@ def scrape(countries, people, votes):
     georgia = georgia_scraper.GeorgiaScraper()
     armenia = armenia_scraper.ArmeniaScraper()
     ukraine = ukraine_scraper.UkraineScraper()
-    belarus = belarus_scraper.BelarusScraper()
+    belarus_lowerhouse = belarus_scraper.BelarusLowerhouseScraper()
     moldova = moldova_scraper.MoldovaScraper()
-    references = {"georgia": georgia, "armenia": armenia, "ukraine": ukraine, "belarus": belarus, "moldova": moldova}
+    references = {"georgia": georgia, "armenia": armenia, "ukraine": ukraine,
+                  "belarus": belarus_lowerhouse, "moldova": moldova}
     countries_array = []
     if countries == "all":
         for key in references:
@@ -49,7 +50,7 @@ def scrape(countries, people, votes):
             vpapi.timezone(creds[item.lower()]['timezone'])
             vpapi.authorize(creds[item.lower()]['api_user'], creds[item.lower()]['password'])
             if people == "yes":
-                # references[item.lower()].scrape_committee_membership()
+                references[item.lower()].scrape_mp_bio_data()
                 # references[item.lower()].members_list()
                 members = references[item.lower()].scrape_mp_bio_data()
                 chamber = references[item.lower()].scrape_chamber()
@@ -120,7 +121,6 @@ def scrape(countries, people, votes):
                         print "\t------------------------------------------------"
                     print "\n\tFinished Posted and updated data from %s membership data collection\n" % data_collection
             if votes == "yes":
-                print "\n\tScraping and updating Vote Events, Motions and Votes"
                 voting_data_collections = {
                     "motions": references[item.lower()].motions(),
                     "vote-events": references[item.lower()].vote_events(),
@@ -133,8 +133,6 @@ def scrape(countries, people, votes):
                             if resp["_status"] != "OK":
                                 raise Exception("Invalid status code")
                             print "\n\tFinished Posting and updating data from %s data collection" % collection
-                        else:
-                            print "\n\tThere are no new data for %s data collection" % collection
                     except BaseException as ex:
                         print ex.message
 
@@ -142,12 +140,8 @@ def scrape(countries, people, votes):
                 try:
                     if len(votes) > 0:
                         vpapi.post("votes", votes)
-                    else:
-                        print "\n\tThere are no new data for votes data collection"
                 except BaseException as ex:
                     print ex.message
-                print "\n\tFinished Scraping and updating Vote Events, Motions and Votes"
-                print "\t------------------------------------------------"
             vpapi.deauthorize()
     else:
         print "\n\tInvalid country/ies added"

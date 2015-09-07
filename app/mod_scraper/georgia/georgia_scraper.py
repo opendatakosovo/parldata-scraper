@@ -365,7 +365,7 @@ class GeorgiaScraper():
         result = urlopen(laws_url).read()
         json_result = json.loads(result)
         laws_array = []
-        last_item = vpapi.getfirst("vote-events")
+        last_item = vpapi.getfirst("vote-events", sort="-start_date")
 
         index_counter = 0
         if last_item:
@@ -391,10 +391,10 @@ class GeorgiaScraper():
             index = index_of_id + 5
             motion_id = url[index:]
             date = self.local_to_utc(item[0] + " 04:00")
-            votes_for = str(item[3])
-            votes_against = str(item[4])
+            votes_for = item[3]
+            votes_against = item[4]
             # votes_abstain = str(item[5])
-            votes_not_present = str(item[6])
+            votes_not_present = item[6]
             json_motion = {
                 "date": date,
                 "start_date": date,
@@ -423,19 +423,11 @@ class GeorgiaScraper():
                     }
                 ]
             }
-            # print json_motion
             laws_array.append(json_motion)
         return laws_array
-        # soup = scrape.download_html_file(laws_url)
-        # laws_table = soup.find("table", {"id": "passed_laws_datatable"}).find('tbody').findAll('tr')
-        # print laws_table
-
-        # for event in events:
-        #     name = event['name']
-        # for each_row in laws_table.find('tbody').findAll('tr'):
-        #     print each_row
 
     def vote_events(self):
+        print "\n\n\tScraping Vote Events data from Georgia's parliament..."
         laws_list = self.laws()
         vote_events = []
         for law in laws_list:
@@ -443,9 +435,14 @@ class GeorgiaScraper():
             del law['sources']
             del law['date']
             vote_events.append(law)
+        if len(vote_events) > 0:
+            print "\n\tScraping completed! \n\tScraped " + str(len(vote_events)) + " vote events"
+        else:
+            print "\n\tThere are no new vote events."
         return vote_events
 
     def motions(self):
+        print "\n\n\tScraping Motions data from Georgia's parliament..."
         laws_list = self.laws()
         motions = []
         for motion in laws_list:
@@ -453,6 +450,11 @@ class GeorgiaScraper():
             del motion['motion_id']
             del motion['start_date']
             motions.append(motion)
+        if len(motions) > 0:
+            print "\n\tScraping completed! \n\tScraped " + str(len(motions)) + " motions"
+        else:
+            print "\n\tThere are no new motions."
+
         return motions
 
     def get_group_id(self):
@@ -480,7 +482,7 @@ class GeorgiaScraper():
         return members
 
     def scrape_votes(self):
-        print "\n\tScraping votes data from Georgia's parliament...\n\tPlease wait. This may take a few minutes..."
+        print "\n\n\tScraping votes data from Georgia's parliament...\n\tPlease wait. This may take a few minutes..."
         vote_events = self.vote_events()
         memberships = self.get_group_id()
         members = self.get_all_member_ids_for_votes()
@@ -490,10 +492,8 @@ class GeorgiaScraper():
             "No": "no",
             "Abstain / Not Present*": "absent"
         }
-        counter = 0
+
         for law in vote_events:
-            counter += 1
-            print "\n\t\tlaw: %s counter: %s" % (law['id'], str(counter))
             voting_results_url = "http://votes.parliament.ge/en/search/voting_results/%s?get_all_3_sessions=false" \
                              "&iDisplayLength=200000" % str(law['id'])
             result = urlopen(voting_results_url).read()
@@ -506,10 +506,8 @@ class GeorgiaScraper():
                 option = item[1]
                 if member_id in members:
                     member_id_API = members[member_id]
-
                     group_id = memberships[member_id_API]
                     if group_id:
-                        print "\t" + member_id_API
                         json_doc = {
                             "vote_event_id": law['id'],
                             "option": options_correction[option],
@@ -517,11 +515,6 @@ class GeorgiaScraper():
                             "group_id": group_id
                         }
                         votes_array.append(json_doc)
-                        print "\t------------------------------------------------"
-
-                # url = a_tag.find('a').get('href')
-                # print "a_tag: " + a_tag
-                # print "url: " + url
         print "\n\tScraping completed! \n\tScraped " + str(len(votes_array)) + " votes"
         return votes_array
 
