@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from app.mod_scraper import scraper
 import belarus_lowerhouse_parser
+from datetime import date
+import vpapi
 
 parser = belarus_lowerhouse_parser.BelarusLowerhouseParser()
 scrape = scraper.Scraper()
@@ -54,3 +56,55 @@ class BelarusLowerhouseScraper():
             "sort_name": last_name + ", " + first_name
         }
         return json_doc
+
+    def build_organization_doc(self, classification, name, identifier, founding_date,
+                               dissolution_date, url, email, parent_id):
+        return {
+            "classification": classification,
+            "name": name,
+            "identifiers": [{
+                "identifier": identifier,
+                "scheme": "house.by"
+            }],
+            "founding_date": founding_date,
+            "contact_details": [{
+                "label": "E-mail",
+                "type": "email",
+                "value": email
+            }],
+            "dissolution_date": dissolution_date,
+            "sources": [{
+                "note": "сайт",
+                "url": url
+            }],
+            "parent_id": parent_id
+        }
+
+    def effective_date(self):
+        return date.today().isoformat()
+
+    def scrape_chamber(self):
+        print "\n\tScraping chambers from Belarus Lowerhouse parliament..."
+        chambers = parser.chambers()
+        chambers_list = []
+        url = "http://house.gov.by/index.php/,10087,,,,2,,,0.html"
+        for chamber in chambers:
+            chamber_json = self.build_organization_doc("chamber", chambers[chamber]['name'], chamber,
+                                                       chambers[chamber]['start_date'], chambers[chamber]['end_date'],
+                                                       url, "", "")
+            if chamber == "2":
+                del chamber_json['dissolution_date']
+            del chamber_json['contact_details']
+            del chamber_json['parent_id']
+
+            existing = vpapi.getfirst("organizations", where={'identifiers': {'$elemMatch': chamber_json['identifiers'][0]}})
+            if not existing:
+                resp = vpapi.post("organizations", chamber_json)
+            else:
+                # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
+                resp = vpapi.put("organizations", existing['id'], chamber_json, effective_date=self.effective_date())
+            if resp["_status"] != "OK":
+                raise Exception("Invalid status code")
+            chambers_list.append(chamber_json)
+        print "\n\tScraping completed! \n\tScraped " + str(len(chambers_list)) + " chambers"
+        return chambers_list

@@ -112,3 +112,17 @@ class BelarusLowerhouseParser():
             members.append(member)
         print "\n\tScraping completed! \n\tScraped " + str(len(members)) + " members"
         return members
+
+    def chambers(self):
+        return {
+            "1": {
+                "start_date": "1919",
+                "end_date": "1990",
+                "name": "I этап — савецкі (1919 год — канец 80-х — пачатак 90-х гадоў)"
+            },
+            "2": {
+                "start_date": "1991",
+                "end_date": "",
+                "name": "II этап — постсавецкі (1991 год — цяперашні час)"
+            }
+        }
