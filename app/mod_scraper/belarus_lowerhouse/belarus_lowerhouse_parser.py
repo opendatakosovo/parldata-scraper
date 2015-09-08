@@ -128,6 +128,44 @@ class BelarusLowerhouseParser():
             }
         }
 
+    def committee_list(self):
+        url = "http://house.gov.by/index.php/,17052,,,,2,,,0.html"
+        soup = scrape.download_html_file(url)
+        committees = []
+        chamber = vpapi.getfirst("organizations", where={'identifiers': {'$elemMatch': {"identifier": "2", "scheme": "house.by"}}})
+        for each_div in soup.findAll('div', {"style": "margin-left:0px; padding-bottom: 1px;"}):
+            name = each_div.find('a').get_text().strip()
+            url = each_div.find('a').get('href')
+            index_start = url.index("/,") + 2
+            index_end = url.index(",,,,2")
+            identifier = url[index_start:index_end]
+            committee_json = {
+                "name": name,
+                "url": url,
+                "identifier": identifier,
+                "parent_id": chamber['id']
+            }
+            committees.append(committee_json)
+        return committees
+
+    def committees(self):
+        committee_list = self.committee_list()
+        committees = []
+        for committee in committee_list:
+            identifier = int(committee['identifier']) + 2
+            url = committee['url'].replace(committee['identifier'], str(identifier))
+            soup = scrape.download_html_file(url)
+            all_tr = soup.find("table", {"cellpadding": "2"}).findAll('tr')
+            phone_number_tr = all_tr[len(all_tr) - 1].findAll('td')
+            phone_number = phone_number_tr[1].get_text().encode('utf-8')
+            phone_number_fixed_1 = phone_number.replace("тэл./факс", "").replace("тэл.            222-63-98", "").strip()
+            phone_number_fixed_2 = phone_number_fixed_1.replace("\xc2\xa0", "")
+            phone_number_final = phone_number_fixed_2.replace(" ", "")
+            committee['phone_number'] = phone_number_final
+            committee['members_url'] = url
+            committees.append(committee)
+        return committees
+
     def parliamentary_groups(self):
         url = "http://house.gov.by/index.php/,17543,,,,2,,,0.html"
         index_start = url.index("/,") + 2

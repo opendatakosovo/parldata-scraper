@@ -83,6 +83,20 @@ class BelarusLowerhouseScraper():
     def effective_date(self):
         return date.today().isoformat()
 
+    def scrape_committee(self):
+        print "\n\tScraping committee groups from Armenia's parliament..."
+        committee_list = []
+        committees = parser.committees()
+        for committee in committees:
+            committee_json = self.build_organization_doc("committe", committee['name'], committee['identifier'],
+                                                         "", "", committee['url'], '', committee['parent_id'])
+            del committee_json['contact_details']
+            del committee_json['founding_date']
+            del committee_json['dissolution_date']
+            committee_list.append(committee_json)
+        print "\n\tScraping completed! \n\tScraped " + str(len(committee_list)) + " committee groups"
+        return committee_list
+
     def scrape_parliamentary_groups(self):
         print "\n\tScraping parliamentary groups from Armenia's parliament..."
         party_list = []
