@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from app.mod_scraper import scraper
+import vpapi
 
 
 scrape = scraper.Scraper()
@@ -126,3 +127,19 @@ class BelarusLowerhouseParser():
                 "name": "II этап — постсавецкі (1991 год — цяперашні час)"
             }
         }
+
+    def parliamentary_groups(self):
+        url = "http://house.gov.by/index.php/,17543,,,,2,,,0.html"
+        index_start = url.index("/,") + 2
+        index_end = url.index(",,,,2")
+        identifier = url[index_start:index_end]
+        chamber = vpapi.getfirst("organizations", where={'identifiers': {'$elemMatch': {"identifier": "2", "scheme": "house.by"}}})
+        soup = scrape.download_html_file(url)
+        party_name = soup.find('h1').get_text()
+        party_json = {
+            "name": party_name,
+            "url": url,
+            "identifier": identifier,
+            "parent_id": chamber['id']
+        }
+        return party_json

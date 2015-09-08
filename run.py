@@ -50,16 +50,16 @@ def scrape(countries, people, votes):
             vpapi.timezone(creds[item.lower()]['timezone'])
             vpapi.authorize(creds[item.lower()]['api_user'], creds[item.lower()]['password'])
             if people == "yes":
-                # references[item.lower()].scrape_chamber()
+                # references[item.lower()].parliamentary_groups_list()
                 # references[item.lower()].members_list()
                 # members = references[item.lower()].scrape_mp_bio_data()
-                chamber = references[item.lower()].scrape_chamber()
-                # parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
+                # chamber = references[item.lower()].scrape_chamber()
+                parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
                 # committee = references[item.lower()].scrape_committee()
                 data_collections = {
                     # "a-people": members,
-                    "b-chamber": chamber,
-                    # "c-parliamentary_groups": parliamentary_groups,
+                    # "b-chamber": chamber,
+                    "c-parliamentary_groups": parliamentary_groups,
                     # "d-committe": committee
                 }
                 # inserts data for each data collection in Visegrad+ Api
