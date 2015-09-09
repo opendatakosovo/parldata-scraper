@@ -103,14 +103,15 @@ class BelarusLowerhouseParser():
                 if existing:
                     p_id = existing['id']
 
-                party_membership_json = {
-                    "organization_id": existing_party['id'],
-                    "person_id": p_id,
-                    "url": url,
-                    "membership": membership,
-                    "role": roles[membership.encode('utf-8')]
-                }
-                party_membership_list.append(party_membership_json)
+                if existing_party['id'] and p_id:
+                    party_membership_json = {
+                        "organization_id": existing_party['id'],
+                        "person_id": p_id,
+                        "url": url,
+                        "membership": membership,
+                        "role": roles[membership.encode('utf-8')]
+                    }
+                    party_membership_list.append(party_membership_json)
         return party_membership_list
 
     def chamber_memberships(self):
