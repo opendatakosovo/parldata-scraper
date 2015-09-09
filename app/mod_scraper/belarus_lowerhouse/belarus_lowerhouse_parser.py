@@ -78,34 +78,40 @@ class BelarusLowerhouseParser():
         }
 
     def parliamentary_group_membership(self):
-        members = {}
-        all_members = vpapi.getall("people")
-        for member in all_members:
-            members[member['name']] = member['id']
-        print members
+        party_membership_list = []
         roles = self.membership_correction()
         party = self.parliamentary_groups()
         url = party['url']
         soup = scrape.download_html_file(url)
-        for each_tr in soup.find("table", {"width": "595"}).findAll('tr')[1:]:
-            td_array = each_tr.findAll('td')
-            name = td_array[1].get_text().strip()
-            if "кіраўнік групы" in name.encode('utf-8'):
-                name = name.encode('utf-8').replace("кіраўнік групы", "").strip()
-                name = name[:len(name) - 4]
-                membership = "кіраўнік групы".decode('utf-8')
-            else:
-                membership = "Член".decode('utf-8')
-            names = name.split(" ")
-            first_name = names[1]
-            middle_name = names[2]
-            last_name = names[0]
-            name_ordered = first_name + " " + middle_name + " " + last_name
+        party = soup.find("h1").get_text()
+        existing_party = vpapi.getfirst("organizations", where={"name": party})
+        if existing_party:
+            for each_tr in soup.find("table", {"width": "595"}).findAll('tr')[1:]:
+                td_array = each_tr.findAll('td')
+                name = td_array[1].get_text().strip()
+                if "кіраўнік групы" in name.encode('utf-8'):
+                    name = name.encode('utf-8').replace("кіраўнік групы", "").strip()
+                    name = name[:len(name) - 4]
+                    membership = "кіраўнік групы".decode('utf-8')
+                else:
+                    membership = "Член".decode('utf-8')
+                names = name.split(" ")
+                first_name = names[1]
+                last_name = names[0]
+                name_ordered = last_name + ", " + first_name
+                existing = vpapi.getfirst("people", where={'sort_name': name_ordered})
+                if existing:
+                    p_id = existing['id']
 
-            print name_ordered
-            print roles[membership.encode('utf-8')]
-            print members[name_ordered.encode('utf-8').strip()]
-            print "---------------------------------------------"
+                party_membership_json = {
+                    "organization_id": existing_party['id'],
+                    "person_id": p_id,
+                    "url": url,
+                    "membership": membership,
+                    "role": roles[membership.encode('utf-8')]
+                }
+                party_membership_list.append(party_membership_json)
+        return party_membership_list
 
     def chamber_memberships(self):
         membership_json = {}

@@ -93,7 +93,15 @@ class BelarusLowerhouseScraper():
         return json_doc
 
     def scrape_parliamentary_group_membership(self):
-        list = parser.parliamentary_group_membership()
+        print "\n\tScraping parliamentary groups membership from Belarus Lowerhouse's parliament..."
+        party_membership = parser.parliamentary_group_membership()
+        parties_membership_list = []
+        for member in party_membership:
+            party_membership_json = self.build_memberships_doc(member['person_id'], member['organization_id'],
+                                                               member['membership'], member['role'], member['url'])
+            parties_membership_list.append(party_membership_json)
+        print "\n\tScraping completed! \n\tScraped " + str(len(parties_membership_list)) + " members of parliamentary groups"
+        return parties_membership_list
 
     def scrape_membership(self):
         print "\n\tScraping membership's data from Belarus Lowerhouese parliament..."
