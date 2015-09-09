@@ -92,6 +92,9 @@ class BelarusLowerhouseScraper():
         }
         return json_doc
 
+    def scrape_parliamentary_group_membership(self):
+        list = parser.parliamentary_group_membership()
+
     def scrape_membership(self):
         print "\n\tScraping membership's data from Belarus Lowerhouese parliament..."
         mp_list = parser.mps_list()

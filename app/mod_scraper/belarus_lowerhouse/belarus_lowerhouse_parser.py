@@ -5,7 +5,6 @@ import vpapi
 
 scrape = scraper.Scraper()
 
-
 class BelarusLowerhouseParser():
     months_correction = {
         "студзеня": "01",
@@ -74,8 +73,39 @@ class BelarusLowerhouseParser():
         return {
             "Старшыня Палаты прадстаўнікоў Нацыянальнага сходу Рэспублікі Беларусь": "chairman",
             "Намеснік Старшыні Палаты прадстаўнікоў Нацыянальнага сходу Рэспублікі Беларусь": "vice-chairman",
-            "Член": "member"
+            "Член": "member",
+            "кіраўнік групы": "chairman"
         }
+
+    def parliamentary_group_membership(self):
+        members = {}
+        all_members = vpapi.getall("people")
+        for member in all_members:
+            members[member['name']] = member['id']
+        print members
+        roles = self.membership_correction()
+        party = self.parliamentary_groups()
+        url = party['url']
+        soup = scrape.download_html_file(url)
+        for each_tr in soup.find("table", {"width": "595"}).findAll('tr')[1:]:
+            td_array = each_tr.findAll('td')
+            name = td_array[1].get_text().strip()
+            if "кіраўнік групы" in name.encode('utf-8'):
+                name = name.encode('utf-8').replace("кіраўнік групы", "").strip()
+                name = name[:len(name) - 4]
+                membership = "кіраўнік групы".decode('utf-8')
+            else:
+                membership = "Член".decode('utf-8')
+            names = name.split(" ")
+            first_name = names[1]
+            middle_name = names[2]
+            last_name = names[0]
+            name_ordered = first_name + " " + middle_name + " " + last_name
+
+            print name_ordered
+            print roles[membership.encode('utf-8')]
+            print members[name_ordered.encode('utf-8').strip()]
+            print "---------------------------------------------"
 
     def chamber_memberships(self):
         membership_json = {}
