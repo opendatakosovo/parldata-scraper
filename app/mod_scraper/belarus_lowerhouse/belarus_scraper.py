@@ -9,7 +9,6 @@ scrape = scraper.Scraper()
 
 
 class BelarusLowerhouseScraper():
-
     def scrape_mp_bio_data(self):
         mps_list = parser.mp()
         members = []
@@ -80,6 +79,37 @@ class BelarusLowerhouseScraper():
             "parent_id": parent_id
         }
 
+    def build_memberships_doc(self, person_id, organization_id, label, role, url):
+        json_doc = {
+            "person_id": person_id,
+            "organization_id": organization_id,
+            "label": label,
+            "role": role,
+            "sources": [{
+                "url": url,
+                "note": "сайт"
+            }]
+        }
+        return json_doc
+
+    def scrape_membership(self):
+        print "\n\tScraping membership's data from Belarus Lowerhouese parliament..."
+        mp_list = parser.mps_list()
+        chamber_membership_list = []
+        members = {}
+        url = "http://house.gov.by/index.php/,17041,,,,2,,,0.html"
+        all_members = vpapi.getall("people")
+        for person in all_members:
+            members[person['identifiers'][0]['identifier']] = person['id']
+        chamber = vpapi.getfirst("organizations", where={"identifiers": {"$elemMatch": {"identifier": "2", "scheme": "house.by"}}})
+        for member in mp_list:
+            p_id = members[member['identifier']]
+            o_id = chamber['id']
+            chamber_membership_json = self.build_memberships_doc(p_id, o_id, member['membership'], member['role'], url)
+            chamber_membership_list.append(chamber_membership_json)
+        print "\n\tScraping completed! \n\tScraped " + str(len(chamber_membership_list)) + " members"
+        return chamber_membership_list
+
     def effective_date(self):
         return date.today().isoformat()
 
@@ -93,9 +123,21 @@ class BelarusLowerhouseScraper():
             del committee_json['contact_details']
             del committee_json['founding_date']
             del committee_json['dissolution_date']
+            committee_json["contact_details"] = []
+            committee_json["contact_details"].append({
+                "type": "fax",
+                "label": "факс",
+                "value": committee['phone_number']
+            })
+            committee_json["contact_details"].append({
+                "type": "tel",
+                "label": "тэл",
+                "value": committee['phone_number']
+            })
             committee_list.append(committee_json)
         print "\n\tScraping completed! \n\tScraped " + str(len(committee_list)) + " committee groups"
         return committee_list
+
 
     def scrape_parliamentary_groups(self):
         print "\n\tScraping parliamentary groups from Armenia's parliament..."

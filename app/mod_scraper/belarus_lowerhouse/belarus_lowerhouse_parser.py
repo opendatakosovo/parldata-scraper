@@ -34,7 +34,8 @@ class BelarusLowerhouseParser():
         members_list = []
         url = "http://house.gov.by/index.php/,17041,,,,2,,,0.html"
         soup = scrape.download_html_file(url)
-        # print soup.findAll('a', {'class': 'd_list'})
+        roles = self.membership_correction()
+        chamber_membership = self.chamber_memberships()
         counter = 0
         for each_tr in soup.findAll('a', {'class': 'd_list'}):
             counter += 1
@@ -49,6 +50,7 @@ class BelarusLowerhouseParser():
             index_end = url_member.index(',,,2')
             identifier = url_member[index_start:index_end]
             gender = self.guess_gender(first_name)
+
             member_json = {
                 "name": name_ordered,
                 "given_name": first_name,
@@ -58,8 +60,37 @@ class BelarusLowerhouseParser():
                 "url": url_member,
                 "gender": gender
             }
+            if identifier in chamber_membership:
+                membership = chamber_membership[identifier].decode('utf-8')
+            else:
+                membership = "Член".decode('utf-8')
+            member_json['membership'] = membership
+            role = roles[membership.encode('utf-8')]
+            member_json['role'] = role
             members_list.append(member_json)
         return members_list
+
+    def membership_correction(self):
+        return {
+            "Старшыня Палаты прадстаўнікоў Нацыянальнага сходу Рэспублікі Беларусь": "chairman",
+            "Намеснік Старшыні Палаты прадстаўнікоў Нацыянальнага сходу Рэспублікі Беларусь": "vice-chairman",
+            "Член": "member"
+        }
+
+    def chamber_memberships(self):
+        membership_json = {}
+        url_membership = "http://house.gov.by/index.php/,15490,,,,2,,,0.html"
+        soup_membership = scrape.download_html_file(url_membership)
+        for each_div in soup_membership.findAll("table", {"cellpadding": "5"}):
+            url_member = "http://house.gov.by/" + each_div.find("a").get('href')
+            index_start = url_member.index('489,') + 4
+            index_end = url_member.index(',,,2')
+            identifier = url_member[index_start:index_end]
+            encoded_membership = each_div.find("b").get_text().encode('utf-8')
+            membership = encoded_membership.replace("Нацыянальнага сходу Рэспублікі Беларусь", "").strip() \
+                  + " Нацыянальнага сходу Рэспублікі Беларусь"
+            membership_json[identifier] = membership
+        return membership_json
 
     def mp(self):
         print "\n\tScraping people data from Belarus Lower House parliament..."
