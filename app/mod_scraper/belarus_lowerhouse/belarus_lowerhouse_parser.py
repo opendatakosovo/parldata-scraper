@@ -77,6 +77,53 @@ class BelarusLowerhouseParser():
             "кіраўнік групы": "chairman"
         }
 
+    def committee_membership(self):
+        committee_list = self.committee_list()
+        element_positions = {}
+        for committee in committee_list:
+            element_positions[committee['identifier']] = []
+            identifier = int(committee['identifier']) + 2
+            url = committee['url'].replace(committee['identifier'], str(identifier))
+            soup = scrape.download_html_file(url)
+            all_tr_elements = soup.find("table", {"cellpadding": "2"}).findAll('tr')
+            all_tr = all_tr_elements[:len(all_tr_elements) - 2]
+            counter = 0
+            for each_tr in all_tr:
+                if each_tr.find('span', {"style": "color:#ff0000;"}):
+                    membership = each_tr.find('span', {"style": "color:#ff0000;"}).get_text()
+                    element_positions[committee['identifier']].append(counter)
+                    # print membership
+                counter += 1
+            element_positions[committee['identifier']].append(len(all_tr_elements) - 2)
+
+        # for item in element_positions["17228"]:
+        #     for key in item:
+        #         print key
+        #         print item[key]
+        # print "elem 0: " + str(element_positions["17228"][0])
+        # print "elem 1: " + str(element_positions["17228"][1])
+        # print "elem 2: " + str(element_positions["17228"][2])
+        print element_positions
+        # for committee in committee_list:
+        #     element_positions[committee['identifier']] = {}
+        #     identifier = int(committee['identifier']) + 2
+        #     url = committee['url'].replace(committee['identifier'], str(identifier))
+        #     soup = scrape.download_html_file(url)
+        #     if committee['identifier'] in element_positions:
+        #         for element in element_positions["17228"][0]:
+        #             print element
+
+
+
+            # all_tr_elements = soup.find("table", {"cellpadding": "2"}).findAll('tr')
+            # all_tr = all_tr_elements[:len(all_tr_elements) - 1]
+
+            # for position in positions:
+            #     for each_tr in all_tr[positions[position]]
+
+
+
+
     def parliamentary_group_membership(self):
         party_membership_list = []
         roles = self.membership_correction()
