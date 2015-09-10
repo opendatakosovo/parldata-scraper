@@ -107,7 +107,7 @@ class ArmeniaScraper():
         }
 
     def scrape_committee_membership(self):
-        print "\n\tScraping committee groups from Armenia's parliament..."
+        print "\n\tScraping committee groups membership from Armenia's parliament..."
         committees = self.committee_list()
         committee_membership = []
         chambers = {}
@@ -155,7 +155,7 @@ class ArmeniaScraper():
                             p_id = members[name_ordered]
                         party_membership_json = self.build_memberships_doc(p_id, o_id, membership, role, url)
                         committee_membership.append(party_membership_json)
-        print "\n\tScraping completed! \n\tScraped " + str(len(committee_membership)) + " committee groups"
+        print "\n\tScraping completed! \n\tScraped " + str(len(committee_membership)) + " members of committee groups"
         return committee_membership
 
     def scrape_parliamentary_group_membership(self):

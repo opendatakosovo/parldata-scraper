@@ -72,6 +72,8 @@ class BelarusLowerhouseParser():
     def membership_correction(self):
         return {
             "Старшыня": "chairman",
+            "Намеснікі старшыні": "vice-chairman",
+            "Члены камісіі": "member",
             "Старшыня Палаты прадстаўнікоў Нацыянальнага сходу Рэспублікі Беларусь": "chairman",
             "Намеснік Старшыні Палаты прадстаўнікоў Нацыянальнага сходу Рэспублікі Беларусь": "vice-chairman",
             "Член": "member",

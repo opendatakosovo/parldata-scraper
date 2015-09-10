@@ -93,20 +93,24 @@ class BelarusLowerhouseScraper():
         return json_doc
 
     def scrape_committee_membership(self):
+        print "\n\tScraping committee groups membership from Belarus Lowerhouse parliament..."
+        committee_membership_list = []
         committee_list = parser.committee_membership()
+        groups = {}
+        all_groups = vpapi.getall("organizations", where={"classification": "committe"})
+        for group in all_groups:
+            groups[group['identifiers'][0]['identifier']] = group['id']
+        roles = parser.membership_correction()
         for committee in committee_list:
             identifier = int(committee) + 2
             url = "http://house.gov.by/index.php/,17230,,,,2,,,0.html".replace("17230", str(identifier))
             for membership in committee_list[committee]:
                 for members in committee_list[committee][membership]:
-                    membership_json = {
-                        "organization": committee,
-                        "membership": membership,
-                        "person_id": members,
-                        "url": url
-                    }
-                    print membership_json
-            print "-----------------------------"
+                    role = roles[membership]
+                    membership_json = self.build_memberships_doc(members, groups[committee], membership, role, url)
+                    committee_membership_list.append(membership_json)
+        print "\n\tScraping completed! \n\tScraped " + str(len(committee_membership_list)) + " members of committee groups"
+        return committee_membership_list
 
     def scrape_parliamentary_group_membership(self):
         print "\n\tScraping parliamentary groups membership from Belarus Lowerhouse's parliament..."
