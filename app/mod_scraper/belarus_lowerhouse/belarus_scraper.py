@@ -93,7 +93,20 @@ class BelarusLowerhouseScraper():
         return json_doc
 
     def scrape_committee_membership(self):
-        committee = parser.committee_membership()
+        committee_list = parser.committee_membership()
+        for committee in committee_list:
+            identifier = int(committee) + 2
+            url = "http://house.gov.by/index.php/,17230,,,,2,,,0.html".replace("17230", str(identifier))
+            for membership in committee_list[committee]:
+                for members in committee_list[committee][membership]:
+                    membership_json = {
+                        "organization": committee,
+                        "membership": membership,
+                        "person_id": members,
+                        "url": url
+                    }
+                    print membership_json
+            print "-----------------------------"
 
     def scrape_parliamentary_group_membership(self):
         print "\n\tScraping parliamentary groups membership from Belarus Lowerhouse's parliament..."

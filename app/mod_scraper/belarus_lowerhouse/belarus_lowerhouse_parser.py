@@ -71,13 +71,14 @@ class BelarusLowerhouseParser():
 
     def membership_correction(self):
         return {
+            "Старшыня": "chairman",
             "Старшыня Палаты прадстаўнікоў Нацыянальнага сходу Рэспублікі Беларусь": "chairman",
             "Намеснік Старшыні Палаты прадстаўнікоў Нацыянальнага сходу Рэспублікі Беларусь": "vice-chairman",
             "Член": "member",
             "кіраўнік групы": "chairman"
         }
 
-    def committee_membership(self):
+    def committee_membership_list(self):
         committee_list = self.committee_list()
         element_positions = {}
         for committee in committee_list:
@@ -90,36 +91,55 @@ class BelarusLowerhouseParser():
             counter = 0
             for each_tr in all_tr:
                 if each_tr.find('span', {"style": "color:#ff0000;"}):
-                    membership = each_tr.find('span', {"style": "color:#ff0000;"}).get_text()
                     element_positions[committee['identifier']].append(counter)
-                    # print membership
                 counter += 1
             element_positions[committee['identifier']].append(len(all_tr_elements) - 2)
 
-        # for item in element_positions["17228"]:
-        #     for key in item:
-        #         print key
-        #         print item[key]
-        # print "elem 0: " + str(element_positions["17228"][0])
-        # print "elem 1: " + str(element_positions["17228"][1])
-        # print "elem 2: " + str(element_positions["17228"][2])
-        print element_positions
-        # for committee in committee_list:
-        #     element_positions[committee['identifier']] = {}
-        #     identifier = int(committee['identifier']) + 2
-        #     url = committee['url'].replace(committee['identifier'], str(identifier))
-        #     soup = scrape.download_html_file(url)
-        #     if committee['identifier'] in element_positions:
-        #         for element in element_positions["17228"][0]:
-        #             print element
+        return element_positions
 
+    def committee_membership(self):
+        committee_list = self.committee_list()
+        element_positions = self.committee_membership_list()
+        committee_members = {}
+        members = {}
+        all_members = vpapi.getall("people")
+        for member in all_members:
+            members[member['sources'][0]['url']] = member['id']
+        for committee in committee_list:
+            identifier = int(committee['identifier']) + 2
+            url = committee['url'].replace(committee['identifier'], str(identifier))
+            soup = scrape.download_html_file(url)
+            all_tr_elements = soup.find("table", {"cellpadding": "2"}).findAll('tr')
+            all_tr = all_tr_elements[:len(all_tr_elements) - 2]
+            committee_members[committee['identifier']] = {}
+            committee_members[committee['identifier']]["Старшыня"] = []
+            committee_members[committee['identifier']]["Намеснікі старшыні"] = []
+            committee_members[committee['identifier']]["Члены камісіі"] = []
 
+            if committee['identifier'] in element_positions:
+                index_start_first = element_positions[committee['identifier']][0]
+                index_start_middle = element_positions[committee['identifier']][1]
+                index_penultimate = element_positions[committee['identifier']][2]
+                index_start_last = element_positions[committee['identifier']][3]
+                for each_tr in all_tr[index_start_first:index_start_middle]:
+                    if each_tr.find("a"):
+                        url = "http://house.gov.by/" + each_tr.find('a').get('href').replace("15489", "17041")
+                        member_id = members[url]
+                        committee_members[committee['identifier']]["Старшыня"].append(member_id)
 
-            # all_tr_elements = soup.find("table", {"cellpadding": "2"}).findAll('tr')
-            # all_tr = all_tr_elements[:len(all_tr_elements) - 1]
+                for each_tr in all_tr[index_start_middle:index_penultimate]:
+                    if each_tr.find("a"):
+                        url = "http://house.gov.by/" + each_tr.find('a').get('href').replace("15489", "17041")
+                        member_id = members[url]
+                        committee_members[committee['identifier']]["Намеснікі старшыні"].append(member_id)
 
-            # for position in positions:
-            #     for each_tr in all_tr[positions[position]]
+                for each_tr in all_tr[index_penultimate:index_start_last]:
+                    if each_tr.find("a"):
+                        url = "http://house.gov.by/" + each_tr.find('a').get('href').replace("15489", "17041")
+                        member_id = members[url]
+                        committee_members[committee['identifier']]["Члены камісіі"].append(member_id)
+
+        return committee_members
 
 
 
