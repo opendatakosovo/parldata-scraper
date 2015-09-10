@@ -1,4 +1,3 @@
-from pymongo import MongoClient
 import mechanize
 from bs4 import BeautifulSoup
 

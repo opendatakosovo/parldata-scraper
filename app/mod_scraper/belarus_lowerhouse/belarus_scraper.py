@@ -145,7 +145,7 @@ class BelarusLowerhouseScraper():
         return date.today().isoformat()
 
     def scrape_committee(self):
-        print "\n\tScraping committee groups from Armenia's parliament..."
+        print "\n\tScraping committee groups from Belarus Lowerhouse parliament..."
         committee_list = []
         committees = parser.committees()
         for committee in committees:
@@ -171,7 +171,7 @@ class BelarusLowerhouseScraper():
 
 
     def scrape_parliamentary_groups(self):
-        print "\n\tScraping parliamentary groups from Armenia's parliament..."
+        print "\n\tScraping parliamentary groups from Belarus Lowerhouse parliament..."
         party_list = []
         parties = parser.parliamentary_groups()
         party_json = self.build_organization_doc("parliamentary group", parties['name'], parties['identifier'],
