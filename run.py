@@ -10,7 +10,8 @@ from app.mod_scraper.ukraine import ukraine_scraper
 from app.mod_scraper.moldova import moldova_scraper
 from app.mod_scraper.armenia import armenia_scraper
 from app.mod_scraper.georgia import georgia_scraper
-from app.mod_scraper.belarus_lowerhouse import belarus_scraper
+from app.mod_scraper.belarus_lowerhouse import belarus_lowerhouse_scraper
+from app.mod_scraper.belarus_upperhouse import belarus_upperhouse_scraper
 
 client = MongoClient()
 db = client.ge
@@ -34,10 +35,12 @@ def scrape(countries, people, votes):
     georgia = georgia_scraper.GeorgiaScraper()
     armenia = armenia_scraper.ArmeniaScraper()
     ukraine = ukraine_scraper.UkraineScraper()
-    belarus_lowerhouse = belarus_scraper.BelarusLowerhouseScraper()
+    belarus_lowerhouse = belarus_lowerhouse_scraper.BelarusLowerhouseScraper()
+    belarus_upperhouse = belarus_upperhouse_scraper.BelarusUpperhouseScraper()
     moldova = moldova_scraper.MoldovaScraper()
     references = {"georgia": georgia, "armenia": armenia, "ukraine": ukraine,
-                  "belarus-lowerhouse": belarus_lowerhouse, "moldova": moldova}
+                  "belarus-lowerhouse": belarus_lowerhouse, "moldova": moldova,
+                  "belarus-upperhouse": belarus_upperhouse}
     countries_array = []
     if countries == "all":
         for key in references:
@@ -61,17 +64,17 @@ def scrape(countries, people, votes):
                 vpapi.timezone(creds[item.lower()]['timezone'])
                 vpapi.authorize(creds[item.lower()]['api_user'], creds[item.lower()]['password'])
                 if people == "yes":
-                    # references[item.lower()].scrape_committee_membership()
+                    references[item.lower()].chambers()
                     # references[item.lower()].members_list()
-                    members = references[item.lower()].scrape_mp_bio_data()
-                    chamber = references[item.lower()].scrape_chamber()
-                    parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
-                    committee = references[item.lower()].scrape_committee()
+                    # members = references[item.lower()].scrape_mp_bio_data()
+                    # chamber = references[item.lower()].scrape_chamber()
+                    # parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
+                    # committee = references[item.lower()].scrape_committee()
                     data_collections = {
-                        "a-people": members,
-                        "b-chamber": chamber,
-                        "c-parliamentary_groups": parliamentary_groups,
-                        "d-committe": committee
+                        # "a-people": members,
+                        # "b-chamber": chamber,
+                        # "c-parliamentary_groups": parliamentary_groups,
+                        # "d-committe": committee
                     }
                     # inserts data for each data collection in Visegrad+ Api
                     for collection in sorted(set(data_collections)):
@@ -104,33 +107,33 @@ def scrape(countries, people, votes):
                             print "\t------------------------------------------------"
                         print "\n\tFinished Posting and updating data from %s data collection\n" % collection[2:]
 
-                    if item.lower() == "armenia" or item.lower() == "moldova" or item.lower() == "belarus-lowerhouse":
-                        memberships = {
-                            "chambers": references[item.lower()].scrape_membership(),
-                            "parliamentary_groups": references[item.lower()].scrape_parliamentary_group_membership(),
-                            "committees": references[item.lower()].scrape_committee_membership()
-                        }
-                    elif item.lower() == "georgia":
-                        memberships = {
-                            "chambers": references[item.lower()].scrape_parliamentary_group_membership(),
-                        }
-
-                    for data_collection in memberships:
-                        print "\n\tScraping and updating data from %s membership data collection\n" % data_collection
-                        for json_doc in memberships[data_collection]:
-                            existing = vpapi.getfirst("memberships", where={'organization_id': json_doc['organization_id'], "person_id": json_doc['person_id']})
-                            if not existing:
-                                print "\tMembership's data collection item not found \n\tPosting new item to the API."
-                                resp = vpapi.post("memberships", json_doc)
-                            else:
-                                print "\tUpdating membership's data collection item"
-                                # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
-                                resp = vpapi.put("memberships", existing['id'], json_doc, effective_date=effective_date)
-                            if resp["_status"] != "OK":
-                                raise Exception("Invalid status code")
-
-                            print "\t------------------------------------------------"
-                        print "\n\tFinished Posted and updated data from %s membership data collection\n" % data_collection
+                    # if item.lower() == "armenia" or item.lower() == "moldova" or item.lower() == "belarus-lowerhouse":
+                    #     memberships = {
+                    #         "chambers": references[item.lower()].scrape_membership(),
+                    #         "parliamentary_groups": references[item.lower()].scrape_parliamentary_group_membership(),
+                    #         "committees": references[item.lower()].scrape_committee_membership()
+                    #     }
+                    # elif item.lower() == "georgia":
+                    #     memberships = {
+                    #         "chambers": references[item.lower()].scrape_membership(),
+                    #     }
+                    #
+                    # for data_collection in memberships:
+                    #     print "\n\tScraping and updating data from %s membership data collection\n" % data_collection
+                    #     for json_doc in memberships[data_collection]:
+                    #         existing = vpapi.getfirst("memberships", where={'organization_id': json_doc['organization_id'], "person_id": json_doc['person_id']})
+                    #         if not existing:
+                    #             print "\tMembership's data collection item not found \n\tPosting new item to the API."
+                    #             resp = vpapi.post("memberships", json_doc)
+                    #         else:
+                    #             print "\tUpdating membership's data collection item"
+                    #             # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
+                    #             resp = vpapi.put("memberships", existing['id'], json_doc, effective_date=effective_date)
+                    #         if resp["_status"] != "OK":
+                    #             raise Exception("Invalid status code")
+                    #
+                    #         print "\t------------------------------------------------"
+                    #     print "\n\tFinished Posted and updated data from %s membership data collection\n" % data_collection
                 if votes == "yes":
                     voting_data_collections = {
                         "motions": references[item.lower()].motions(),

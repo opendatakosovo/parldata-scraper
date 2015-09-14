@@ -143,9 +143,6 @@ class BelarusLowerhouseParser():
 
         return committee_members
 
-
-
-
     def parliamentary_group_membership(self):
         party_membership_list = []
         roles = self.membership_correction()
