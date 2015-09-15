@@ -28,11 +28,8 @@ class BelarusUpperhouseScraper():
         print "\tPlease wait. This may take a few minutes..."
         mps_list = parser.mps_list()
         members = []
-        members_prevent_duplicates = []
         for member in mps_list:
-            if member['name'].encode('utf-8') not in members_prevent_duplicates:
-                members_prevent_duplicates.append(member['name'])
-                members.append(member)
+            members.append(member)
         print "\n\tScraping completed! \n\tScraped " + str(len(members)) + " members"
 
     def guess_gender(self, name):
