@@ -3,7 +3,7 @@ from pymongo import MongoClient
 from app.mod_scraper import scraper
 from datetime import date
 import vpapi
-import re
+from progressbar import ProgressBar
 
 client = MongoClient()
 db = client.parlament_md
@@ -151,7 +151,9 @@ class MoldovaScraper():
                                     }})
         deputy_list_url = "http://www.parlament.md/StructuraParlamentului/" \
                           "Deputies/tabid/87/language/ro-RO/Default.aspx"
-        for member in mps_list:
+
+        pbar = ProgressBar()
+        for member in pbar(mps_list):
             p_id = members[member['identifier']]
             role = membership_correction[member['membership'].encode('utf-8')]
             chamber_membership_json = self.build_memberships_doc(p_id, chamber_id['id'], member['membership'],

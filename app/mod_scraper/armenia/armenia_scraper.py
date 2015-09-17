@@ -3,10 +3,9 @@ from app.mod_scraper import scraper
 from datetime import date
 import vpapi
 import re
-from progressbar import ProgressBar
+from progressbar import ProgressBar, Percentage, ETA, Bar, FileTransferSpeed, Counter
+import json
 
-
-pbar = ProgressBar()
 scrape = scraper.Scraper()
 
 class ArmeniaScraper():
@@ -117,7 +116,6 @@ class ArmeniaScraper():
         groups = {}
         members = {}
         memberships = self.membership_correction()
-
         all_chambers = vpapi.getall("organizations", where={"classification": "chamber"})
         for chamber in all_chambers:
             chambers[chamber['identifiers'][0]["identifier"]] = chamber['id']
@@ -129,6 +127,9 @@ class ArmeniaScraper():
         all_members = vpapi.getall("people")
         for member in all_members:
             members[member['name']] = member['id']
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                                   ' ', ETA(), ' ', FileTransferSpeed(), '             ']
+        pbar = ProgressBar(widgets=widgets)
         for committee in pbar(committees):
             url = committee['url'].replace('show', "members")
             soup = scrape.download_html_file(url)
@@ -177,10 +178,14 @@ class ArmeniaScraper():
             groups[group['sources'][0]['url']] = group['id']
 
         all_members = vpapi.getall("people")
-        for member in pbar(all_members):
+        for member in all_members:
             members[member['name']] = member['id']
 
         parties_membership = []
+
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                                   ' ', ETA(), ' ', FileTransferSpeed(), '             ']
+        pbar = ProgressBar(widgets=widgets)
         for term in pbar(list(reversed(sorted(self.terms.keys())))):
             url = "http://www.parliament.am/deputies.php?lang=arm&sel=factions&SubscribeEmail=&show_session=" + str(term)
             soup = scrape.download_html_file(url)
@@ -232,6 +237,9 @@ class ArmeniaScraper():
         for member in all_members:
             members[member['name']] = member['id']
 
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                                   ' ', ETA(), ' ', FileTransferSpeed(), '             ']
+        pbar = ProgressBar(widgets=widgets)
         for member in pbar(mps):
             p_id = members[member['name']]
             o_id = chambers[member['term']]
@@ -291,6 +299,9 @@ class ArmeniaScraper():
         print "\tThis may take a few minutes...\n"
         mps_list = self.mps_list()
         members_list = []
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+        pbar = ProgressBar(widgets=widgets)
         for member in pbar(mps_list):
             birth_date = ""
             soup = scrape.download_html_file(member['url'])
@@ -395,7 +406,10 @@ class ArmeniaScraper():
         parties_doc = self.parliamentary_groups()
 
         print "\n\tScraping parliamentary groups from Armenia's parliament...\n"
-        for term in parties_doc:
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                                   ' ', ETA(), ' ', FileTransferSpeed(), '             ']
+        pbar = ProgressBar(widgets=widgets)
+        for term in pbar(parties_doc):
             url = "http://www.parliament.am/deputies.php?lang=arm&sel=factions&SubscribeEmail=&show_session=" + term
             soup = scrape.download_html_file(url)
             all_divs = soup.findAll('div', {"class": "content"})
@@ -461,7 +475,10 @@ class ArmeniaScraper():
         print "\n\tScraping committee groups from Armenia's parliament..."
         committees = self.committee_list()
         committees_list = []
-        for committee in committees:
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                                   ' ', ETA(), ' ', FileTransferSpeed(), '             ']
+        pbar = ProgressBar(widgets=widgets)
+        for committee in pbar(committees):
             url = committee['url'].replace('show', "members")
             soup = scrape.download_html_file(url)
             if soup.find("div", {"style": "border-bottom:1px solid #E2E2E2;"}).find('a').get_text() != "":
@@ -489,8 +506,11 @@ class ArmeniaScraper():
         url = "http://www.parliament.am/deputies.php?sel=ful&ord=photo&show_session=5&lang=arm&enc=utf8"
         soup = scrape.download_html_file(url)
         chambers_list = []
-        print "\n\tScraping chambers from Armenia's parliament..."
-        for each_option in soup.find("select", {"name": "show_session"}).findAll("option"):
+        print "\n\tScraping chambers from Armenia's parliament...\n"
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                                   ' ', ETA(), " ", FileTransferSpeed(), '             ']
+        pbar = ProgressBar(widgets=widgets)
+        for each_option in pbar(soup.find("select", {"name": "show_session"}).findAll("option")):
             identifier = each_option.get('value')
             name = each_option.get_text()
             url = "http://www.parliament.am/deputies.php?lang=arm&sel=&ord=&show_session=" + identifier
@@ -509,8 +529,14 @@ class ArmeniaScraper():
                 if not existing:
                     resp = vpapi.post("organizations", chamber_json)
                 else:
-                    # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
-                    resp = vpapi.put("organizations", existing['id'], chamber_json, effective_date=self.effective_date())
+                    json_obj_id = existing['id']
+                    items_to_delete = ["created_at", "updated_at", "_links", "id"]
+                    for item_delete in items_to_delete:
+                        del existing[item_delete]
+                    if json.loads(json.dumps(chamber_json)) == existing:
+                        continue
+                    else:
+                        resp = vpapi.put("organizations", json_obj_id, chamber_json, effective_date=self.effective_date())
                 if resp["_status"] != "OK":
                     raise Exception("Invalid status code")
                 chambers_list.append(chamber_json)

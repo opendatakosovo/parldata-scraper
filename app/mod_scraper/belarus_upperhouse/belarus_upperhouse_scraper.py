@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from app.mod_scraper import scraper
 import belarus_upperhouse_parser
+from progressbar import ProgressBar, Percentage, ETA, BouncingBar, Bar, RotatingMarker
 import vpapi
 
 parser = belarus_upperhouse_parser.BelarusUpperhouseParser()
@@ -43,7 +44,10 @@ class BelarusUpperhouseScraper():
         print "\n\tScraping chambers from Belarus Upperhouse parliament...\n"
         chambers_list = []
         chambers = parser.chambers_list()
-        for chamber in chambers:
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), '             ']
+        pbar = ProgressBar(widgets=widgets)
+        for chamber in pbar(chambers):
             chamber_json = self.build_organization_doc("chamber", chambers[chamber]['name'], chamber,
                                                        chambers[chamber]['start_date'], chambers[chamber]['end_date'],
                                                        chambers[chamber]['url'], "", "")

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from app.mod_scraper import scraper
 import re
-from progressbar import ProgressBar
 import vpapi
+from progressbar import ProgressBar, Percentage, ETA, BouncingBar, Bar, RotatingMarker
 
 pbar = ProgressBar()
 scrape = scraper.Scraper()
@@ -150,6 +150,9 @@ class BelarusUpperhouseParser():
         members = self.members_list()
         members_list = []
         members_prevent_duplicates = []
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), '             ']
+        pbar = ProgressBar(widgets=widgets)
         for member in pbar(members):
             if member['name'] not in members_prevent_duplicates:
                 members_prevent_duplicates.append(member['name'])
