@@ -510,7 +510,8 @@ class ArmeniaScraper():
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
                                    ' ', ETA(), " ", FileTransferSpeed(), '             ']
         pbar = ProgressBar(widgets=widgets)
-        for each_option in pbar(soup.find("select", {"name": "show_session"}).findAll("option")):
+        all_options = soup.find("select", {"name": "show_session"}).findAll("option")
+        for each_option in pbar(all_options):
             identifier = each_option.get('value')
             name = each_option.get_text()
             url = "http://www.parliament.am/deputies.php?lang=arm&sel=&ord=&show_session=" + identifier
@@ -529,14 +530,7 @@ class ArmeniaScraper():
                 if not existing:
                     resp = vpapi.post("organizations", chamber_json)
                 else:
-                    json_obj_id = existing['id']
-                    items_to_delete = ["created_at", "updated_at", "_links", "id"]
-                    for item_delete in items_to_delete:
-                        del existing[item_delete]
-                    if json.loads(json.dumps(chamber_json)) == existing:
-                        continue
-                    else:
-                        resp = vpapi.put("organizations", json_obj_id, chamber_json, effective_date=self.effective_date())
+                    resp = vpapi.put("organizations", existing['id'], chamber_json, effective_date=self.effective_date())
                 if resp["_status"] != "OK":
                     raise Exception("Invalid status code")
                 chambers_list.append(chamber_json)
