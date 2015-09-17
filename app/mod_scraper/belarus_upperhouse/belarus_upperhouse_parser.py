@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 from app.mod_scraper import scraper
 import re
+import time
+from progressbar import ProgressBar
 import vpapi
 
-
+pbar = ProgressBar()
 scrape = scraper.Scraper()
 
 
@@ -91,6 +93,10 @@ class BelarusUpperhouseParser():
                     image_url = each_div.find('img').get('src')
                 else:
                     image_url = ""
+                if len(identifier) > 1:
+                    member_id = identifier[1]
+                else:
+                    member_id = identifier[0]
 
                 gender = self.guess_gender(first_name)
                 members_json = {
@@ -98,7 +104,7 @@ class BelarusUpperhouseParser():
                     "image_url": image_url,
                     "term": str(term),
                     "membership": membership,
-                    "member_id": identifier[0],
+                    "member_id": member_id,
                     "role": role,
                     "url": member_url,
                     "name": name_ordered,
@@ -107,7 +113,6 @@ class BelarusUpperhouseParser():
                     "sort_name": last_name + ", " + first_name,
                 }
                 mps_list.append(members_json)
-        print "\t%s Members scraped" % str(counter)
         return mps_list
 
     def guess_gender(self, first_name):
@@ -117,13 +122,25 @@ class BelarusUpperhouseParser():
         else:
             return "male"
 
+    def do_task(self):
+        time.sleep(0.1)
+
+    def example_1(self, n):
+        steps = n/100
+        for i in range(n):
+            self.do_task()
+            if i%steps == 0:
+                print '\b.',
+                sys.stdout.flush()
+        print '\b]  Done!',
+
+
     def mps_list(self):
         members = self.members_list()
         members_list = []
         members_prevent_duplicates = []
-        for member in members:
+        for member in pbar(members):
             if member['name'] not in members_prevent_duplicates:
-                print member['member_id'] + '\n'
                 members_prevent_duplicates.append(member['name'])
                 soup = scrape.download_html_file(member['url'])
                 personal_info_divs = soup.findAll("div", {"class": "person_text"})
@@ -140,39 +157,42 @@ class BelarusUpperhouseParser():
                                 else:
                                     fax = each_div.next.strip()
                                     if len(fax) > 1:
-                                        member['fax'] = fax
+                                        member['fax'] = fax.encode('utf-8').replace("(факс)", "").strip()
                                     else:
                                         member['fax'] = ""
                     else:
                         member['phone_number'] = ""
                         member['fax'] = ""
+                else:
+                    member['phone_number'] = ""
+                    member['fax'] = ""
 
                 if len(soup.find("div", {"id": "biography_bm_info"}).findAll('p')) > 0:
                     biography = soup.find("div", {"id": "biography_bm_info"}).findAll("p")
                     birth_date_paragraph = biography[0].next.encode('utf-8')
-                    if "73" in member['member_id']:
-                        birth_date_list = birth_date_paragraph.split(" - ")
+                    if re.search(r'(\d+.\d+.\d+)', birth_date_paragraph):
+                        birth_date_list = biography[0].get_text().split(" - ")
                         birth_date_extract = birth_date_list[0].split(".")
                         birth_date = birth_date_extract[2] + "-" + birth_date_extract[1] + "-" + birth_date_extract[0]
-                        birth_date = birth_date.replace("\n", "").replace(" ", "")
                         member['birth_date'] = birth_date
+                    else:
+                        if "года" in birth_date_paragraph:
+                            index_end = birth_date_paragraph.index("года")
+                        else:
+                            index_end = len(birth_date_paragraph) - 3
 
-                    if "года" in birth_date_paragraph:
-                        index_end = birth_date_paragraph.index("года")
-                    else:
-                        index_end = len(birth_date_paragraph) - 3
-                    extract_birth_date = birth_date_paragraph[:index_end].replace("Родилась ", "").replace("Родился", "").strip()
-                    if len(extract_birth_date) > 2:
-                        birth_date_array = extract_birth_date.split(" ")
-                        year = birth_date_array[2]
-                        month = self.months_correction[birth_date_array[1].strip()]
-                        day = birth_date_array[0]
-                        if len(day) == 1:
-                            day = "0" + day
-                        birth_date = year + "-" + month + "-" + day
-                        member['birth_date'] = birth_date
-                    else:
-                        member['birth_date'] = ""
+                        extract_birth_date = birth_date_paragraph[:index_end].replace("Родилась ", "").replace("Родился", "").strip()
+                        if len(extract_birth_date) > 2:
+                            birth_date_array = extract_birth_date.split(" ")
+                            year = birth_date_array[2]
+                            month = self.months_correction[birth_date_array[1].strip()]
+                            day = birth_date_array[0]
+                            if len(day) == 1:
+                                day = "0" + day
+                            birth_date = year + "-" + month + "-" + day
+                            member['birth_date'] = birth_date
+                        else:
+                            member['birth_date'] = ""
                 else:
                     biography = soup.find("div", {"id": "biography_bm_info"}).get_text()
                     if "-" in biography:
@@ -185,11 +205,6 @@ class BelarusUpperhouseParser():
                         birth_date_extract = biography.split(".")
                         birth_date = birth_date_extract[2] + "-" + birth_date_extract[1] + "-" + birth_date_extract[0]
                     member['birth_date'] = birth_date.replace("\n", "").replace(" ", "")
-                print member['given_name']
-                print member['gender']
-                print member['url']
-                print "------------------------------------------"
-
                 members_list.append(member)
         return members_list
 
