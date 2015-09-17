@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from app.mod_scraper import scraper
 import vpapi
+from progressbar import ProgressBar
 
 
+pbar = ProgressBar()
 scrape = scraper.Scraper()
 
 class BelarusLowerhouseParser():
@@ -197,10 +199,10 @@ class BelarusLowerhouseParser():
 
     def mp(self):
         print "\n\tScraping people data from Belarus Lower House parliament..."
-        print "\tPlease wait. This may take a few minutes..."
+        print "\tPlease wait. This may take a few minutes...\n"
         mps_list = self.mps_list()
         members = []
-        for member in mps_list:
+        for member in pbar(mps_list):
             soup = scrape.download_html_file(member['url'])
             image_url = "http://house.gov.by/" + soup.find("table", {"cellspacing": "1"}).find('img').get('src')
             member['image_url'] = image_url

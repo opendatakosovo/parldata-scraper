@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from app.mod_scraper import scraper
 import re
-import time
 from progressbar import ProgressBar
 import vpapi
 
@@ -25,6 +24,29 @@ class BelarusUpperhouseParser():
         "декабря": "12"
     }
 
+    terms = {
+        "1": {
+            "start_date": "1997-01-13",
+            "end_date": "2000-12-19"
+        },
+        "2": {
+            "start_date": "2000-12-19",
+            "end_date": "2004-11-15"
+        },
+        "3": {
+            "start_date": "2004-11-15",
+            "end_date": "2008-10-31"
+        },
+        "4": {
+            "start_date": "2008-10-31",
+            "end_date": "2012-10-19"
+        },
+        "5": {
+            "start_date": "2012-10-19",
+            "end_date": ""
+        }
+    }
+
     def chambers_list(self):
         url = "http://www.sovrep.gov.by/ru/sozyvy-ru/"
         soup = scrape.download_html_file(url)
@@ -35,7 +57,9 @@ class BelarusUpperhouseParser():
             name = each_li.find('a').get_text().replace('\n', '').replace("   ", "")
             chambers[term] = {
                 "name": name,
-                "url": url
+                "url": url,
+                "start_date": self.terms[term]['start_date'],
+                "end_date": self.terms[term]['end_date']
             }
         return chambers
 
@@ -122,19 +146,6 @@ class BelarusUpperhouseParser():
         else:
             return "male"
 
-    def do_task(self):
-        time.sleep(0.1)
-
-    def example_1(self, n):
-        steps = n/100
-        for i in range(n):
-            self.do_task()
-            if i%steps == 0:
-                print '\b.',
-                sys.stdout.flush()
-        print '\b]  Done!',
-
-
     def mps_list(self):
         members = self.members_list()
         members_list = []
@@ -153,18 +164,21 @@ class BelarusUpperhouseParser():
                                     if len(phone) > 1:
                                         member['phone_number'] = phone
                                     else:
-                                        member['phone_number'] = ""
+                                        member['phone_number'] = None
                                 else:
                                     fax = each_div.next.strip()
                                     if len(fax) > 1:
                                         member['fax'] = fax.encode('utf-8').replace("(факс)", "").strip()
                                     else:
-                                        member['fax'] = ""
+                                        member['fax'] = None
+                            else:
+                                member['phone_number'] = None
+                                member['fax'] = None
                     else:
-                        member['phone_number'] = ""
+                        member['phone_number'] = None
                         member['fax'] = ""
                 else:
-                    member['phone_number'] = ""
+                    member['phone_number'] = None
                     member['fax'] = ""
 
                 if len(soup.find("div", {"id": "biography_bm_info"}).findAll('p')) > 0:
@@ -192,7 +206,7 @@ class BelarusUpperhouseParser():
                             birth_date = year + "-" + month + "-" + day
                             member['birth_date'] = birth_date
                         else:
-                            member['birth_date'] = ""
+                            member['birth_date'] = None
                 else:
                     biography = soup.find("div", {"id": "biography_bm_info"}).get_text()
                     if "-" in biography:

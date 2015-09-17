@@ -3,7 +3,10 @@ from app.mod_scraper import scraper
 from datetime import date
 import vpapi
 import re
+from progressbar import ProgressBar
 
+
+pbar = ProgressBar()
 scrape = scraper.Scraper()
 
 class ArmeniaScraper():
@@ -107,7 +110,7 @@ class ArmeniaScraper():
         }
 
     def scrape_committee_membership(self):
-        print "\n\tScraping committee groups membership from Armenia's parliament..."
+        print "\n\tScraping committee groups membership from Armenia's parliament...\n"
         committees = self.committee_list()
         committee_membership = []
         chambers = {}
@@ -126,7 +129,7 @@ class ArmeniaScraper():
         all_members = vpapi.getall("people")
         for member in all_members:
             members[member['name']] = member['id']
-        for committee in committees:
+        for committee in pbar(committees):
             url = committee['url'].replace('show', "members")
             soup = scrape.download_html_file(url)
             for each_tr in soup.find('table', {"style": "margin-top:10px; margin-bottom:10px;"}).findAll('tr'):
@@ -159,7 +162,7 @@ class ArmeniaScraper():
         return committee_membership
 
     def scrape_parliamentary_group_membership(self):
-        print "\n\tScraping parliamentary groups membership from Armenia's parliament..."
+        print "\n\tScraping parliamentary groups membership from Armenia's parliament...\n"
         chambers = {}
         groups = {}
         members = {}
@@ -174,11 +177,11 @@ class ArmeniaScraper():
             groups[group['sources'][0]['url']] = group['id']
 
         all_members = vpapi.getall("people")
-        for member in all_members:
+        for member in pbar(all_members):
             members[member['name']] = member['id']
 
         parties_membership = []
-        for term in list(reversed(sorted(self.terms.keys()))):
+        for term in pbar(list(reversed(sorted(self.terms.keys())))):
             url = "http://www.parliament.am/deputies.php?lang=arm&sel=factions&SubscribeEmail=&show_session=" + str(term)
             soup = scrape.download_html_file(url)
             for each_div in soup.findAll('div', {"class": "content"}):
@@ -215,7 +218,7 @@ class ArmeniaScraper():
         # print counter
 
     def scrape_membership(self):
-        print "\n\tScraping membership's data from Armenia's parliament..."
+        print "\n\tScraping membership's data from Armenia's parliament...\n"
         mps = self.members_list()
         memberships = []
         roles = self.membership_correction()
@@ -229,7 +232,7 @@ class ArmeniaScraper():
         for member in all_members:
             members[member['name']] = member['id']
 
-        for member in mps:
+        for member in pbar(mps):
             p_id = members[member['name']]
             o_id = chambers[member['term']]
             role = ""
@@ -285,10 +288,10 @@ class ArmeniaScraper():
 
     def scrape_mp_bio_data(self):
         print "\n\tScraping people data from Armenia's parliament..."
-        print "\tThis may take a few minutes..."
+        print "\tThis may take a few minutes...\n"
         mps_list = self.mps_list()
         members_list = []
-        for member in mps_list:
+        for member in pbar(mps_list):
             birth_date = ""
             soup = scrape.download_html_file(member['url'])
             each_tr = soup.find("div", {'class': "dep_description"}).find('table', {"width": "480"}).findAll('tr')
@@ -391,11 +394,12 @@ class ArmeniaScraper():
 
         parties_doc = self.parliamentary_groups()
 
-        print "\n\tScraping parliamentary groups from Armenia's parliament..."
+        print "\n\tScraping parliamentary groups from Armenia's parliament...\n"
         for term in parties_doc:
             url = "http://www.parliament.am/deputies.php?lang=arm&sel=factions&SubscribeEmail=&show_session=" + term
             soup = scrape.download_html_file(url)
-            for each_div in soup.findAll('div', {"class": "content"}):
+            all_divs = soup.findAll('div', {"class": "content"})
+            for each_div in all_divs:
                 name = each_div.find("center").find("b").get_text()
                 name_ordered = name.replace("  ", " ")
                 if name_ordered in parties_doc[term]:
