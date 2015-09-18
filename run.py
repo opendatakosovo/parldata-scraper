@@ -12,7 +12,7 @@ from app.mod_scraper.armenia import armenia_scraper
 from app.mod_scraper.georgia import georgia_scraper
 from app.mod_scraper.belarus_lowerhouse import belarus_lowerhouse_scraper
 from app.mod_scraper.belarus_upperhouse import belarus_upperhouse_scraper
-from progressbar import ProgressBar, Percentage, ETA, FileTransferSpeed, Bar
+from progressbar import ProgressBar, Percentage, ETA, Counter, Bar
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -63,22 +63,22 @@ def scrape(countries, people, votes):
                 vpapi.timezone(creds[item.lower()]['timezone'])
                 vpapi.authorize(creds[item.lower()]['api_user'], creds[item.lower()]['password'])
                 if people == "yes":
-                    # references[item.lower()].scrape_chambers()
+                    # references[item.lower()].scrape_committe()
                     # references[item.lower()].members_list()
                     # members = references[item.lower()].scrape_mp_bio_data()
                     # chamber = references[item.lower()].scrape_chamber()
                     # parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
-                    # committee = references[item.lower()].scrape_committee()
+                    committee = references[item.lower()].scrape_committee()
                     data_collections = {
                         # "a-people": members,
                         # "b-chamber": chamber,
                         # "c-parliamentary_groups": parliamentary_groups,
-                        # "d-committe": committee
+                        "d-committe": committee
                     }
                     # inserts data for each data collection in Visegrad+ Api
                     for collection in sorted(set(data_collections)):
                         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                                   ' ', ETA(), ' ', FileTransferSpeed(), '             ']
+                                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
                         pbar = ProgressBar(widgets=widgets)
                         print "\n\tPosting and updating data to the Visegrad+ from %s data collection\n\n" % \
                               collection[2:]
@@ -88,7 +88,7 @@ def scrape(countries, people, votes):
                                     where_condition = {'identifiers': {'$elemMatch': json_doc['identifiers'][0]}}
                                     collection_of_data = "people"
                                 elif collection == "c-parliamentary_groups" or collection == "d-committe":
-                                    if item.lower() == "armenia":
+                                    if item.lower() == "armenia" or item.lower() == "belarus-upperhouse":
                                         where_condition = {'name': json_doc['name'], "parent_id": json_doc['parent_id']}
                                     else:
                                         where_condition = {'name': json_doc['name']}
@@ -117,42 +117,42 @@ def scrape(countries, people, votes):
 
                                 # print "\t------------------------------------------------"
                             print "\n\tFinished Posting and updating data from %s data collection\n" % collection[2:]
-                    if item.lower() == "armenia" or item.lower() == "moldova" or item.lower() == "belarus-lowerhouse":
-                        memberships = {
-                            "chambers": references[item.lower()].scrape_membership(),
-                            "parliamentary_groups": references[item.lower()].scrape_parliamentary_group_membership(),
-                            "committees": references[item.lower()].scrape_committee_membership()
-                        }
-                    elif item.lower() == "georgia":
-                        memberships = {
-                            "chambers": references[item.lower()].scrape_membership(),
-                        }
-
-                    for data_collection in memberships:
-                        widgets_stat = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                                        ' ', ETA(), '             ']
-                        prog_bar = ProgressBar(widgets=widgets_stat)
-                        print "\n\tScraping and updating data from %s membership data collection\n" % data_collection
-                        for json_doc in prog_bar(memberships[data_collection]):
-                            existing = vpapi.getfirst("memberships", where={'organization_id': json_doc['organization_id'],
-                                                                            "person_id": json_doc['person_id']})
-                            if not existing:
-                                print "\tMembership's data collection item not found \n\tPosting new item to the API."
-                                resp = vpapi.post("memberships", json_doc)
-                            else:
-                                json_obj_id = existing['id']
-                                items_to_delete = ["created_at", "updated_at", "_links", "id"]
-                                for item_delete in items_to_delete:
-                                    del existing[item_delete]
-                                if json.loads(json.dumps(json_doc)) == existing:
-                                    continue
-                                else:
-                                    resp = vpapi.put("memberships", json_obj_id, json_doc, effective_date=effective_date)
-                            if resp["_status"] != "OK":
-                                raise Exception("Invalid status code")
-
-                            print "\t------------------------------------------------"
-                        print "\n\tFinished Posted and updated data from %s membership data collection\n" % data_collection
+                    # if item.lower() == "armenia" or item.lower() == "moldova" or item.lower() == "belarus-lowerhouse":
+                    #     memberships = {
+                    #         "chambers": references[item.lower()].scrape_membership(),
+                    #         "parliamentary_groups": references[item.lower()].scrape_parliamentary_group_membership(),
+                    #         "committees": references[item.lower()].scrape_committee_membership()
+                    #     }
+                    # elif item.lower() == "georgia":
+                    #     memberships = {
+                    #         "chambers": references[item.lower()].scrape_membership(),
+                    #     }
+                    #
+                    # for data_collection in memberships:
+                    #     widgets_stat = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                    #                     ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+                    #     prog_bar = ProgressBar(widgets=widgets_stat)
+                    #     print "\n\tPosting and updating data from %s membership data collection\n" % data_collection
+                    #     for json_doc in prog_bar(memberships[data_collection]):
+                    #         existing = vpapi.getfirst("memberships", where={'organization_id': json_doc['organization_id'],
+                    #                                                         "person_id": json_doc['person_id']})
+                    #         if not existing:
+                    #             print "\tMembership's data collection item not found \n\tPosting new item to the API."
+                    #             resp = vpapi.post("memberships", json_doc)
+                    #         else:
+                    #             json_obj_id = existing['id']
+                    #             items_to_delete = ["created_at", "updated_at", "_links", "id"]
+                    #             for item_delete in items_to_delete:
+                    #                 del existing[item_delete]
+                    #             if json.loads(json.dumps(json_doc)) == existing:
+                    #                 continue
+                    #             else:
+                    #                 resp = vpapi.put("memberships", json_obj_id, json_doc, effective_date=effective_date)
+                    #         if resp["_status"] != "OK":
+                    #             raise Exception("Invalid status code")
+                    #
+                    #         print "\t------------------------------------------------"
+                    #     print "\n\tFinished Posted and updated data from %s membership data collection\n" % data_collection
                 if votes == "yes":
                     voting_data_collections = {
                         "motions": references[item.lower()].motions(),

@@ -128,7 +128,7 @@ class ArmeniaScraper():
         for member in all_members:
             members[member['name']] = member['id']
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                                   ' ', ETA(), ' ', FileTransferSpeed(), '             ']
+                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
         pbar = ProgressBar(widgets=widgets)
         for committee in pbar(committees):
             url = committee['url'].replace('show', "members")
@@ -184,7 +184,7 @@ class ArmeniaScraper():
         parties_membership = []
 
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                                   ' ', ETA(), ' ', FileTransferSpeed(), '             ']
+                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
         pbar = ProgressBar(widgets=widgets)
         for term in pbar(list(reversed(sorted(self.terms.keys())))):
             url = "http://www.parliament.am/deputies.php?lang=arm&sel=factions&SubscribeEmail=&show_session=" + str(term)
@@ -238,7 +238,7 @@ class ArmeniaScraper():
             members[member['name']] = member['id']
 
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                                   ' ', ETA(), ' ', FileTransferSpeed(), '             ']
+                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
         pbar = ProgressBar(widgets=widgets)
         for member in pbar(mps):
             p_id = members[member['name']]
@@ -407,7 +407,7 @@ class ArmeniaScraper():
 
         print "\n\tScraping parliamentary groups from Armenia's parliament...\n"
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                                   ' ', ETA(), ' ', FileTransferSpeed(), '             ']
+                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
         pbar = ProgressBar(widgets=widgets)
         for term in pbar(parties_doc):
             url = "http://www.parliament.am/deputies.php?lang=arm&sel=factions&SubscribeEmail=&show_session=" + term
@@ -476,7 +476,7 @@ class ArmeniaScraper():
         committees = self.committee_list()
         committees_list = []
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                                   ' ', ETA(), ' ', FileTransferSpeed(), '             ']
+                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
         pbar = ProgressBar(widgets=widgets)
         for committee in pbar(committees):
             url = committee['url'].replace('show', "members")
@@ -508,7 +508,7 @@ class ArmeniaScraper():
         chambers_list = []
         print "\n\tScraping chambers from Armenia's parliament...\n"
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                                   ' ', ETA(), " ", FileTransferSpeed(), '             ']
+                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
         pbar = ProgressBar(widgets=widgets)
         all_options = soup.find("select", {"name": "show_session"}).findAll("option")
         for each_option in pbar(all_options):

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from app.mod_scraper import scraper
 import belarus_upperhouse_parser
-from progressbar import ProgressBar, Percentage, ETA, BouncingBar, Bar, RotatingMarker
+from progressbar import ProgressBar, Percentage, ETA, Counter, Bar
 import vpapi
 
 parser = belarus_upperhouse_parser.BelarusUpperhouseParser()
@@ -24,22 +24,6 @@ class BelarusUpperhouseScraper():
         "снежня": "12"
     }
 
-    def ordered(self):
-        json1 = {
-            "1": "Александр",
-            "2": "Сергей"
-        }
-
-        json2 = {
-            "2": "Сергей",
-            "1": "Александр"
-        }
-
-        if json1 == json2:
-            print "EQUALS"
-        else:
-            print "NOT EQUALS"
-
     def scrape_chamber(self):
         print "\n\tScraping chambers from Belarus Upperhouse parliament...\n"
         chambers_list = []
@@ -51,7 +35,7 @@ class BelarusUpperhouseScraper():
             chamber_json = self.build_organization_doc("chamber", chambers[chamber]['name'], chamber,
                                                        chambers[chamber]['start_date'], chambers[chamber]['end_date'],
                                                        chambers[chamber]['url'], "", "")
-            if chambers[chamber]["end_date"] == "":
+            if chambers[chamber]["end_date"]:
                 del chamber_json['dissolution_date']
 
             del chamber_json['contact_details']
@@ -59,6 +43,24 @@ class BelarusUpperhouseScraper():
             chambers_list.append(chamber_json)
         print "\n\tScraping completed! \n\tScraped " + str(len(chambers_list)) + " chambers"
         return chambers_list
+
+    def scrape_committee(self):
+        print "\n\tScraping committee groups from Belarus Upperhouse parliament...\n"
+        committe_list = parser.committe_list()
+        committees = []
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+        pbar = ProgressBar(widgets=widgets)
+        for committee in pbar(committe_list):
+            committee_json = self.build_organization_doc("committe", committee['name'], committee['identifier'],
+                                                         committee['start_date'], committee['end_date'],
+                                                         committee['url'], "", committee['parent_id'])
+            del committee_json['contact_details']
+            if committee['start_date'] == "":
+                del committee_json['founding_date']
+            committees.append(committee_json)
+        print "\n\tScraping completed! \n\tScraped " + str(len(committees)) + " chambers"
+        return committees
 
     def build_organization_doc(self, classification, name, identifier, founding_date,
                                dissolution_date, url, email, parent_id):

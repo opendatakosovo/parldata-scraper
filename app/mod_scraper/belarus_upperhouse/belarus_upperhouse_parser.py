@@ -2,7 +2,7 @@
 from app.mod_scraper import scraper
 import re
 import vpapi
-from progressbar import ProgressBar, Percentage, ETA, BouncingBar, Bar, RotatingMarker
+from progressbar import ProgressBar, Percentage, ETA, Counter, Bar
 
 pbar = ProgressBar()
 scrape = scraper.Scraper()
@@ -146,12 +146,47 @@ class BelarusUpperhouseParser():
         else:
             return "male"
 
+    def committe_list(self):
+        committee_list = []
+        chambers_list = {}
+        chambers_api = vpapi.getall("organizations", where={"classification": "chamber"})
+        for chamber in chambers_api:
+            chambers_list[chamber['identifiers'][0]['identifier']] = chamber['id']
+
+        chambers = self.chambers_list()
+        for term in chambers:
+            soup = scrape.download_html_file(chambers[term]['url'])
+            for each_h2 in soup.find("div", {"id": "committee_bm_info"}).findAll("h2"):
+                name = each_h2.find("a").get_text()
+                url = each_h2.find("a").get("href")
+                start_date = chambers[term]['start_date']
+                if term != "5":
+                    end_date = chambers[term]['end_date']
+                else:
+                    end_date = None
+                identifiers = re.findall(r'\d+', url)
+                if len(identifiers) > 2:
+                    identifier = identifiers[1]
+                else:
+                    identifier = identifiers[0]
+                chamber_id = chambers_list[term]
+                committee_json = {
+                    "identifier": identifier,
+                    "parent_id": chamber_id,
+                    "name": name,
+                    "url": url,
+                    "start_date": start_date,
+                    "end_date": end_date
+                }
+                committee_list.append(committee_json)
+        return committee_list
+
     def mps_list(self):
         members = self.members_list()
         members_list = []
         members_prevent_duplicates = []
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                   ' ', ETA(), '             ']
+                                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
         pbar = ProgressBar(widgets=widgets)
         for member in pbar(members):
             if member['name'] not in members_prevent_duplicates:
