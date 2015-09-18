@@ -29,7 +29,7 @@ class BelarusUpperhouseScraper():
         chambers_list = []
         chambers = parser.chambers_list()
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                   ' ', ETA(), '             ']
+                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
         pbar = ProgressBar(widgets=widgets)
         for chamber in pbar(chambers):
             chamber_json = self.build_organization_doc("chamber", chambers[chamber]['name'], chamber,
@@ -43,6 +43,51 @@ class BelarusUpperhouseScraper():
             chambers_list.append(chamber_json)
         print "\n\tScraping completed! \n\tScraped " + str(len(chambers_list)) + " chambers"
         return chambers_list
+
+    def scrape_membership(self):
+        print "\n\tScraping chambers membership's data from Belarus Upperhouse parliament...\n"
+        members = {}
+        all_members = vpapi.getall("people")
+        for member in all_members:
+            members[member['name']] = member['id']
+
+        chambers = {}
+        all_chambers = vpapi.getall("organizations", where={"classification": "chamber"})
+        for chamber in all_chambers:
+            chambers[chamber['identifiers'][0]['identifier']] = chamber['id']
+        terms = parser.terms
+        mps_list = parser.members_list()
+        chambers_membership = []
+
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+        pbar = ProgressBar(widgets=widgets)
+        counter = 0
+        for member in pbar(mps_list):
+            counter += 1
+            p_id = members[member['name']]
+            o_id = chambers[member['term']]
+            url = terms[member['term']]['url']
+            membership_label = member['membership']
+            role = member['role']
+            chamber_membership_json = self.build_memberships_doc(p_id, o_id, membership_label, role, url)
+            chambers_membership.append(chamber_membership_json)
+        print "\n\tScraping completed! \n\tScraped " + str(len(chambers_membership)) + " members"
+        return chambers_membership
+
+
+    def build_memberships_doc(self, person_id, organization_id, label, role, url):
+        json_doc = {
+            "person_id": person_id,
+            "organization_id": organization_id,
+            "label": label,
+            "role": role,
+            "sources": [{
+                "url": url,
+                "note": "сайт"
+            }]
+        }
+        return json_doc
 
     def scrape_committee(self):
         print "\n\tScraping committee groups from Belarus Upperhouse parliament...\n"

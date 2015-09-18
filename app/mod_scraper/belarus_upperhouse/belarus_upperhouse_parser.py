@@ -27,23 +27,28 @@ class BelarusUpperhouseParser():
     terms = {
         "1": {
             "start_date": "1997-01-13",
-            "end_date": "2000-12-19"
+            "end_date": "2000-12-19",
+            "url": "http://www.sovrep.gov.by/ru/sozyvy-ru/view/pervij-sozyv-ru-1/"
         },
         "2": {
             "start_date": "2000-12-19",
-            "end_date": "2004-11-15"
+            "end_date": "2004-11-15",
+            "url": "http://www.sovrep.gov.by/ru/sozyvy-ru/view/vtoroy-sozyv-ru-2/"
         },
         "3": {
             "start_date": "2004-11-15",
-            "end_date": "2008-10-31"
+            "end_date": "2008-10-31",
+            "url": "http://www.sovrep.gov.by/ru/sozyvy-ru/view/tretij-sozyv-ru-3/"
         },
         "4": {
             "start_date": "2008-10-31",
-            "end_date": "2012-10-19"
+            "end_date": "2012-10-19",
+            "url": "http://www.sovrep.gov.by/ru/sozyvy-ru/view/chetverty-sozyv-ru-4/"
         },
         "5": {
             "start_date": "2012-10-19",
-            "end_date": ""
+            "end_date": "",
+            "url": "http://www.sovrep.gov.by/ru/sozyvy-ru/view/pyatyj-sozyv-ru-5/"
         }
     }
 
@@ -75,7 +80,6 @@ class BelarusUpperhouseParser():
         terms = self.chambers_list()
         mps_list = []
         roles = self.membership_correction()
-        counter = 0
         for term in list(reversed(sorted(terms.keys()))):
             presidium = {}
             url = terms[term]['url']
@@ -97,7 +101,6 @@ class BelarusUpperhouseParser():
                         "Заместитель Председателя Совета Республики Национального собрания Республики Беларусь"
 
             for each_div in soup.find("div", {"id": "members_bm_info"}).findAll("div", {'class': "news_item news_item_second"}):
-                counter += 1
                 name_unordered = each_div.find('div', {'class': "news_title"}).find('a').get_text()
                 member_url = each_div.find('div', {'class': "news_title"}).find('a').get("href")
                 identifier = re.findall(r'\d+', member_url)

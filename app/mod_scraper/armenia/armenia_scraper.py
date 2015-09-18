@@ -238,7 +238,7 @@ class ArmeniaScraper():
             members[member['name']] = member['id']
 
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+                                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
         pbar = ProgressBar(widgets=widgets)
         for member in pbar(mps):
             p_id = members[member['name']]
