@@ -92,7 +92,7 @@ class BelarusLowerhouseScraper():
         }
         return json_doc
 
-    def scrape_committee_membership(self):
+    def scrape_committee_members(self):
         print "\n\tScraping committee groups membership from Belarus Lowerhouse parliament..."
         committee_membership_list = []
         committee_list = parser.committee_membership()

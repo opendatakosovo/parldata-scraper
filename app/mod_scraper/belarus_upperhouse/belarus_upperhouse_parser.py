@@ -70,6 +70,8 @@ class BelarusUpperhouseParser():
 
     def membership_correction(self):
         return {
+            "Председатель комиссии": "chairman",
+            "Заместитель председателя комиссии": "vice-chairman",
             "Председатель Совета Республики Национального собрания Республики Беларусь": "chairman",
             "Заместитель Председателя Совета Республики Национального собрания Республики Беларусь": "vice-chairman",
             "Член": "member"
@@ -183,6 +185,50 @@ class BelarusUpperhouseParser():
                 }
                 committee_list.append(committee_json)
         return committee_list
+
+    def committee_membership(self):
+        roles = self.membership_correction()
+        committee_list = self.committe_list()
+        committee_membership_list = []
+        counter = 0
+        widgets_member = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                          ' ', ETA(), " - Processed: ", Counter(), " committees      "]
+        pbar_m = ProgressBar(widgets=widgets_member)
+        for committee in pbar_m(committee_list):
+            soup = scrape.download_html_file(committee['url'])
+            for each_div in soup.find("div", {"id": "person_bm_info"}).findAll("div", {'class': "news_item news_item_second"}):
+                counter += 1
+                name = each_div.find('div', {'class': "news_title"}).get_text().replace("\n", "").strip()
+                if "(" in name:
+                    index_start = name.index("(")
+                    membership_label = name[index_start + 1:len(name) - 1]
+                    name = name[:index_start].strip()
+                else:
+                    membership_label = "Член".decode('utf-8')
+                member_url = each_div.find('div', {'class': "news_title"}).find('a').get("href")
+                identifier = re.findall(r'\d+', member_url)
+                if len(identifier) > 1:
+                    member_id = identifier[1]
+                else:
+                    member_id = identifier[0]
+                names = name.split(" ")
+                first_name = names[1]
+                middle_name = names[2]
+                last_name = names[0]
+                name_ordered = first_name + " " + middle_name + " " + last_name
+                role = roles[membership_label.encode('utf-8')]
+                committee_membership_json = {
+                    "name": name_ordered.strip(),
+                    "identifier": member_id,
+                    "membership": membership_label,
+                    "role": role,
+                    "committee_parent_id": committee['parent_id'],
+                    "committee_name": committee['name'],
+                    "url": committee['url']
+                }
+                committee_membership_list.append(committee_membership_json)
+        return committee_membership_list
+
 
     def mps_list(self):
         members = self.members_list()

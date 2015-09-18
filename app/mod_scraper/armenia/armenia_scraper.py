@@ -108,7 +108,7 @@ class ArmeniaScraper():
             "հանձնաժողովի նախագահի տեղակալ": "vice-chairman",
         }
 
-    def scrape_committee_membership(self):
+    def scrape_committee_members(self):
         print "\n\tScraping committee groups membership from Armenia's parliament...\n"
         committees = self.committee_list()
         committee_membership = []
@@ -238,7 +238,7 @@ class ArmeniaScraper():
             members[member['name']] = member['id']
 
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+                                   ' ', ETA(), ' ', FileTransferSpeed(), '             ']
         pbar = ProgressBar(widgets=widgets)
         for member in pbar(mps):
             p_id = members[member['name']]

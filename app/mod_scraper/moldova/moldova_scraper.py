@@ -374,7 +374,7 @@ class MoldovaScraper():
         print "\n\tScraping completed! \n\tScraped " + str(len(chambers)) + " chambers"
         return chambers
 
-    def scrape_committee_membership(self):
+    def scrape_committee_members(self):
         print "\n\tScraping committees membership from Moldova's parliament..."
         committees_list = self.committee_list()
         membership_correction = self.membership_correction()
