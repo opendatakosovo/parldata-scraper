@@ -192,7 +192,7 @@ class BelarusUpperhouseParser():
         committee_membership_list = []
         counter = 0
         widgets_member = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                          ' ', ETA(), " - Processed: ", Counter(), " committees      "]
+                          ' ', ETA(), " - Processed: ", Counter(), " committees             "]
         pbar_m = ProgressBar(widgets=widgets_member)
         for committee in pbar_m(committee_list):
             soup = scrape.download_html_file(committee['url'])
