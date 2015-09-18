@@ -8,6 +8,7 @@ import re
 from bs4 import BeautifulSoup
 import dateutil.parser
 from datetime import date
+from progressbar import ProgressBar, Percentage, ETA, Counter, Bar
 
 client = MongoClient()
 db = client.ge
@@ -140,8 +141,11 @@ class GeorgiaScraper():
         db.mps_list.remove({})
         scrape = scraper.Scraper()
         deputies = []
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+        pbar = ProgressBar(widgets=widgets)
         #iterate through each deputy in the deputies list.
-        for json in mps_list: #iterate over loop [above sections]8
+        for json in pbar(mps_list): #iterate over loop [above sections]8
             soup_deputy = scrape.download_html_file(json['source_url'])
             phone = ""
             date_of_birth = ""
@@ -221,7 +225,10 @@ class GeorgiaScraper():
         print "\n\tScraping parliamentary groups data from Georgia's parliament..."
         parties_list = []
         parties = self.parliamentary_grous_list()
-        for party in parties:
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+        pbar = ProgressBar(widgets=widgets)
+        for party in pbar(parties):
             if "qartuli-ocneba-tavisufali-demokratebi" not in party['url']:
                 soup = scrape.download_html_file(party['url'])
                 for each_a in soup.find("div", {"class": "submenu_list"}):
@@ -243,7 +250,10 @@ class GeorgiaScraper():
         committees_list = []
         committees = self.parliamentary_committes_list()
         print "\n\tScraping committees data from Georgia's parliament..."
-        for committee in committees:
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+        pbar = ProgressBar(widgets=widgets)
+        for committee in pbar(committees):
             # if committee['url'] != "http://www.parliament.ge/ge/saparlamento-saqmianoba/komitetebi/diasporisa-da-kavkasiis-sakitxta-komiteti":
             soup_committees = scrape.download_html_file(committee['url'])
             contact = soup_committees.find('a', text="დაგვიკავშირდით")
@@ -289,7 +299,10 @@ class GeorgiaScraper():
         for collection in data_collections:
             print "\n\t\tScraping %s membership\n\n" % collection
             if collection == "chambers":
-                for item in data_collections[collection]:
+                widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                           ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+                pbar = ProgressBar(widgets=widgets)
+                for item in pbar(data_collections[collection]):
                     identifier = item['identifiers']['identifier']
                     o_id = self.get_id("organizations", "8", "chamber")
                     p_id = self.get_id("people", identifier)
@@ -300,7 +313,10 @@ class GeorgiaScraper():
                         membership_json = self.build_memberships_doc(p_id, o_id, member, role, url)
                         membership_array.append(membership_json)
             else:
-                for item in data_collections[collection]:
+                widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                           ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+                pbar = ProgressBar(widgets=widgets)
+                for item in pbar(data_collections[collection]):
                     if collection == "parties":
                         url = item['sources'][0]['url']
                     else:
@@ -383,47 +399,52 @@ class GeorgiaScraper():
         if existing:
             organization_id = existing['id']
 
-        for item in json_result['aaData'][:index_counter]:
-            soup = BeautifulSoup(item[1], 'html.parser')
-            api_name = soup.get_text()
-            url = "http://votes.parliament.ge" + soup.find('a').get('href')
-            index_of_id = url.index('laws/')
-            index = index_of_id + 5
-            motion_id = url[index:]
-            date = self.local_to_utc(item[0] + " 04:00")
-            votes_for = item[3]
-            votes_against = item[4]
-            # votes_abstain = str(item[5])
-            votes_not_present = item[6]
-            json_motion = {
-                "date": date,
-                "start_date": date,
-                "sources": [{
-                    "url": url,
-                    "note": "ვებგვერდი"
-                }],
-                "id": motion_id,
-                "identifier": motion_id,
-                "motion_id": motion_id,
-                "organization_id": organization_id,
-                "text": api_name,
-                "result": "pass",
-                "counts": [
-                    {
-                        "option": "yes",
-                        "value": votes_for
-                    },
-                    {
-                        "option": "no",
-                        "value": votes_against
-                    },
-                    {
-                        "option": "absent",
-                        "value": votes_not_present
-                    }
-                ]
-            }
-            laws_array.append(json_motion)
+
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+        pbar = ProgressBar(widgets=widgets)
+        if len(json_result['aaData'][:index_counter]) > 0:
+            for item in pbar(json_result['aaData'][:index_counter]):
+                soup = BeautifulSoup(item[1], 'html.parser')
+                api_name = soup.get_text()
+                url = "http://votes.parliament.ge" + soup.find('a').get('href')
+                index_of_id = url.index('laws/')
+                index = index_of_id + 5
+                motion_id = url[index:]
+                date = self.local_to_utc(item[0] + " 04:00")
+                votes_for = item[3]
+                votes_against = item[4]
+                # votes_abstain = str(item[5])
+                votes_not_present = item[6]
+                json_motion = {
+                    "date": date,
+                    "start_date": date,
+                    "sources": [{
+                        "url": url,
+                        "note": "ვებგვერდი"
+                    }],
+                    "id": motion_id,
+                    "identifier": motion_id,
+                    "motion_id": motion_id,
+                    "organization_id": organization_id,
+                    "text": api_name,
+                    "result": "pass",
+                    "counts": [
+                        {
+                            "option": "yes",
+                            "value": votes_for
+                        },
+                        {
+                            "option": "no",
+                            "value": votes_against
+                        },
+                        {
+                            "option": "absent",
+                            "value": votes_not_present
+                        }
+                    ]
+                }
+                laws_array.append(json_motion)
         return laws_array
 
     def vote_events(self):

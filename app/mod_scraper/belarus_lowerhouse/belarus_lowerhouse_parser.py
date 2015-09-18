@@ -2,6 +2,7 @@
 from app.mod_scraper import scraper
 import vpapi
 from progressbar import ProgressBar
+from progressbar import ProgressBar, Percentage, ETA, Counter, Bar
 
 
 pbar = ProgressBar()
@@ -37,9 +38,10 @@ class BelarusLowerhouseParser():
         soup = scrape.download_html_file(url)
         roles = self.membership_correction()
         chamber_membership = self.chamber_memberships()
-        counter = 0
-        for each_tr in soup.findAll('a', {'class': 'd_list'}):
-            counter += 1
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+        pbar = ProgressBar(widgets=widgets)
+        for each_tr in pbar(soup.findAll('a', {'class': 'd_list'})):
             name_unordered = each_tr.get_text()
             names = name_unordered.split(" ")
             first_name = names[1]
@@ -109,7 +111,11 @@ class BelarusLowerhouseParser():
         all_members = vpapi.getall("people")
         for member in all_members:
             members[member['sources'][0]['url']] = member['id']
-        for committee in committee_list:
+
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' committees             ']
+        pbar = ProgressBar(widgets=widgets)
+        for committee in pbar(committee_list):
             identifier = int(committee['identifier']) + 2
             url = committee['url'].replace(committee['identifier'], str(identifier))
             soup = scrape.download_html_file(url)
@@ -202,6 +208,9 @@ class BelarusLowerhouseParser():
         print "\tPlease wait. This may take a few minutes...\n"
         mps_list = self.mps_list()
         members = []
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' members             ']
+        pbar = ProgressBar(widgets=widgets)
         for member in pbar(mps_list):
             soup = scrape.download_html_file(member['url'])
             image_url = "http://house.gov.by/" + soup.find("table", {"cellspacing": "1"}).find('img').get('src')
@@ -287,7 +296,10 @@ class BelarusLowerhouseParser():
     def committees(self):
         committee_list = self.committee_list()
         committees = []
-        for committee in committee_list:
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' committees             ']
+        pbar = ProgressBar(widgets=widgets)
+        for committee in pbar(committee_list):
             identifier = int(committee['identifier']) + 2
             url = committee['url'].replace(committee['identifier'], str(identifier))
             soup = scrape.download_html_file(url)

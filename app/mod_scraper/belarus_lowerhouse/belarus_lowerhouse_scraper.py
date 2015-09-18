@@ -3,6 +3,7 @@ from app.mod_scraper import scraper
 import belarus_lowerhouse_parser
 from datetime import date
 import vpapi
+from progressbar import ProgressBar, Percentage, ETA, Counter, Bar
 
 parser = belarus_lowerhouse_parser.BelarusLowerhouseParser()
 scrape = scraper.Scraper()

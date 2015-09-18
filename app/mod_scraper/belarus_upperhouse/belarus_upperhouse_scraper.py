@@ -171,6 +171,9 @@ class BelarusUpperhouseScraper():
             "parent_id": parent_id
         }
 
+    def scrape_parliamentary_groups(self):
+        return []
+
     def scrape_mp_bio_data(self):
         print "\n\tScraping people data from Belarus Upper House parliament..."
         print "\tPlease wait. This may take a few minutes...\n"
