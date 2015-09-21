@@ -4,7 +4,6 @@ import re
 import vpapi
 from progressbar import ProgressBar, Percentage, ETA, Counter, Bar
 
-pbar = ProgressBar()
 scrape = scraper.Scraper()
 
 
