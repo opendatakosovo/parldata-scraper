@@ -78,7 +78,10 @@ class MoldovaScraper():
         deputy_list_url = "http://www.parlament.md/StructuraParlamentului/Deputies/tabid/87/language/ro-RO/Default.aspx"
         soup = scrape.download_html_file(deputy_list_url)
         each = soup.find("div", {"class": "allTitle"}).find("table", {"cellspacing": "4"}).findAll('tr')
-        for tr in each:
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+        pbar = ProgressBar(widgets=widgets)
+        for tr in pbar(each):
             name = tr.find("td").find("img").get("alt").replace("  ", " ")
             link = tr.find("td", {"valign": "top"}).find("a").get("href")
             # fraction_link = tr.find("td", {"valign": "top"}).find("a", {"class": "FractionLink"}).get("href")
@@ -138,10 +141,7 @@ class MoldovaScraper():
         deputy_list_url = "http://www.parlament.md/StructuraParlamentului/" \
                           "Deputies/tabid/87/language/ro-RO/Default.aspx"
 
-        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
-        pbar = ProgressBar(widgets=widgets)
-        for member in pbar(mps_list):
+        for member in mps_list:
             p_id = members[member['identifier']]
             role = membership_correction[member['membership'].encode('utf-8')]
             chamber_membership_json = self.build_memberships_doc(p_id, chamber_id['id'], member['membership'],
@@ -203,13 +203,10 @@ class MoldovaScraper():
 
     def scrape_mp_bio_data(self):
         print "\n\tScraping people data from Moldova's parliament..."
-        print "\tThis may take a few minutes..."
+        print "\tThis may take a few minutes...\n"
         mps_list = self.mps_list()
         members = []
-        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
-        pbar = ProgressBar(widgets=widgets)
-        for member in pbar(mps_list):
+        for member in mps_list:
             # identifier, full_name, first_name, last_name, url, image_url, gender
             member_json = self.build_json_doc(member['identifier'], member['name'], member['given_name'],
                                               member['family_name'], member['url'], member['image_url'],
