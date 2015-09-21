@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
-from pymongo import MongoClient
 from app.mod_scraper import scraper
 from datetime import date
 import vpapi
-from progressbar import ProgressBar
+from progressbar import ProgressBar, Percentage, ETA, Counter, Bar
 
-client = MongoClient()
-db = client.parlament_md
+
 scrape = scraper.Scraper()
 
 
@@ -49,17 +47,6 @@ class MoldovaScraper():
             "end_date": ""
         }
     }
-    # def sk_to_utc(self, dt_str):
-    #     """Converts Slovak date(-time) string into ISO format in UTC time."""
-    #     match = re.search(SK_MONTHS_REGEX, dt_str, re.IGNORECASE)
-    #     if match:
-    #         month = match.group(0)
-    #         dt_str = dt_str.replace(month, '%s.' % SK_MONTHS[month[:3].lower()])
-    #     dt = dateutil.parser.parse(dt_str, dayfirst=True)
-    #     if ':' in dt_str:
-    #         return vpapi.local_to_utc(dt, to_string=True)
-    #     else:
-    #         return dt.strftime('%Y-%m-%d')
 
     def guess_gender(self, first_name):
         if first_name[-1:] == "a":
@@ -91,7 +78,6 @@ class MoldovaScraper():
         deputy_list_url = "http://www.parlament.md/StructuraParlamentului/Deputies/tabid/87/language/ro-RO/Default.aspx"
         soup = scrape.download_html_file(deputy_list_url)
         each = soup.find("div", {"class": "allTitle"}).find("table", {"cellspacing": "4"}).findAll('tr')
-
         for tr in each:
             name = tr.find("td").find("img").get("alt").replace("  ", " ")
             link = tr.find("td", {"valign": "top"}).find("a").get("href")
@@ -152,7 +138,9 @@ class MoldovaScraper():
         deputy_list_url = "http://www.parlament.md/StructuraParlamentului/" \
                           "Deputies/tabid/87/language/ro-RO/Default.aspx"
 
-        pbar = ProgressBar()
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+        pbar = ProgressBar(widgets=widgets)
         for member in pbar(mps_list):
             p_id = members[member['identifier']]
             role = membership_correction[member['membership'].encode('utf-8')]
@@ -177,7 +165,10 @@ class MoldovaScraper():
             members[member['identifiers'][0]['identifier']] = member['id']
 
         parties_membership = []
-        for party in parties_list:
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed members from: ", Counter(), ' parliamentary groups             ']
+        pbar = ProgressBar(widgets=widgets)
+        for party in pbar(parties_list):
             party_identifier = party['identifier']
             soup_party = scrape.download_html_file(party['url'])
             for each_tr in soup_party.find("fieldset", {"id": "dnn_ctr482_ViewFraction_fsMembers"}).findAll('tr'):
@@ -210,13 +201,15 @@ class MoldovaScraper():
         }
         return json_doc
 
-
     def scrape_mp_bio_data(self):
         print "\n\tScraping people data from Moldova's parliament..."
         print "\tThis may take a few minutes..."
         mps_list = self.mps_list()
         members = []
-        for member in mps_list:
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+        pbar = ProgressBar(widgets=widgets)
+        for member in pbar(mps_list):
             # identifier, full_name, first_name, last_name, url, image_url, gender
             member_json = self.build_json_doc(member['identifier'], member['name'], member['given_name'],
                                               member['family_name'], member['url'], member['image_url'],
@@ -255,7 +248,10 @@ class MoldovaScraper():
                                         }
                                     }})
         committees_list = []
-        for committee in committees:
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+        pbar = ProgressBar(widgets=widgets)
+        for committee in pbar(committees):
             soup = scrape.download_html_file(committee['url'])
             email_tag = soup.find("span", {"id": "dnn_ctr486_ViewCommissionPermanent_ctrlViewCommissionType_lblCommissionContacts"}).find('a')
             phone = soup.find("span", {"id": "dnn_ctr486_ViewCommissionPermanent_ctrlViewCommissionType_lblCommissionContacts"}).find('p')
@@ -321,7 +317,10 @@ class MoldovaScraper():
         parties_list = self.parliamentary_group_list()
         parties = []
         print "\n\tScraping parliamentary groups from Moldova's parliament..."
-        for party in parties_list:
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+        pbar = ProgressBar(widgets=widgets)
+        for party in pbar(parties_list):
             founding_date = self.terms["20"]["start_date"]
             party_json = self.build_organization_doc("parliamentary group", party['name'],
                                                      party['identifier'], founding_date, "",
@@ -338,8 +337,11 @@ class MoldovaScraper():
                            "XVIII": "18", "XIX": "19", "XX": "20"}
         chambers = []
         soup = scrape.download_html_file(url)
-        print "\n\tScraping chambers from Armenia's parliament..."
-        for each_a in soup.find('div', {"class": "LocalizedContent"}).findAll('a'):
+        print "\n\tScraping chambers from Moldova's parliament..."
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+        pbar = ProgressBar(widgets=widgets)
+        for each_a in pbar(soup.find('div', {"class": "LocalizedContent"}).findAll('a')):
             name = each_a.get_text().strip()
             if name != "":
                 url = "http://www.parlament.md" + each_a.get('href')
@@ -389,7 +391,10 @@ class MoldovaScraper():
             members[member['identifiers'][0]['identifier']] = member['id']
 
         committees_membership = []
-        for committee in committees_list:
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed members from: ", Counter(), ' committees             ']
+        pbar = ProgressBar(widgets=widgets)
+        for committee in pbar(committees_list):
             committee_identifier = committee['identifier']
             soup_party = scrape.download_html_file(committee['url'])
             for each_tr in soup_party.find("fieldset", {"id": "dnn_ctr486_ViewCommissionPermanent_ctrlViewCommissionType_fsMembers"}).findAll('tr'):
