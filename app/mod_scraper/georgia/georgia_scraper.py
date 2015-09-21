@@ -226,7 +226,7 @@ class GeorgiaScraper():
         parties_list = []
         parties = self.parliamentary_grous_list()
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+                   ' ', ETA(), " - Processed: ", Counter(), ' groups of parties             ']
         pbar = ProgressBar(widgets=widgets)
         for party in pbar(parties):
             if "qartuli-ocneba-tavisufali-demokratebi" not in party['url']:
@@ -314,7 +314,7 @@ class GeorgiaScraper():
                         membership_array.append(membership_json)
             else:
                 widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                           ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+                           ' ', ETA(), " - Processed members from: ", Counter(), ' ' + collection + '             ']
                 pbar = ProgressBar(widgets=widgets)
                 for item in pbar(data_collections[collection]):
                     if collection == "parties":
@@ -398,7 +398,6 @@ class GeorgiaScraper():
         existing = vpapi.getfirst("organizations", where={"identifiers": {"$elemMatch": {"identifier": "8", "scheme": "parliament.ge"}}})
         if existing:
             organization_id = existing['id']
-
 
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
                    ' ', ETA(), " - Processed: ", Counter(), ' items             ']
@@ -567,11 +566,11 @@ class GeorgiaScraper():
             "dissolution_date": "2016-10",
         })
         chamber_list_html = "http://www.parliament.ge/ge/parlamentarebi/wina-mowvevis-parlamentebi"
-        scrape = scraper.Scraper()
-
         soup = scrape.download_html_file(chamber_list_html)
-
-        for each_a in soup.find("div", {"class": "submenu_list"}):
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+        pbar = ProgressBar(widgets=widgets)
+        for each_a in pbar(soup.find("div", {"class": "submenu_list"})):
             if each_a.find('a'):
                 continue
             else:
