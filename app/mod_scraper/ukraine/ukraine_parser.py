@@ -11,8 +11,10 @@ scrape = scraper.Scraper()
 
 
 class UkraineParser():
-    def download_html_file(self, url):
+    def download_html_file(self, url, encoding_type=None):
         response = requests.get(url)
+        if encoding_type:
+            response.encoding = "utf-8"
         html_content = response.text
         soup = BeautifulSoup(html_content, 'html.parser')
         return soup
@@ -52,6 +54,36 @@ class UkraineParser():
             }
         return chambers
 
+    def build_ordered_name(self, name):
+        encoded_name = name.encode('utf-8')
+        names = encoded_name.split(" ")
+        first_name = names[1]
+        middle_name = names[2]
+        last_name = names[0]
+        return first_name + " " + middle_name + " " + last_name
+
+    def first_chamber_mps_list(self):
+        first_chamber_mps = []
+        url = "http://static.rada.gov.ua/zakon/new/NEWSAIT/DEPUTAT1/spisok1.htm"
+        soup = self.download_html_file(url, "utf-8")
+        for each_div in soup.findAll('div', {"class": "topTitle"})[1:]:
+            if each_div.find("table"):
+                all_tr_elements = each_div.find("table").findAll('tr')
+                for each_tr in all_tr_elements[1:len(all_tr_elements)-1]:
+                    all_td_elements = each_tr.findAll('td')
+                    name = all_td_elements[0].find("p").find('a').get_text().replace("\n", "").replace("                   ", " ")
+                    encoded_name = name.encode('utf-8')
+                    names = encoded_name.split(" ")
+                    first_name = names[1]
+                    middle_name = names[2]
+                    last_name = names[0]
+                    name_ordered = first_name + " " + middle_name + " " + last_name
+                    print name_ordered
+                    url = "http://static.rada.gov.ua/zakon/new/NEWSAIT/DEPUTAT1/" + \
+                          all_td_elements[0].find("p").find('a').get("href")
+                    print "----------------------------------------------"
+        return first_chamber_mps
+
     def mps_list(self):
         chambers = self.chambers()
         guess_gender = {
@@ -69,6 +101,10 @@ class UkraineParser():
                         print each_li.find("p", {"class": "thumbnail"}).find("img").get('src')
                         print each_li.find("p", {"class": "title"}).find("a").get('href')
                         print each_li.find("p", {"class": "title"}).find("a").get_text()
+                        print guess_gender[str(i)]
                         print "-----------------------------------------------"
             else:
-                soup = self.download_html_file(chambers[term]['url'])
+                if str(term) != "1":
+                    soup = self.download_html_file(chambers[term]['url'])
+                else:
+                    first_chambers_mps = self.first_chamber_mps_list()
