@@ -153,6 +153,7 @@ class UkraineParser():
     def members_list(self):
         mp_list = self.mps_list()
         members_prevent_duplicates = []
+        members = []
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
                    ' ', ETA(), " - Processed: ", Counter(), ' items             ']
         pbar = ProgressBar(widgets=widgets)
@@ -164,19 +165,24 @@ class UkraineParser():
                     table_infos = soup.findAll("table", {"class": "simple_info"})
                     birth_date_trs = table_infos[1].findAll('tr')
                     birth_date_tds = birth_date_trs[0].findAll('td')
-                    birth_date = birth_date_tds[1].get_text()
-                    extract_birth_date = birth_date[:len(birth_date) - 2]
-                    print ""
-                    print extract_birth_date
+                    birth_date_text = birth_date_tds[1].get_text()
+                    extract_birth_date = birth_date_text[:len(birth_date_text) - 2]
+                    birth_date_array = extract_birth_date.split(" ")
+                    month = self.months[birth_date_array[1].strip().encode('utf-8')]
+                    day = birth_date_array[0]
+                    if len(day) == 1:
+                        day = "0" + day
+                    birth_date = birth_date_array[2] + "-" + month + "-" + day
                     email_divs = soup.findAll("div", {"class": "topTitle"})
                     if len(email_divs) > 1:
                         if email_divs[1].find("a"):
-                            print email_divs[1].find("a").get_text()
+                            email = email_divs[1].find("a").get_text().strip()
+                            member["email"] = email
                     else:
                         continue
-                    print member['name']
-                    print birth_date
-                    print "-------------------------------------"
+                    member["birth_date"] = birth_date
+                    members.append(member)
+        return members
 
     def chamber_membership(self):
         membership = {}
