@@ -63,7 +63,6 @@ def scrape(countries, people, votes):
                 vpapi.timezone(creds[item.lower()]['timezone'])
                 vpapi.authorize(creds[item.lower()]['api_user'], creds[item.lower()]['password'])
                 if people == "yes":
-                    vpapi.post("people", {"name": ""})
                     references[item.lower()].scrape_mp_bio_data()
                     # references[item.lower()].members_list()
                     # members = references[item.lower()].scrape_mp_bio_data()
