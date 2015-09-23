@@ -39,7 +39,7 @@ class UkraineParser():
         chambers = {
             "9": {
                 "url": "http://w1.c1.rada.gov.ua/pls/site2/p_deputat_list?skl=9",
-                "name": "VIII скликання (2014-)",
+                "name": "IX скликання (2014-)",
                 "start_date": "2014",
                 "end_date": ""
             }
@@ -127,10 +127,9 @@ class UkraineParser():
                     name_ordered = first_name + " " + middle_name + " " + last_name
                     url_member = "http://static.rada.gov.ua/zakon/new/NEWSAIT/DEPUTAT1/" + \
                           all_td_elements[0].find("p").find('a').get("href")
-
-                    index_start = url_member.index("TAT1") + 4
+                    index_start = url_member.index("TAT1/") + 5
                     index_end = url_member.index(".htm")
-                    identifier = url[index_start:index_end]
+                    identifier = url_member[index_start:index_end]
                     gender = self.guess_gender(first_name)
                     membership = "член".decode('utf-8')
                     role = "member"

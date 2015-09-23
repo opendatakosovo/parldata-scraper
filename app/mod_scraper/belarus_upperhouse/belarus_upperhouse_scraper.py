@@ -145,7 +145,7 @@ class BelarusUpperhouseScraper():
             if committee['start_date'] == "":
                 del committee_json['founding_date']
             committees.append(committee_json)
-        print "\n\tScraping completed! \n\tScraped " + str(len(committees)) + " chambers"
+        print "\n\tScraping completed! \n\tScraped " + str(len(committees)) + " committees"
         return committees
 
     def build_organization_doc(self, classification, name, identifier, founding_date,
