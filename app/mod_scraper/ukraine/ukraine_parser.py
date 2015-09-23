@@ -157,6 +157,49 @@ class UkraineParser():
         else:
             return "male"
 
+    def parliamentary_group_list(self):
+        chamber_ids = {}
+        all_chambers = vpapi.getall("organizations", where={"classification": "chamber"})
+        for term in all_chambers:
+            chamber_ids[term['identifiers'][0]['identifier']] = term['id']
+        parties = []
+        chambers = self.chambers()
+        for i in range(6, int(max(chambers.keys())) + 1):
+            url = "http://w1.c1.rada.gov.ua/pls/site2/p_fractions?skl=%s" % str(i)
+            soup = self.download_html_file(url)
+            for each_tr in soup.find('table', {'class': "striped Centered"}).findAll("tr")[1:]:
+                all_td_elements = each_tr.findAll("td")
+                if len(all_td_elements) > 1:
+                    url = "http://w1.c1.rada.gov.ua/pls/site2/" + all_td_elements[0].find("a").get('href')
+                    name = all_td_elements[0].find("a").get_text()
+                    if "pidid=" in url:
+                        index_start = url.index("pidid=") + 6
+                    else:
+                        index_start = None
+                    if index_start:
+                        identifier = url[index_start:]
+                    else:
+                        identifier = "0"
+                    party_json = {
+                        "name": name,
+                        "url": url,
+                        "identifier": identifier,
+                        "parent_id": chamber_ids[str(i)]
+                    }
+                    parties.append(party_json)
+                else:
+                    continue
+        return parties
+
+    def parliamentary_groups(self):
+        parties_list = self.parliamentary_group_list()
+        for party in parties_list:
+            soup = self.download_html_file(party['url'])
+            all_p_tags = soup.find('div', {"class": "information_block_ins"}).findAll("p")
+            if int(party['identifier']) > 6:
+
+
+
     def members_list(self):
         mp_list = self.mps_list()
         members_prevent_duplicates = []
