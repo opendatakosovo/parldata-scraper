@@ -186,6 +186,8 @@ class UkraineParser():
                         "identifier": identifier,
                         "parent_id": chamber_ids[str(i)]
                     }
+                    print name
+                    print "------------------------------------->"
                     parties.append(party_json)
                 else:
                     continue
@@ -196,7 +198,20 @@ class UkraineParser():
         for party in parties_list:
             soup = self.download_html_file(party['url'])
             all_p_tags = soup.find('div', {"class": "information_block_ins"}).findAll("p")
-            if int(party['identifier']) > 6:
+            if int(party['identifier']) < 9:
+                start_date_text = all_p_tags[0].get_text()
+                end_date_text = all_p_tags[1].get_text()
+                start_date = start_date_text.encode('utf-8').replace("Дата створення:", "")[:len(start_date_text) - 2]
+                print party['start_date']
+                print start_date
+                print "------------------------------------------->"
+            else:
+                start_date_text = all_p_tags[0].get_text()
+                start_date = start_date_text.encode('utf-8').replace("Дата створення:", "")[:len(start_date_text) - 2]
+                print party['start_date']
+                print start_date
+                print "------------------------------------------->"
+
 
 
 
