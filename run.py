@@ -63,14 +63,14 @@ def scrape(countries, people, votes):
                 vpapi.timezone(creds[item.lower()]['timezone'])
                 vpapi.authorize(creds[item.lower()]['api_user'], creds[item.lower()]['password'])
                 if people == "yes":
-                    references[item.lower()].scrape_mp_bio_data()
+                    # references[item.lower()].scrape_mp_bio_data()
                     # references[item.lower()].members_list()
-                    # members = references[item.lower()].scrape_mp_bio_data()
+                    members = references[item.lower()].scrape_mp_bio_data()
                     # chamber = references[item.lower()].scrape_chamber()
                     # parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
                     # committee = references[item.lower()].scrape_committee()
                     data_collections = {
-                        # "a-people": members,
+                        "a-people": members,
                         # "b-chamber": chamber,
                         # "c-parliamentary_groups": parliamentary_groups,
                         # "d-committe": committee
@@ -111,7 +111,6 @@ def scrape(countries, people, votes):
                                         resp = vpapi.put(collection_of_data, json_obj_id, json_doc, effective_date=effective_date)
 
                                     # update by PUT is preferred over PATCH to correctly remove properties that no longer exist now
-
                                 if resp["_status"] != "OK":
                                     raise Exception("Invalid status code")
 

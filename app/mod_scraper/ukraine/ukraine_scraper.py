@@ -11,10 +11,27 @@ class UkraineScraper():
         print "\n\tScraping people data from Ukraine's House parliament..."
         print "\tPlease wait. This may take a few minutes...\n"
         mp_list = parser.members_list()
+        members = []
         for member in mp_list:
             member_json = self.build_json_doc(member['member_id'], member['name'], member['given_name'],
-                                              member['family_name'], "", )
-        print "\n\tScraping completed! \n\tScraped " + str(len(mp_list)) + " members"
+                                              member['family_name'], member['url'], member['image_url'],
+                                              member['email'], member['gender'], member['birth_date'])
+
+            if not member['image_url']:
+                del member_json['image']
+
+            if not member['email']:
+                del member_json['contact_details']
+
+            if 'birth_date' not in member:
+                del member_json['birth_date']
+
+            if not member['birth_date']:
+                del member_json['birth_date']
+
+            members.append(member_json)
+        print "\n\tScraping completed! \n\tScraped " + str(len(members)) + " members"
+        return members
 
     def build_json_doc(self, identifier, full_name, first_name, last_name, url, image_url, email, gender, birth_date):
         json_doc = {

@@ -85,6 +85,8 @@ class UkraineParser():
             else:
                 name = each_td.get_text()
                 member_url = "http://w1.c1.rada.gov.ua" + each_td.find('a').get('href')
+                index_start = member_url.index("kod=") + 4
+                identifier = member_url[index_start:]
                 names = name.split(" ")
                 first_name = names[1]
                 middle_name = names[2]
@@ -94,6 +96,7 @@ class UkraineParser():
                 membership = "член".decode('utf-8')
                 role = "member"
                 member_json = {
+                    "member_id": identifier,
                     "membership": membership,
                     "role": role,
                     "term": term,
@@ -124,10 +127,15 @@ class UkraineParser():
                     name_ordered = first_name + " " + middle_name + " " + last_name
                     url_member = "http://static.rada.gov.ua/zakon/new/NEWSAIT/DEPUTAT1/" + \
                           all_td_elements[0].find("p").find('a').get("href")
+
+                    index_start = url_member.index("TAT1") + 4
+                    index_end = url_member.index(".htm")
+                    identifier = url[index_start:index_end]
                     gender = self.guess_gender(first_name)
                     membership = "член".decode('utf-8')
                     role = "member"
                     member_json = {
+                        "member_id": identifier,
                         "membership": membership,
                         "role": role,
                         "term": "1",
@@ -165,23 +173,36 @@ class UkraineParser():
                     table_infos = soup.findAll("table", {"class": "simple_info"})
                     birth_date_trs = table_infos[1].findAll('tr')
                     birth_date_tds = birth_date_trs[0].findAll('td')
-                    birth_date_text = birth_date_tds[1].get_text()
-                    extract_birth_date = birth_date_text[:len(birth_date_text) - 2]
-                    birth_date_array = extract_birth_date.split(" ")
-                    month = self.months[birth_date_array[1].strip().encode('utf-8')]
-                    day = birth_date_array[0]
-                    if len(day) == 1:
-                        day = "0" + day
-                    birth_date = birth_date_array[2] + "-" + month + "-" + day
+                    if len(birth_date_tds) > 1:
+                        birth_date_text = birth_date_tds[1].get_text()
+                        extract_birth_date = birth_date_text[:len(birth_date_text) - 2]
+                        birth_date_array = extract_birth_date.split(" ")
+                        month = self.months[birth_date_array[1].strip().encode('utf-8')]
+                        day = birth_date_array[0]
+                        if len(day) == 1:
+                            day = "0" + day
+                        birth_date = birth_date_array[2] + "-" + month + "-" + day
+                        member["birth_date"] = birth_date.replace(",", "")
+                    else:
+                        member['birth_date'] = None
                     email_divs = soup.findAll("div", {"class": "topTitle"})
                     if len(email_divs) > 1:
                         if email_divs[1].find("a"):
                             email = email_divs[1].find("a").get_text().strip()
                             member["email"] = email
+                        else:
+                            member['email'] = None
                     else:
-                        continue
-                    member["birth_date"] = birth_date
-                    members.append(member)
+                        member['email'] = None
+                else:
+                    soup = self.download_html_file(member['url'])
+                    image_url = soup.find("img", {'width': "120"}).get("src")
+                    if "http://static.rada.gov.ua" not in image_url:
+                        image_url = "http://static.rada.gov.ua" + image_url
+                    member["image_url"] = image_url
+                    member["birth_date"] = None
+                    member["email"] = None
+                members.append(member)
         return members
 
     def chamber_membership(self):
@@ -224,7 +245,6 @@ class UkraineParser():
         mps_list = []
         counter = 0
         for term in list(reversed(sorted(chambers))):
-            print "\n\n" + term + "\n\n"
             if int(term) >= 5:
                 for i in range(1, 3):
                     url = "http://w1.c1.rada.gov.ua/pls/site2/fetch_mps?skl_id=%s&gender=%s" % (term, str(i))
@@ -233,6 +253,8 @@ class UkraineParser():
                         counter += 1
                         image_url = each_li.find("p", {"class": "thumbnail"}).find("img").get('src')
                         member_url = each_li.find("p", {"class": "title"}).find("a").get('href')
+                        index_start = member_url.index("page/") + 5
+                        identifier = member_url[index_start:]
                         name = each_li.find("p", {"class": "title"}).find("a").get_text()
                         names = name.split(" ")
                         first_name = names[1]
@@ -247,9 +269,10 @@ class UkraineParser():
 
                         role = roles[membership.encode('utf-8')]
                         member_json = {
+                            "member_id": identifier,
                             "membership": membership,
                             "role": role,
-                            "term": term,
+                            "term": str(term),
                             "name": name_ordered,
                             "given_name": first_name,
                             "family_name": last_name,
