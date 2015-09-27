@@ -157,6 +157,71 @@ class UkraineParser():
         else:
             return "male"
 
+    def committee_list(self):
+        chamber_ids = {}
+        all_chambers = vpapi.getall("organizations", where={"classification": "chamber"})
+        for term in all_chambers:
+            chamber_ids[term['identifiers'][0]['identifier']] = term['id']
+        committees = []
+        chambers = self.chambers()
+        for i in range(7, int(max(chambers.keys())) + 1):
+            url = "http://w1.c1.rada.gov.ua/pls/site2/p_komitis?skl=%s" % str(i)
+            soup = self.download_html_file(url)
+            for each_tr in soup.find('table', {'class': "striped Centered"}).findAll("tr")[1:]:
+                all_td_elements = each_tr.findAll("td")
+                if len(all_td_elements) > 1:
+                    url = "http://w1.c1.rada.gov.ua/pls/site2/" + all_td_elements[0].find("a").get('href')
+                    name = all_td_elements[0].find("a").get_text()
+                    if name.encode('utf-8') != "Народні депутати, які не входять до складу жодного комітету":
+                        if "pidid=" in url:
+                            index_start = url.index("pidid=") + 6
+                        else:
+                            index_start = None
+                        if index_start:
+                            identifier = url[index_start:]
+                        else:
+                            identifier = "0"
+                        print all_td_elements[0].find("a").get_text()
+                        print "--------------------------------------------->"
+                        party_json = {
+                            "term": str(i),
+                            "name": name,
+                            "url": url,
+                            "identifier": identifier,
+                            "parent_id": chamber_ids[str(i)]
+                        }
+                        committees.append(party_json)
+                else:
+                    continue
+        return committees
+
+    def committees(self):
+        committee_list = self.committee_list()
+        for committee in committee_list:
+            soup = self.download_html_file(committee['url'])
+            info_tables = soup.findAll('table', {'class': "simple_info"})
+            all_tr_tags = info_tables[0].findAll('tr')
+            all_td_tags_start_date = all_tr_tags[0].findAll('td')
+            start_date_text = all_td_tags_start_date[1].next
+            start_date = start_date_text.encode('utf-8').strip()
+            start_date_array = start_date.replace("р.", "").split(" ")
+            start_date_str = start_date_array[2] + "-" + self.months[start_date_array[1]]\
+                             + "-" + start_date_array[0]
+            committee['start_date'] = start_date_str
+            if committee['term'] != "9":
+                all_td_tags_end_date = all_tr_tags[3].findAll('td')
+                end_date_text = all_td_tags_end_date[1].next
+                end_date = end_date_text.encode('utf-8').replace("Дата розпуску: ", "")[:len(end_date_text) - 3].strip()
+                end_date_array = end_date.split(" ")
+                end_date_str = end_date_array[2] + "-" + self.months[end_date_array[1]]\
+                                 + "-" + end_date_array[0]
+                committee['end_date'] = end_date_str
+            else:
+                committee['end_date'] = None
+            print "start_date: " + committee['start_date']
+            print "end_date: " + committee['end_date']
+            print "------------------------------------------------->"
+
     def parliamentary_group_list(self):
         chamber_ids = {}
         all_chambers = vpapi.getall("organizations", where={"classification": "chamber"})

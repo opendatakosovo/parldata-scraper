@@ -33,6 +33,9 @@ class UkraineScraper():
         print "\n\tScraping completed! \n\tScraped " + str(len(members)) + " members"
         return members
 
+    def scrape_committee(self):
+        parser.committees()
+
     def scrape_parliamentary_groups(self):
         print "\n\tScraping parliamentary groups from Ukraine's parliament...\n"
         parties = parser.parliamentary_groups()
