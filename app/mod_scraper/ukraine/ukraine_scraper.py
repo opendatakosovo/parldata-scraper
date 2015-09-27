@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-from app.mod_scraper import scraper
-from bs4 import BeautifulSoup
 from progressbar import ProgressBar, Percentage, ETA, Counter, Bar
+import vpapi
 import ukraine_parser
 
 parser = ukraine_parser.UkraineParser()
@@ -52,6 +51,50 @@ class UkraineScraper():
             committees.append(committee_json)
         print "\n\tScraping completed! \n\tScraped " + str(len(committees)) + " committees"
         return committees
+
+    def scrape_membership(self):
+        print "\n\tScraping chambers membership's data from Ukraine's parliament..."
+        print "\tPlease wait. This may take a few moments...\n"
+        members = {}
+        all_members = vpapi.getall("people")
+        for member in all_members:
+            members[member['name']] = member['id']
+
+        chambers = {}
+        all_chambers = vpapi.getall("organizations", where={"classification": "chamber"})
+        for chamber in all_chambers:
+            chambers[chamber['identifiers'][0]['identifier']] = chamber['id']
+        terms = parser.chambers()
+        mps_list = parser.mps_list()
+        chambers_membership = []
+
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+        pbar = ProgressBar(widgets=widgets)
+        for member in pbar(mps_list):
+            if member['name'] in members:
+                p_id = members[member['name']]
+                o_id = chambers[member['term']]
+                url = terms[member['term']]['url']
+                membership_label = member['membership']
+                role = member['role']
+                chamber_membership_json = self.build_memberships_doc(p_id, o_id, membership_label, role, url)
+                chambers_membership.append(chamber_membership_json)
+        print "\n\tScraping completed! \n\tScraped " + str(len(chambers_membership)) + " members"
+        return chambers_membership
+
+    def build_memberships_doc(self, person_id, organization_id, label, role, url):
+        json_doc = {
+            "person_id": person_id,
+            "organization_id": organization_id,
+            "label": label,
+            "role": role,
+            "sources": [{
+                "url": url,
+                "note": "веб-сайт"
+            }]
+        }
+        return json_doc
 
     def scrape_parliamentary_groups(self):
         print "\n\tScraping parliamentary groups from Ukraine's parliament...\n"
