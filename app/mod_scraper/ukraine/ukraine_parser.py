@@ -39,7 +39,7 @@ class UkraineParser():
         chambers = {
             "9": {
                 "url": "http://w1.c1.rada.gov.ua/pls/site2/p_deputat_list?skl=9",
-                "name": "IX скликання (2014-)",
+                "name": "VIII скликання (2014-)",
                 "start_date": "2014",
                 "end_date": ""
             }
@@ -181,13 +181,12 @@ class UkraineParser():
                     else:
                         identifier = "0"
                     party_json = {
+                        "term": str(i),
                         "name": name,
                         "url": url,
                         "identifier": identifier,
                         "parent_id": chamber_ids[str(i)]
                     }
-                    print name
-                    print "------------------------------------->"
                     parties.append(party_json)
                 else:
                     continue
@@ -196,21 +195,46 @@ class UkraineParser():
     def parliamentary_groups(self):
         parties_list = self.parliamentary_group_list()
         for party in parties_list:
+            print party['identifier']
             soup = self.download_html_file(party['url'])
-            all_p_tags = soup.find('div', {"class": "information_block_ins"}).findAll("p")
-            if int(party['identifier']) < 9:
-                start_date_text = all_p_tags[0].get_text()
-                end_date_text = all_p_tags[1].get_text()
-                start_date = start_date_text.encode('utf-8').replace("Дата створення:", "")[:len(start_date_text) - 2]
-                print party['start_date']
-                print start_date
-                print "------------------------------------------->"
+            all_divs = soup.findAll('div', {"class": "information_block_ins"})
+            all_p_tags = all_divs[1].findAll("p")
+            print "\n" + party['term'] + "\n\n"
+            if party['term'] != "9":
+                if party['identifier'] != "0":
+                    start_date_text = all_p_tags[0].get_text()
+                    start_date = start_date_text.encode('utf-8').replace("Дата створення: ", "")[:len(start_date_text) - 2].strip()
+                    start_date_array = start_date.replace("р.", "").split(" ")
+                    start_date_str = start_date_array[2] + "-" + self.months[start_date_array[1]]\
+                                     + "-" + start_date_array[0]
+
+                    print "start_date: " + start_date_str
+                    # party['start_date'] = start_date_str
+
+                    end_date_text = all_p_tags[1].get_text()
+                    end_date = end_date_text.encode('utf-8').replace("Дата розпуску: ", "")[:len(end_date_text) - 2].strip()
+                    end_date_array = end_date.replace("р.", "").split(" ")
+                    end_date_str = end_date_array[2] + "-" + self.months[end_date_array[1]]\
+                                     + "-" + end_date_array[0]
+
+                    print "end_date: " + end_date_str
+                    print "------------------------------------------->"
+                else:
+                    party['start_date'] = None
+                    party['end_date'] = None
             else:
-                start_date_text = all_p_tags[0].get_text()
-                start_date = start_date_text.encode('utf-8').replace("Дата створення:", "")[:len(start_date_text) - 2]
-                print party['start_date']
-                print start_date
-                print "------------------------------------------->"
+                if party['identifier'] != "0":
+                    start_date_text = all_p_tags[0].get_text()
+                    start_date = start_date_text.encode('utf-8').replace("Дата створення:", "")[:len(start_date_text) - 2].strip()
+                    start_date_array = start_date.replace("р.", "").split(" ")
+                    start_date_str = start_date_array[2] + "-" + self.months[start_date_array[1]]\
+                                     + "-" + start_date_array[0]
+                    print "start_date: " + start_date_str
+                    print "------------------------------------------->"
+                else:
+                    party['start_date'] = None
+                    party['end_date'] = None
+
 
 
 
