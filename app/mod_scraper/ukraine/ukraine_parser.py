@@ -194,12 +194,14 @@ class UkraineParser():
 
     def parliamentary_groups(self):
         parties_list = self.parliamentary_group_list()
-        for party in parties_list:
-            print party['identifier']
+        parties = []
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+        pbar = ProgressBar(widgets=widgets)
+        for party in pbar(parties_list):
             soup = self.download_html_file(party['url'])
             all_divs = soup.findAll('div', {"class": "information_block_ins"})
             all_p_tags = all_divs[1].findAll("p")
-            print "\n" + party['term'] + "\n\n"
             if party['term'] != "9":
                 if party['identifier'] != "0":
                     start_date_text = all_p_tags[0].get_text()
@@ -207,9 +209,7 @@ class UkraineParser():
                     start_date_array = start_date.replace("р.", "").split(" ")
                     start_date_str = start_date_array[2] + "-" + self.months[start_date_array[1]]\
                                      + "-" + start_date_array[0]
-
-                    print "start_date: " + start_date_str
-                    # party['start_date'] = start_date_str
+                    party['start_date'] = start_date_str
 
                     end_date_text = all_p_tags[1].get_text()
                     end_date = end_date_text.encode('utf-8').replace("Дата розпуску: ", "")[:len(end_date_text) - 2].strip()
@@ -217,8 +217,7 @@ class UkraineParser():
                     end_date_str = end_date_array[2] + "-" + self.months[end_date_array[1]]\
                                      + "-" + end_date_array[0]
 
-                    print "end_date: " + end_date_str
-                    print "------------------------------------------->"
+                    party['end_date'] = end_date_str
                 else:
                     party['start_date'] = None
                     party['end_date'] = None
@@ -229,15 +228,13 @@ class UkraineParser():
                     start_date_array = start_date.replace("р.", "").split(" ")
                     start_date_str = start_date_array[2] + "-" + self.months[start_date_array[1]]\
                                      + "-" + start_date_array[0]
-                    print "start_date: " + start_date_str
-                    print "------------------------------------------->"
+                    party['start_date'] = start_date_str
+                    party['end_date'] = None
                 else:
                     party['start_date'] = None
                     party['end_date'] = None
-
-
-
-
+            parties.append(party)
+        return parties
 
     def members_list(self):
         mp_list = self.mps_list()
