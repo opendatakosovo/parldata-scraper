@@ -181,8 +181,6 @@ class UkraineParser():
                             identifier = url[index_start:]
                         else:
                             identifier = "0"
-                        print all_td_elements[0].find("a").get_text()
-                        print "--------------------------------------------->"
                         party_json = {
                             "term": str(i),
                             "name": name,
@@ -197,7 +195,11 @@ class UkraineParser():
 
     def committees(self):
         committee_list = self.committee_list()
-        for committee in committee_list:
+        committees = []
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+        pbar = ProgressBar(widgets=widgets)
+        for committee in pbar(committee_list):
             soup = self.download_html_file(committee['url'])
             info_tables = soup.findAll('table', {'class': "simple_info"})
             all_tr_tags = info_tables[0].findAll('tr')
@@ -211,16 +213,15 @@ class UkraineParser():
             if committee['term'] != "9":
                 all_td_tags_end_date = all_tr_tags[3].findAll('td')
                 end_date_text = all_td_tags_end_date[1].next
-                end_date = end_date_text.encode('utf-8').replace("Дата розпуску: ", "")[:len(end_date_text) - 3].strip()
-                end_date_array = end_date.split(" ")
+                end_date = end_date_text.encode('utf-8').strip()
+                end_date_array = end_date.replace("р.", "").split(" ")
                 end_date_str = end_date_array[2] + "-" + self.months[end_date_array[1]]\
                                  + "-" + end_date_array[0]
                 committee['end_date'] = end_date_str
             else:
                 committee['end_date'] = None
-            print "start_date: " + committee['start_date']
-            print "end_date: " + committee['end_date']
-            print "------------------------------------------------->"
+            committees.append(committee)
+        return committees
 
     def parliamentary_group_list(self):
         chamber_ids = {}

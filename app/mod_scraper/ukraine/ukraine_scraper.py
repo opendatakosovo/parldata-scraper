@@ -34,7 +34,24 @@ class UkraineScraper():
         return members
 
     def scrape_committee(self):
-        parser.committees()
+        print "\n\tScraping committee groups from Ukraine's parliament...\n"
+        committee_list = parser.committees()
+        committees = []
+        for committee in committee_list:
+            committee_json = self.build_organization_doc("committe", committee['name'], committee['identifier'],
+                                                         committee['start_date'], committee['end_date'],
+                                                         committee['url'], "", committee['parent_id'])
+            del committee_json['contact_details']
+
+            if committee['start_date']:
+                del committee_json['founding_date']
+
+            if committee['end_date']:
+                del committee_json['dissolution_date']
+
+            committees.append(committee_json)
+        print "\n\tScraping completed! \n\tScraped " + str(len(committees)) + " committees"
+        return committees
 
     def scrape_parliamentary_groups(self):
         print "\n\tScraping parliamentary groups from Ukraine's parliament...\n"
