@@ -2,6 +2,7 @@
 from progressbar import ProgressBar, Percentage, ETA, Counter, Bar
 import vpapi
 import ukraine_parser
+import pprint
 
 parser = ukraine_parser.UkraineParser()
 
@@ -116,11 +117,14 @@ class UkraineScraper():
         return json_doc
 
     def test_ids(self):
-        members = {}
-        all_members = vpapi.getall("people")
-        for member in all_members:
-            members[member['name']] = member['id']
-        print str(len(members))
+        committees_ids = {}
+        all_committees = vpapi.getall("organizations", where={'classification': "committe"})
+        for committe in all_committees:
+            committees_ids[committe['identifiers'][0]['identifier']] = committe['id']
+        print len(committees_ids)
+
+    def scrape_committee_members(self):
+        parser.committee_membership()
 
     def scrape_parliamentary_groups(self):
         print "\n\tScraping parliamentary groups from Ukraine's parliament...\n"
@@ -140,7 +144,7 @@ class UkraineScraper():
             if party['end_date']:
                 del party_json['dissolution_date']
             parties_list.append(party_json)
-        print "\n\tScraping completed! \n\tScraped " + str(len(parties_list)) + " committees"
+        print "\n\tScraping completed! \n\tScraped " + str(len(parties_list)) + " members"
         return parties_list
 
     def scrape_chamber(self):

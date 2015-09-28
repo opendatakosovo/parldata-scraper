@@ -63,7 +63,8 @@ def scrape(countries, people, votes):
                 vpapi.timezone(creds[item.lower()]['timezone'])
                 vpapi.authorize(creds[item.lower()]['api_user'], creds[item.lower()]['password'])
                 if people == "yes":
-                    references[item.lower()].scrape_parliamentary_group_membership()
+                    vpapi.delete("people")
+                    references[item.lower()].scrape_committee_members()
                     # references[item.lower()].members_list()
                     # members = references[item.lower()].scrape_mp_bio_data()
                     # chamber = references[item.lower()].scrape_chamber()
@@ -85,7 +86,8 @@ def scrape(countries, people, votes):
                         if len(data_collections[collection]) > 0:
                             for json_doc in pbar(data_collections[collection]):
                                 if collection == "a-people":
-                                    where_condition = {'identifiers': {'$elemMatch': json_doc['identifiers'][0]}}
+                                    where_condition = {'name': json_doc['name']}
+                                    # where_condition = {'identifiers': {'$elemMatch': json_doc['identifiers'][0]}}
                                     collection_of_data = "people"
                                 elif collection == "c-parliamentary_groups" or collection == "d-committe":
                                     if item.lower() == "armenia" or item.lower() == "belarus-upperhouse"\
@@ -120,7 +122,7 @@ def scrape(countries, people, votes):
                     # if item.lower() != "georgia":
                     #     memberships = {
                     #         "chambers": references[item.lower()].scrape_membership(),
-                    #         # "parliamentary_groups": references[item.lower()].scrape_parliamentary_group_membership(),
+                    #         "parliamentary_groups": references[item.lower()].scrape_parliamentary_group_membership(),
                     #         # "committees": references[item.lower()].scrape_committee_members()
                     #     }
                     # elif item.lower() == "georgia":

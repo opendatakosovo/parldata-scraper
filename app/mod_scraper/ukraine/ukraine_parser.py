@@ -307,12 +307,7 @@ class UkraineParser():
         date_str = date_list[2] + "-" + date_list[1] + "-" + date_list[0]
         return date_str
 
-    def scrape_parties_members(self, party, soup, all_p_tags, item_index):
-        member_ids = {}
-        roles = self.membership_correction()
-        all_members = vpapi.getall("people")
-        for member in all_members:
-            member_ids[member['name']] = member['id']
+    def scrape_parties_members(self, party, soup, all_p_tags, item_index, parties, member_ids, roles):
         membership_array = []
         if party['identifier'] != "0":
             members = {}
@@ -350,20 +345,13 @@ class UkraineParser():
                 else:
                     role = None
 
-                existing = vpapi.getfirst("organizations", where={'name': party['name'], 'parent_id': party['parent_id']})
-                if existing:
-                    o_id = existing['id']
-                else:
-                    o_id = None
+                o_id = parties[party['identifier']]
 
                 if name_ordered in member_ids:
                     p_id = member_ids[name_ordered]
                 else:
                     p_id = None
 
-                print "p_id: " + str(p_id)
-                print "o_id: " + str(o_id)
-                print "------------------>"
                 if o_id and p_id:
                     membership_json = {
                         "role": role,
@@ -383,20 +371,15 @@ class UkraineParser():
                     role = roles[membership_label.encode('utf-8')]
                 else:
                     role = None
-                existing = vpapi.getfirst("organizations", where={'name': party['name'], 'parent_id': party['parent_id']})
-                if existing:
-                    o_id = existing['id']
-                else:
-                    o_id = None
+
                 name_ordered = self.build_ordered_name(name)
                 if name_ordered in member_ids:
                     p_id = member_ids[name_ordered]
                 else:
                     p_id = None
 
-                print "p_id: " + str(p_id)
-                print "o_id: " + str(o_id)
-                print "------------------>"
+                o_id = "0_" + party['term']
+                organization_id = parties[o_id]
                 if o_id and p_id:
                     membership_json = {
                         "role": role,
@@ -405,12 +388,94 @@ class UkraineParser():
                         "membership": membership_label,
                         "start_date": None,
                         "end_date": None,
-                        "organization_id": o_id
+                        "organization_id": organization_id
                     }
                     membership_array.append(membership_json)
         return membership_array
 
+    def committee_members(self, url, member_ids, committee_ids, roles, identifier):
+        committee_members = []
+        soup = self.download_html_file(url)
+        for each_tr in soup.find('table', {"class": "striped Centered"}).findAll('tr'):
+            all_td_tags = each_tr.findAll('td')
+            name = all_td_tags[0].find('a').get_text()
+            ordered_name = self.build_ordered_name(name)
+            membership_label = all_td_tags[1].get_text()
+            if ordered_name in member_ids:
+                p_id = member_ids[ordered_name]
+            else:
+                p_id = None
+
+            if membership_label in roles:
+                role = roles[membership_label.encode('utf-8')]
+            else:
+                role = None
+            o_id = committee_ids[identifier]
+            committee_membership_json = {
+                "person_id": p_id,
+                "organizations_id": o_id,
+                "url": url,
+                "membership": membership_label,
+                "role": role,
+            }
+            pprint.pprint(committee_membership_json)
+            print "------------------------------------>"
+            committee_members.append(committee_membership_json)
+        return committee_members
+
+    def committee_membership(self):
+        member_ids = {}
+        roles = self.membership_correction()
+        all_members = vpapi.getall("people")
+        for member in all_members:
+            member_ids[member['name']] = member['id']
+
+        committees_ids = {}
+        all_committees = vpapi.getall("organizations", where={'classification': "committe"})
+        for committe in all_committees:
+            committees_ids[committe['identifiers'][0]['identifier']] = committe['id']
+
+        committee_membership_list = []
+        committee_list = self.committee_list()
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed members from: ", Counter(), ' committees             ']
+        pbar = ProgressBar(widgets=widgets)
+        for committee in pbar(committee_list):
+            soup = self.download_html_file(committee['url'])
+            info_tables = soup.findAll('table', {"class": "simple_info"})
+            if committee['term'] != "9":
+                all_tr_tags = info_tables[0].findAll('tr')
+                members_url = "http://w1.c1.rada.gov.ua/pls/site2/" + all_tr_tags[4].find('a').get('href')
+                members = self.committee_members(members_url, member_ids, committees_ids,
+                                                 roles, committee['identifier'])
+                committee_membership_list += members
+            else:
+                all_tr_tags = info_tables[0].findAll('tr')
+                members_url = "http://w1.c1.rada.gov.ua/pls/site2/" + all_tr_tags[3].find('a').get('href')
+                members = self.committee_members(members_url, member_ids, committees_ids,
+                                                 roles, committee['identifier'])
+                committee_membership_list += members
+        return committee_membership_list
+
     def parliamentary_group_membership(self):
+        member_ids = {}
+        roles = self.membership_correction()
+        all_members = vpapi.getall("people")
+        for member in all_members:
+            member_ids[member['name']] = member['id']
+
+        chambers = {}
+        all_chambers = vpapi.getall("organizations", where={'classification': "chamber"})
+        for chamber in all_chambers:
+            chambers[chamber['id']] = chamber['identifiers'][0]['identifier']
+
+        parties_ids = {}
+        all_parties = vpapi.getall("organizations", where={'classification': 'parliamentary group'})
+        for parti in all_parties:
+            if parti['identifiers'][0]['identifier'] == "0":
+                parties_ids[parti['identifiers'][0]['identifier'] + "_" + chambers[parti['parent_id']]] = parti['id']
+            else:
+                parties_ids[parti['identifiers'][0]['identifier']] = parti['id']
         parties = self.parliamentary_group_list()
         parties_membership = []
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
@@ -421,13 +486,14 @@ class UkraineParser():
             all_divs = soup.findAll('div', {"class": "information_block_ins"})
             all_p_tags = all_divs[1].findAll("p")
             if party['term'] != "9":
-                membership_array = self.scrape_parties_members(party, soup, all_p_tags, 4)
+                membership_array = self.scrape_parties_members(party, soup, all_p_tags, 4,
+                                                               parties_ids, member_ids, roles)
                 parties_membership += membership_array
             else:
-                membership_array = self.scrape_parties_members(party, soup, all_p_tags, 3)
+                membership_array = self.scrape_parties_members(party, soup, all_p_tags, 3,
+                                                               parties_ids, member_ids, roles)
                 parties_membership += membership_array
         return parties_membership
-
 
     def members_list(self):
         mp_list = self.mps_list()
@@ -499,16 +565,21 @@ class UkraineParser():
 
     def membership_correction(self):
         return {
+            "Голова Комітету": "chairman",
             "Співголова депутатської групи": "chairman",
             "Заступник голови депутатської групи": "chairman",
             "Голова Верховної Ради України": "chairman",
             "Голова депутатської фракції": "chairman",
+            "Заступник голови Комітету": "vice-chairman",
             "Заступники голови депутатської фракції": "vice-chairman",
             "Заступник голови депутатської фракції": "vice-chairman",
+            "Перший заступник голови Комітету": "first-vice-chairman",
             "Перший заступник Голови Верховної Ради України": "first-vice-chairman",
             "Заступник Голови Верховної Ради України": "vice-chairman",
             "Член депутатської фракції": "member",
-            "член": "member"
+            "член": "member",
+            "Член Комітету": "member",
+            "Голова підкомітету": "subcommittee-chairman"
         }
 
     def mps_list(self):
@@ -530,8 +601,8 @@ class UkraineParser():
                         counter += 1
                         image_url = each_li.find("p", {"class": "thumbnail"}).find("img").get('src')
                         member_url = each_li.find("p", {"class": "title"}).find("a").get('href')
-                        index_start = member_url.index("page/") + 5
-                        identifier = member_url[index_start:]
+                        ids_from_url = re.findall(r'\d+', member_url)
+                        identifier = ids_from_url[0]
                         name = each_li.find("p", {"class": "title"}).find("a").get_text()
                         names = name.split(" ")
                         first_name = names[1]
