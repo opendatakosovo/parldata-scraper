@@ -369,7 +369,7 @@ class GeorgiaScraper():
 
     def laws(self):
         laws_url = "http://votes.parliament.ge/en/search/passed_laws?sEcho=1&iColumns=7&sColumns=&iDisplayStart=0" \
-                   "&iDisplayLength=30000&mDataProp_0=0&mDataProp_1=1&mDataProp_2=2&mDataProp_3=3&mDataProp_4=4" \
+                   "&iDisplayLength=3000000&mDataProp_0=0&mDataProp_1=1&mDataProp_2=2&mDataProp_3=3&mDataProp_4=4" \
                    "&mDataProp_5=5&mDataProp_6=6&sSearch=&bRegex=false&sSearch_0=&bRegex_0=false" \
                    "&bSearchable_0=true&sSearch_1=&bRegex_1=false&bSearchable_1=true&sSearch_2=" \
                    "&bRegex_2=false&bSearchable_2=true&sSearch_3=&bRegex_3=false&bSearchable_3=true&sSearch_4=" \

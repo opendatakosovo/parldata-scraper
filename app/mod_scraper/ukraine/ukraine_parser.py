@@ -302,6 +302,38 @@ class UkraineParser():
             parties.append(party)
         return parties
 
+    def build_ordered_name(self, name):
+        names = name.split(" ")
+        first_name = names[1]
+        middle_name = names[2]
+        last_name = names[0]
+        name_ordered = first_name + " " + middle_name + " " + last_name
+        return name_ordered
+
+    def parliamentary_group_membership(self):
+        parties = self.parliamentary_group_list()
+        for party in parties:
+            soup = self.download_html_file(party['url'])
+            all_divs = soup.findAll('div', {"class": "information_block_ins"})
+            all_p_tags = all_divs[1].findAll("p")
+            if party['term'] != "9":
+                if party['identifier'] != "0":
+                    url = all_p_tags[3].find('a').get('href')
+                    soup_members = self.download_html_file(url)
+
+                else:
+                    for each_li in soup.find('ul', {"class": "level1"}).findAll('li'):
+                        print each_li.find('a').get_text()
+            else:
+                if party['identifier'] != "0":
+                    name = all_p_tags[2].find('a').get('href')
+                    print self.build_ordered_name(name)
+                else:
+                    for each_li in soup.find('ul', {"class": "level1"}).findAll('li'):
+                        print each_li.find('a').get_text()
+            print "-------------------------------------------------->"
+
+
     def members_list(self):
         mp_list = self.mps_list()
         members_prevent_duplicates = []
