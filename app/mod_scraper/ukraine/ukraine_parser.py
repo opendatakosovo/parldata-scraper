@@ -67,14 +67,6 @@ class UkraineParser():
             }
         return chambers
 
-    def build_ordered_name(self, name):
-        encoded_name = name.encode('utf-8')
-        names = encoded_name.split(" ")
-        first_name = names[1]
-        middle_name = names[2]
-        last_name = names[0]
-        return first_name + " " + middle_name + " " + last_name
-
     def chamber_mps_list(self, term):
         chamber_mps = []
         url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/d_index_arh?skl=%s" % term
@@ -310,28 +302,131 @@ class UkraineParser():
         name_ordered = first_name + " " + middle_name + " " + last_name
         return name_ordered
 
+    def build_date_str(self, date_text):
+        date_list = date_text.split(".")
+        date_str = date_list[2] + "-" + date_list[1] + "-" + date_list[0]
+        return date_str
+
+    def scrape_parties_members(self, party, soup, all_p_tags, item_index):
+        member_ids = {}
+        roles = self.membership_correction()
+        all_members = vpapi.getall("people")
+        for member in all_members:
+            member_ids[member['name']] = member['id']
+        membership_array = []
+        if party['identifier'] != "0":
+            members = {}
+            for each_div in soup.findAll('div', {"class": "ker_list"}):
+                membership = each_div.find('div', {"class": "ker_title"}).get_text()
+                for each_li in each_div.find('ul').findAll("li"):
+                    name = each_li.find('a').get_text()
+                    name_ordered = self.build_ordered_name(name)
+                    members[name_ordered] = membership[:len(membership) - 2]
+            url = "http://w1.c1.rada.gov.ua/pls/site2/" + all_p_tags[item_index].find('a').get('href')
+            soup_members = self.download_html_file(url)
+            for each_tr in soup_members.find('table', {"class": "striped Centered"}).findAll('tr')[1:]:
+                td_tags = each_tr.findAll('td')
+                name = td_tags[0].find('a').get_text()
+                start_date_text = td_tags[1].get_text().strip()
+                end_date_text = td_tags[2].get_text().strip()
+                if start_date_text != "-":
+                    start_date = self.build_date_str(start_date_text)
+                else:
+                    start_date = None
+
+                if end_date_text != "-":
+                    end_date = self.build_date_str(end_date_text)
+                else:
+                    end_date = None
+
+                name_ordered = self.build_ordered_name(name)
+                if name_ordered in members:
+                    membership_label = members[name_ordered]
+                else:
+                    membership_label = "член".decode('utf-8')
+
+                if membership_label in roles:
+                    role = roles[membership_label.encode('utf-8')]
+                else:
+                    role = None
+
+                existing = vpapi.getfirst("organizations", where={'name': party['name'], 'parent_id': party['parent_id']})
+                if existing:
+                    o_id = existing['id']
+                else:
+                    o_id = None
+
+                if name_ordered in member_ids:
+                    p_id = member_ids[name_ordered]
+                else:
+                    p_id = None
+
+                print "p_id: " + str(p_id)
+                print "o_id: " + str(o_id)
+                print "------------------>"
+                if o_id and p_id:
+                    membership_json = {
+                        "role": role,
+                        "url": url,
+                        "person_id": p_id,
+                        "membership": membership_label,
+                        "start_date": start_date,
+                        "end_date": end_date,
+                        "organization_id": o_id
+                    }
+                    membership_array.append(membership_json)
+        else:
+            for each_li in soup.find('ul', {"class": "level1"}).findAll('li'):
+                name = each_li.find('a').get_text()
+                membership_label = "член".decode('utf-8')
+                if membership_label.encode('utf-8') in roles:
+                    role = roles[membership_label.encode('utf-8')]
+                else:
+                    role = None
+                existing = vpapi.getfirst("organizations", where={'name': party['name'], 'parent_id': party['parent_id']})
+                if existing:
+                    o_id = existing['id']
+                else:
+                    o_id = None
+                name_ordered = self.build_ordered_name(name)
+                if name_ordered in member_ids:
+                    p_id = member_ids[name_ordered]
+                else:
+                    p_id = None
+
+                print "p_id: " + str(p_id)
+                print "o_id: " + str(o_id)
+                print "------------------>"
+                if o_id and p_id:
+                    membership_json = {
+                        "role": role,
+                        "url": party['url'],
+                        "person_id": p_id,
+                        "membership": membership_label,
+                        "start_date": None,
+                        "end_date": None,
+                        "organization_id": o_id
+                    }
+                    membership_array.append(membership_json)
+        return membership_array
+
     def parliamentary_group_membership(self):
         parties = self.parliamentary_group_list()
-        for party in parties:
+        parties_membership = []
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed members from: ", Counter(), ' parties             ']
+        pbar = ProgressBar(widgets=widgets)
+        for party in pbar(parties):
             soup = self.download_html_file(party['url'])
             all_divs = soup.findAll('div', {"class": "information_block_ins"})
             all_p_tags = all_divs[1].findAll("p")
             if party['term'] != "9":
-                if party['identifier'] != "0":
-                    url = all_p_tags[3].find('a').get('href')
-                    soup_members = self.download_html_file(url)
-
-                else:
-                    for each_li in soup.find('ul', {"class": "level1"}).findAll('li'):
-                        print each_li.find('a').get_text()
+                membership_array = self.scrape_parties_members(party, soup, all_p_tags, 4)
+                parties_membership += membership_array
             else:
-                if party['identifier'] != "0":
-                    name = all_p_tags[2].find('a').get('href')
-                    print self.build_ordered_name(name)
-                else:
-                    for each_li in soup.find('ul', {"class": "level1"}).findAll('li'):
-                        print each_li.find('a').get_text()
-            print "-------------------------------------------------->"
+                membership_array = self.scrape_parties_members(party, soup, all_p_tags, 3)
+                parties_membership += membership_array
+        return parties_membership
 
 
     def members_list(self):
@@ -404,9 +499,15 @@ class UkraineParser():
 
     def membership_correction(self):
         return {
+            "Співголова депутатської групи": "chairman",
+            "Заступник голови депутатської групи": "chairman",
             "Голова Верховної Ради України": "chairman",
+            "Голова депутатської фракції": "chairman",
+            "Заступники голови депутатської фракції": "vice-chairman",
+            "Заступник голови депутатської фракції": "vice-chairman",
             "Перший заступник Голови Верховної Ради України": "first-vice-chairman",
             "Заступник Голови Верховної Ради України": "vice-chairman",
+            "Член депутатської фракції": "member",
             "член": "member"
         }
 

@@ -53,7 +53,23 @@ class UkraineScraper():
         return committees
 
     def scrape_parliamentary_group_membership(self):
-        parser.parliamentary_group_membership()
+        print "\n\tScraping parliamentary groups membership from Ukraine's parliament...\n"
+        parties_membership = parser.parliamentary_group_membership()
+        memberships = []
+        for member in parties_membership:
+            party_membership_json = self.build_memberships_doc(member['person_id'], member['organization_id'],
+                                                               member['membership'], member['role'], member['url'])
+            if not member['role']:
+                del party_membership_json['role']
+
+            if member['start_date']:
+                party_membership_json['start_date'] = member['start_date']
+
+            if member['end_date']:
+                party_membership_json['end_date'] = member['end_date']
+            memberships.append(party_membership_json)
+        print "\n\tScraping completed! \n\tScraped " + str(len(memberships)) + " committees"
+        return memberships
 
     def scrape_membership(self):
         print "\n\tScraping chambers membership's data from Ukraine's parliament..."
@@ -98,6 +114,13 @@ class UkraineScraper():
             }]
         }
         return json_doc
+
+    def test_ids(self):
+        members = {}
+        all_members = vpapi.getall("people")
+        for member in all_members:
+            members[member['name']] = member['id']
+        print str(len(members))
 
     def scrape_parliamentary_groups(self):
         print "\n\tScraping parliamentary groups from Ukraine's parliament...\n"
