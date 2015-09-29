@@ -1,8 +1,8 @@
-pymongo==2.6.2
 mechanize==0.2.5
 beautifulsoup4==4.4.0
 requests[security]>=2.2
 Unidecode==0.04.17
 progressbar==2.3
 pytz>=2015.4
+python-slugify==0.0.7
 python-dateutil>=2.4

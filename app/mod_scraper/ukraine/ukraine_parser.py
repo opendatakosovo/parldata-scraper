@@ -541,6 +541,53 @@ class UkraineParser():
                 members.append(member)
         return members
 
+    def events_list(self):
+        chambers = self.chambers()
+        last_chamber_url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_pd1"
+        counter1 = 0
+        plenary_session = "пленарні засідання"
+        soup = self.download_html_file(last_chamber_url)
+        for each_li in soup.find('ul', {"class": "m_ses"}).findAll('li'):
+            url_sessions = "http://w1.c1.rada.gov.ua" + each_li.get('onclick').replace("load_out_html('", "").replace("','Data_fr')", "")
+            soup_events = self.download_html_file(url_sessions)
+            for each_tr in soup_events.find('table', {"border": "0"}).findAll('tr'):
+                for each_td in each_tr.findAll("td"):
+                    for each_li in each_td.find("ul").findAll('li', {"style": "background-color:#FFFFAE;"}):
+                        if each_li.find('a'):
+                            counter1 += 1
+                            url = each_li.find('a').get('href')
+                            print plenary_session +
+        counter = 0
+        for i in range(3, int(max(chambers.keys())) - 1):
+            if i == 3:
+                print "\n3\n"
+                url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_arh_h1?nom_skl=3"
+                soup = self.download_html_file(url)
+                for each_li in soup.find('ul', {"class": "m_ses"}).findAll('li'):
+                    url_sessions = "http://w1.c1.rada.gov.ua" + each_li.get('onclick').replace("load_out_html('", "").replace("','Data_fr')", "")
+                    soup_events = self.download_html_file(url_sessions)
+                    for each_tr in soup_events.find('table', {"border": "0"}).findAll('tr'):
+                        for each_td in each_tr.findAll("td"):
+                            for each_li in each_td.find("ul").findAll('li', {"style": "background-color:#FFFFAE;"}):
+                                if each_li.find('a'):
+                                    counter += 1
+                                    print each_li.find('a').get('href')
+            else:
+                print "\n%s\n" % str(i+1)
+                url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_arh_h1?nom_skl=%s" % str(i+1)
+                soup = self.download_html_file(url)
+                for each_li in soup.find('ul', {"class": "m_ses"}).findAll('li'):
+                    url_sessions = "http://w1.c1.rada.gov.ua" + each_li.get('onclick').replace("load_out_html('", "").replace("','Data_fr')", "")
+                    soup_events = self.download_html_file(url_sessions)
+                    for each_tr in soup_events.find('table', {"border": "0"}).findAll('tr'):
+                        for each_td in each_tr.findAll("td"):
+                            for each_li in each_td.find("ul").findAll('li', {"style": "background-color:#FFFFAE;"}):
+                                if each_li.find('a'):
+                                    counter += 1
+                                    print each_li.find('a').get('href')
+        print str(counter + counter1)
+
+
     def chamber_membership(self):
         membership = {}
         chambers = self.chambers()

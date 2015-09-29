@@ -116,6 +116,9 @@ class UkraineScraper():
         }
         return json_doc
 
+    def events(self):
+        parser.events_list()
+
     def test_ids(self):
         committees_ids = {}
         all_committees = vpapi.getall("organizations", where={'classification': "committe"})
