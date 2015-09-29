@@ -69,7 +69,7 @@ class UkraineScraper():
             if member['end_date']:
                 party_membership_json['end_date'] = member['end_date']
             memberships.append(party_membership_json)
-        print "\n\tScraping completed! \n\tScraped " + str(len(memberships)) + " committees"
+        print "\n\tScraping completed! \n\tScraped " + str(len(memberships)) + " members"
         return memberships
 
     def scrape_membership(self):
@@ -124,7 +124,18 @@ class UkraineScraper():
         print len(committees_ids)
 
     def scrape_committee_members(self):
-        parser.committee_membership()
+        print "\n\tScraping committee groups membership from Ukraine's parliament...\n"
+        committee_membership = parser.committee_membership()
+        memberships = []
+        for member in committee_membership:
+            # person_id, organization_id, label, role, url
+            committee_membership_json = self.build_memberships_doc(member['person_id'], member['organization_id'],
+                                                                   member['membership'], member['role'], member['url'])
+            if not member['role']:
+                del committee_membership_json['role']
+            memberships.append(committee_membership_json)
+        print "\n\tScraping completed! \n\tScraped " + str(len(memberships)) + " members"
+        return memberships
 
     def scrape_parliamentary_groups(self):
         print "\n\tScraping parliamentary groups from Ukraine's parliament...\n"

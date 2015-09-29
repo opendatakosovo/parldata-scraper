@@ -411,16 +411,15 @@ class UkraineParser():
             else:
                 role = None
             o_id = committee_ids[identifier]
-            committee_membership_json = {
-                "person_id": p_id,
-                "organizations_id": o_id,
-                "url": url,
-                "membership": membership_label,
-                "role": role,
-            }
-            pprint.pprint(committee_membership_json)
-            print "------------------------------------>"
-            committee_members.append(committee_membership_json)
+            if p_id and o_id:
+                committee_membership_json = {
+                    "person_id": p_id,
+                    "organizations_id": o_id,
+                    "url": url,
+                    "membership": membership_label,
+                    "role": role,
+                }
+                committee_members.append(committee_membership_json)
         return committee_members
 
     def committee_membership(self):
@@ -616,20 +615,21 @@ class UkraineParser():
                             membership = "член".decode('utf-8')
 
                         role = roles[membership.encode('utf-8')]
-                        member_json = {
-                            "member_id": identifier,
-                            "membership": membership,
-                            "role": role,
-                            "term": str(term),
-                            "name": name_ordered,
-                            "given_name": first_name,
-                            "family_name": last_name,
-                            "sort_name": last_name + ", " + first_name,
-                            "url": member_url,
-                            "gender": gender,
-                            "image_url": image_url
-                        }
-                        mps_list.append(member_json)
+                        if identifier != "11102":
+                            member_json = {
+                                "member_id": identifier,
+                                "membership": membership,
+                                "role": role,
+                                "term": str(term),
+                                "name": name_ordered,
+                                "given_name": first_name,
+                                "family_name": last_name,
+                                "sort_name": last_name + ", " + first_name,
+                                "url": member_url,
+                                "gender": gender,
+                                "image_url": image_url
+                            }
+                            mps_list.append(member_json)
             elif int(term) <= 4:
                 if int(term) > 1:
                     mp_list = self.chamber_mps_list(term)
