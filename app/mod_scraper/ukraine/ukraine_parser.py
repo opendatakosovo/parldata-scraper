@@ -414,7 +414,7 @@ class UkraineParser():
             if p_id and o_id:
                 committee_membership_json = {
                     "person_id": p_id,
-                    "organizations_id": o_id,
+                    "organization_id": o_id,
                     "url": url,
                     "membership": membership_label,
                     "role": role,

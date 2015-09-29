@@ -91,7 +91,7 @@ class UkraineScraper():
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
                    ' ', ETA(), " - Processed: ", Counter(), ' items             ']
         pbar = ProgressBar(widgets=widgets)
-        for member in pbar(mps_list):
+        for member in pbar(mps_list[900:]):
             if member['name'] in members:
                 p_id = members[member['name']]
                 o_id = chambers[member['term']]
@@ -127,7 +127,7 @@ class UkraineScraper():
         print "\n\tScraping committee groups membership from Ukraine's parliament...\n"
         committee_membership = parser.committee_membership()
         memberships = []
-        for member in committee_membership:
+        for member in committee_membership[740:]:
             # person_id, organization_id, label, role, url
             committee_membership_json = self.build_memberships_doc(member['person_id'], member['organization_id'],
                                                                    member['membership'], member['role'], member['url'])
