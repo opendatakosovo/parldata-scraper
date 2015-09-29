@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 from app.mod_scraper import scraper
-import sys
 from bs4 import BeautifulSoup
+from progressbar import ProgressBar, Percentage, ETA, Counter, Bar
 import requests
 import pprint
+import urlparse
 import re
 import vpapi
-from progressbar import ProgressBar, Percentage, ETA, Counter, Bar
+import dateutil.parser
 
 scrape = scraper.Scraper()
 
@@ -34,6 +35,13 @@ class UkraineParser():
         html_content = response.text
         soup = BeautifulSoup(html_content, 'html.parser')
         return soup
+
+    def local_to_utc(self, dt_str):
+        dt = dateutil.parser.parse(dt_str, dayfirst=True)
+        if ':' in dt_str:
+            return vpapi.local_to_utc(dt, to_string=True)
+        else:
+            return dt.strftime('%Y-%m-%d')
 
     def chambers(self):
         chambers = {
@@ -541,12 +549,9 @@ class UkraineParser():
                 members.append(member)
         return members
 
-    def events_list(self):
-        chambers = self.chambers()
-        last_chamber_url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_pd1"
-        counter1 = 0
+    def scrape_events(self, soup, chamber_id):
         plenary_session = "пленарні засідання"
-        soup = self.download_html_file(last_chamber_url)
+        events_list = []
         for each_li in soup.find('ul', {"class": "m_ses"}).findAll('li'):
             url_sessions = "http://w1.c1.rada.gov.ua" + each_li.get('onclick').replace("load_out_html('", "").replace("','Data_fr')", "")
             soup_events = self.download_html_file(url_sessions)
@@ -554,24 +559,77 @@ class UkraineParser():
                 for each_td in each_tr.findAll("td"):
                     for each_li in each_td.find("ul").findAll('li', {"style": "background-color:#FFFFAE;"}):
                         if each_li.find('a'):
-                            counter1 += 1
-                            url = each_li.find('a').get('href')
-                            print plenary_session +
-        counter = 0
+                            url_plenary_session = each_li.find('a').get('href')
+                            parsed_url = urlparse.urlparse(url_plenary_session)
+                            day = urlparse.parse_qs(parsed_url.query)['day_'][0]
+                            month = urlparse.parse_qs(parsed_url.query)['month_'][0]
+                            year = urlparse.parse_qs(parsed_url.query)['year'][0]
+                            date = year + "-" + month + "-" + day
+                            name = plenary_session + " " + date
+                            event_json = {
+                                "identifier": year+day+month,
+                                "url": url_plenary_session,
+                                "name": name,
+                                'date': date,
+                                'organization_id': chamber_id
+                            }
+                            events_list.append(event_json)
+                            print "----------------------------------------------->"
+        return events_list
+
+    def events_list(self):
+        chambers = self.chambers()
+        last_chamber_url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_pd1"
+        soup = self.download_html_file(last_chamber_url)
+        for each_li in soup.find('ul', {"class": "m_ses"}).findAll('li'):
+            url_sessions = "http://w1.c1.rada.gov.ua" + each_li.get('onclick').replace("load_out_html('", "").replace("','Data_fr')", "")
+            soup_events = self.download_html_file(url_sessions)
+            for each_tr in soup_events.find('table', {"border": "0"}).findAll('tr'):
+                for each_td in each_tr.findAll("td"):
+                    for each_li_event in each_td.find("ul").findAll('li', {"style": "background-color:#FFFFAE;"}):
+                        if each_li_event.find('a'):
+                            url_plenary_session = each_li_event.find('a').get('href')
+                            parsed_url = urlparse.urlparse(url_plenary_session)
+                            day = urlparse.parse_qs(parsed_url.query)['day_'][0]
+                            month = urlparse.parse_qs(parsed_url.query)['month_'][0]
+                            year = urlparse.parse_qs(parsed_url.query)['year'][0]
+                            date = year + "-" + month + "-" + day
+                            # soup_event = self.download_html_file(url_plenary_session)
+                            # all_li_tags = soup_event.find('ul', {"class": "npd"}).findAll("li")
+                            # start_time = all_li_tags[0].find('b').get_text()
+                            # end_time = all_li_tags[len(all_li_tags) - 1].find('b').get_text()
+                            # print "start_date: " + date + ": " + start_time
+                            # print "end_date: " + date + ": " + end_time
+                            print date
+                            print url_plenary_session
+                            print "----------------------------------------------->"
         for i in range(3, int(max(chambers.keys())) - 1):
             if i == 3:
                 print "\n3\n"
                 url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_arh_h1?nom_skl=3"
-                soup = self.download_html_file(url)
-                for each_li in soup.find('ul', {"class": "m_ses"}).findAll('li'):
+                soup_3 = self.download_html_file(url)
+                for each_li in soup_3.find('ul', {"class": "m_ses"}).findAll('li'):
                     url_sessions = "http://w1.c1.rada.gov.ua" + each_li.get('onclick').replace("load_out_html('", "").replace("','Data_fr')", "")
                     soup_events = self.download_html_file(url_sessions)
                     for each_tr in soup_events.find('table', {"border": "0"}).findAll('tr'):
                         for each_td in each_tr.findAll("td"):
-                            for each_li in each_td.find("ul").findAll('li', {"style": "background-color:#FFFFAE;"}):
-                                if each_li.find('a'):
-                                    counter += 1
-                                    print each_li.find('a').get('href')
+                            for each_li_event in each_td.find("ul").findAll('li', {"style": "background-color:#FFFFAE;"}):
+                                if each_li_event.find('a'):
+                                    url_plenary_session = each_li_event.find('a').get('href')
+                                    parsed_url = urlparse.urlparse(url_plenary_session)
+                                    day = urlparse.parse_qs(parsed_url.query)['day_'][0]
+                                    month = urlparse.parse_qs(parsed_url.query)['month_'][0]
+                                    year = urlparse.parse_qs(parsed_url.query)['year'][0]
+                                    date = year + "-" + month + "-" + day
+                                    # soup_event = self.download_html_file(url_plenary_session)
+                                    # all_li_tags = soup_event.find('ul', {"class": "npd"}).findAll("li")
+                                    # start_time = all_li_tags[0].find('b').get_text()
+                                    # end_time = all_li_tags[len(all_li_tags) - 1].find('b').get_text()
+                                    # print "start_date: " + date + ": " + start_time
+                                    # print "end_date: " + date + ": " + end_time
+                                    print date
+                                    print url_plenary_session
+                                    print "----------------------------------------------->"
             else:
                 print "\n%s\n" % str(i+1)
                 url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_arh_h1?nom_skl=%s" % str(i+1)
@@ -581,12 +639,23 @@ class UkraineParser():
                     soup_events = self.download_html_file(url_sessions)
                     for each_tr in soup_events.find('table', {"border": "0"}).findAll('tr'):
                         for each_td in each_tr.findAll("td"):
-                            for each_li in each_td.find("ul").findAll('li', {"style": "background-color:#FFFFAE;"}):
-                                if each_li.find('a'):
-                                    counter += 1
-                                    print each_li.find('a').get('href')
-        print str(counter + counter1)
-
+                            for each_li_event in each_td.find("ul").findAll('li', {"style": "background-color:#FFFFAE;"}):
+                                if each_li_event.find('a'):
+                                    url_plenary_session = each_li_event.find('a').get('href')
+                                    parsed_url = urlparse.urlparse(url_plenary_session)
+                                    day = urlparse.parse_qs(parsed_url.query)['day_'][0]
+                                    month = urlparse.parse_qs(parsed_url.query)['month_'][0]
+                                    year = urlparse.parse_qs(parsed_url.query)['year'][0]
+                                    date = year + "-" + month + "-" + day
+                                    # soup_event = self.download_html_file(url_plenary_session)
+                                    # all_li_tags = soup_event.find('ul', {"class": "npd"}).findAll("li")
+                                    # start_time = all_li_tags[0].find('b').get_text()
+                                    # end_time = all_li_tags[len(all_li_tags) - 1].find('b').get_text()
+                                    # print "start_date: " + date + ": " + start_time
+                                    # print "end_date: " + date + ": " + end_time
+                                    print date
+                                    print url_plenary_session
+                                    print "----------------------------------------------->"
 
     def chamber_membership(self):
         membership = {}
