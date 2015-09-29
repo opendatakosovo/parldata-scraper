@@ -582,7 +582,7 @@ class UkraineParser():
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
                    ' ', ETA(), " - Processed: ", Counter(), ' events             ']
         pbar = ProgressBar(widgets=widgets)
-        for event in pbar(events_list):
+        for event in pbar(events_list[:10]):
             soup_event = self.download_html_file(event['url'])
             date = event['date']
             if soup_event.find('ul', {"class": "pd"}):

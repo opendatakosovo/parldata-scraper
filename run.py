@@ -87,7 +87,7 @@ def scrape(countries, people, votes):
                     # print(event_json)
                     # vpapi.post('events', event_json)
 
-                    references[item.lower()].scrape_events()
+                    # references[item.lower()].scrape_events()
                     # references[item.lower()].members_list()
                     # members = references[item.lower()].scrape_mp_bio_data()
                     # chamber = references[item.lower()].scrape_chamber()
@@ -196,12 +196,12 @@ def scrape(countries, people, votes):
                         except BaseException as ex:
                             print ex.message
 
-                    votes = references[item.lower()].scrape_votes()
-                    try:
-                        if len(votes) > 0:
-                            vpapi.post("votes", votes)
-                    except BaseException as ex:
-                        print ex.message
+                    # votes = references[item.lower()].scrape_votes()
+                    # try:
+                    #     if len(votes) > 0:
+                    #         vpapi.post("votes", votes)
+                    # except BaseException as ex:
+                    #     print ex.message
                 vpapi.deauthorize()
             else:
                 print "\n\tInternet connection problems for %s official parliament web page" % item
