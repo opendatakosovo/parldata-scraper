@@ -579,8 +579,10 @@ class UkraineParser():
     def events(self):
         events = []
         events_list = self.events_list()
-        for event in events_list:
-
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' events             ']
+        pbar = ProgressBar(widgets=widgets)
+        for event in pbar(events_list):
             soup_event = self.download_html_file(event['url'])
             date = event['date']
             if soup_event.find('ul', {"class": "pd"}):
@@ -595,8 +597,6 @@ class UkraineParser():
                 end_date = start_end_time['max']
             event['start_date'] = start_date.replace(" ", "T")
             event['end_date'] = end_date.replace(" ", "T")
-            pprint.pprint(event)
-            print "------------------------------------------>"
             events.append(event)
         return events
 
@@ -665,7 +665,6 @@ class UkraineParser():
                 url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_arh_h1?nom_skl=%s" % str(i+1)
                 chamber_events = self.scrape_events(url, chamber_ids[str(i+2)])
                 all_events += chamber_events
-        print str(len(all_events))
         return all_events
 
     def chamber_membership(self):

@@ -181,8 +181,9 @@ def scrape(countries, people, votes):
                     #         continue
                 if votes == "yes":
                     voting_data_collections = {
-                        "motions": references[item.lower()].motions(),
-                        "vote-events": references[item.lower()].vote_events(),
+                        "events": references[item.lower()].scrape_events(),
+                        # "motions": references[item.lower()].motions(),
+                        # "vote-events": references[item.lower()].vote_events(),
                     }
 
                     for collection in voting_data_collections:
