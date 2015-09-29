@@ -649,11 +649,7 @@ class UkraineParser():
         all_chambers = vpapi.getall("organizations", where={'classification': "chamber"})
         for chamber in all_chambers:
             chamber_ids[chamber['identifiers'][0]['identifier']] = chamber['id']
-
         chambers = self.chambers()
-        last_chamber_url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_pd1"
-        last_chamber_events = self.scrape_events(last_chamber_url, chamber_ids['9'])
-        all_events += last_chamber_events
         for i in range(3, int(max(chambers.keys())) - 1):
             if i == 3:
                 print "\n3\n"
@@ -665,6 +661,10 @@ class UkraineParser():
                 url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_arh_h1?nom_skl=%s" % str(i+1)
                 chamber_events = self.scrape_events(url, chamber_ids[str(i+2)])
                 all_events += chamber_events
+
+        last_chamber_url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_pd1"
+        last_chamber_events = self.scrape_events(last_chamber_url, chamber_ids['9'])
+        all_events += last_chamber_events
         return all_events
 
     def chamber_membership(self):
