@@ -116,8 +116,8 @@ class UkraineScraper():
         }
         return json_doc
 
-    def events(self):
-        parser.events_list()
+    def scrape_events(self):
+        parser.events()
 
     def test_ids(self):
         committees_ids = {}

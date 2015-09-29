@@ -6,6 +6,7 @@ import os
 import urllib2
 import json
 import vpapi
+import dateutil.parser
 from app.mod_scraper.ukraine import ukraine_scraper
 from app.mod_scraper.moldova import moldova_scraper
 from app.mod_scraper.armenia import armenia_scraper
@@ -24,6 +25,14 @@ def internet_on():
             return True
     except urllib2.URLError as err: pass
     return False
+
+
+def local_to_utc(dt_str):
+    dt = dateutil.parser.parse(dt_str, dayfirst=True)
+    if ':' in dt_str:
+        return vpapi.local_to_utc(dt, to_string=True)
+    else:
+        return dt.strftime('%Y-%m-%d')
 
 
 def scrape(countries, people, votes):
@@ -63,7 +72,22 @@ def scrape(countries, people, votes):
                 vpapi.timezone(creds[item.lower()]['timezone'])
                 vpapi.authorize(creds[item.lower()]['api_user'], creds[item.lower()]['password'])
                 if people == "yes":
-                    references[item.lower()].events()
+                    # vpapi.delete('events')
+                    # start_date = local_to_utc("2015-09-02 08:50:05")
+                    # end_date = local_to_utc("2015-09-02 18:50:05")
+                    # event_json = {
+                    #     'start_date': "2015-09-02T08:50:05",
+                    #     'end_date': "2015-09-02T18:50:05",
+                    #     'id': 'event_20150209',
+                    #     'identifier': 'event_20150209',
+                    #     'type': 'session',
+                    #     'name': 'пленарні засідання 2015-09-16',
+                    #     'organization_id': '56029761273a396fc109118a'
+                    # }
+                    # print(event_json)
+                    # vpapi.post('events', event_json)
+
+                    references[item.lower()].scrape_events()
                     # references[item.lower()].members_list()
                     # members = references[item.lower()].scrape_mp_bio_data()
                     # chamber = references[item.lower()].scrape_chamber()

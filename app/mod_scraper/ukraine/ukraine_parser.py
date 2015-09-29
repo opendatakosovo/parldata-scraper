@@ -2,6 +2,8 @@
 from app.mod_scraper import scraper
 from bs4 import BeautifulSoup
 from progressbar import ProgressBar, Percentage, ETA, Counter, Bar
+import dateutil.parser as dparser
+from datetime import datetime
 import requests
 import pprint
 import urlparse
@@ -549,38 +551,59 @@ class UkraineParser():
                 members.append(member)
         return members
 
-    def scrape_events(self, soup, chamber_id):
-        plenary_session = "пленарні засідання"
-        events_list = []
-        for each_li in soup.find('ul', {"class": "m_ses"}).findAll('li'):
-            url_sessions = "http://w1.c1.rada.gov.ua" + each_li.get('onclick').replace("load_out_html('", "").replace("','Data_fr')", "")
-            soup_events = self.download_html_file(url_sessions)
-            for each_tr in soup_events.find('table', {"border": "0"}).findAll('tr'):
-                for each_td in each_tr.findAll("td"):
-                    for each_li in each_td.find("ul").findAll('li', {"style": "background-color:#FFFFAE;"}):
-                        if each_li.find('a'):
-                            url_plenary_session = each_li.find('a').get('href')
-                            parsed_url = urlparse.urlparse(url_plenary_session)
-                            day = urlparse.parse_qs(parsed_url.query)['day_'][0]
-                            month = urlparse.parse_qs(parsed_url.query)['month_'][0]
-                            year = urlparse.parse_qs(parsed_url.query)['year'][0]
-                            date = year + "-" + month + "-" + day
-                            name = plenary_session + " " + date
-                            event_json = {
-                                "identifier": year+day+month,
-                                "url": url_plenary_session,
-                                "name": name,
-                                'date': date,
-                                'organization_id': chamber_id
-                            }
-                            events_list.append(event_json)
-                            print "----------------------------------------------->"
-        return events_list
+    def find_start_end_time(self, all_b_tags, date, index_start):
+        max_min_json = {}
+        timestamps_array = []
+        for b_tag in all_b_tags[index_start:]:
+            time_text = b_tag.get_text().replace('\n', "")
+            if "-" in time_text:
+                time_list = time_text.split("-")
+                if len(time_list) > 1:
+                    if time_list[0] != "00:00:00" and time_list[1] != "00:00:00":
+                        time1 = datetime.strptime(date + " " + time_list[0], "%Y-%m-%d %H:%M:%S")
+                        time2 = datetime.strptime(date + " " + time_list[1], "%Y-%m-%d %H:%M:%S")
+                        timestamps_array.append(time1)
+                        timestamps_array.append(time2)
+                else:
+                    if time_list[0] != "00:00:00":
+                        time1 = datetime.strptime(date + " " + time_list[0], "%Y-%m-%d %H:%M:%S")
+                        timestamps_array.append(dparser.parse(time1))
+            else:
+                if time_text != "00:00:00":
+                    time1 = datetime.atetime.strptime(date + " " + time_text, "%Y-%m-%d %H:%M:%S")
+                    timestamps_array.append(time1)
+        max_min_json['min'] = str(min(timestamps_array))
+        max_min_json['max'] = str(max(timestamps_array))
+        return max_min_json
 
-    def events_list(self):
-        chambers = self.chambers()
-        last_chamber_url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_pd1"
-        soup = self.download_html_file(last_chamber_url)
+    def events(self):
+        events = []
+        events_list = self.events_list()
+        for event in events_list:
+
+            soup_event = self.download_html_file(event['url'])
+            date = event['date']
+            if soup_event.find('ul', {"class": "pd"}):
+                all_b_tags = soup_event.find('ul', {"class": "pd"}).findAll('b')
+                start_end_time = self.find_start_end_time(all_b_tags, date, 1)
+                start_date = start_end_time['min']
+                end_date = start_end_time['max']
+            else:
+                all_b_tags = soup_event.find('ul', {"class": "npd"}).findAll('b')
+                start_end_time = self.find_start_end_time(all_b_tags, date, 0)
+                start_date = start_end_time['min']
+                end_date = start_end_time['max']
+            event['start_date'] = start_date.replace(" ", "T")
+            event['end_date'] = end_date.replace(" ", "T")
+            pprint.pprint(event)
+            print "------------------------------------------>"
+            events.append(event)
+        return events
+
+    def scrape_events(self, url, chamber_id):
+        plenary_session = "пленарні засідання".decode('utf-8')
+        events_list = []
+        soup = self.download_html_file(url)
         for each_li in soup.find('ul', {"class": "m_ses"}).findAll('li'):
             url_sessions = "http://w1.c1.rada.gov.ua" + each_li.get('onclick').replace("load_out_html('", "").replace("','Data_fr')", "")
             soup_events = self.download_html_file(url_sessions)
@@ -594,68 +617,56 @@ class UkraineParser():
                             month = urlparse.parse_qs(parsed_url.query)['month_'][0]
                             year = urlparse.parse_qs(parsed_url.query)['year'][0]
                             date = year + "-" + month + "-" + day
+                            name = plenary_session + " " + date
                             # soup_event = self.download_html_file(url_plenary_session)
-                            # all_li_tags = soup_event.find('ul', {"class": "npd"}).findAll("li")
-                            # start_time = all_li_tags[0].find('b').get_text()
-                            # end_time = all_li_tags[len(all_li_tags) - 1].find('b').get_text()
-                            # print "start_date: " + date + ": " + start_time
-                            # print "end_date: " + date + ": " + end_time
-                            print date
-                            print url_plenary_session
-                            print "----------------------------------------------->"
+                            # if soup_event.find('ul', {"class": "pd"}):
+                            #     all_b_tags = soup_event.find('ul', {"class": "pd"}).findAll('b')
+                            #     start_end_time = self.find_start_end_time(all_b_tags, timestamps_array, date, 1)
+                            #     start_date = start_end_time['min']
+                            #     end_date = start_end_time['max']
+                            # else:
+                            #     all_b_tags = soup_event.find('ul', {"class": "npd"}).findAll('b')
+                            #     start_end_time = self.find_start_end_time(all_b_tags, timestamps_array, date, 0)
+                            #     start_date = start_end_time['min']
+                            #     end_date = start_end_time['max']
+                            #
+                            # print start_date
+                            # print end_date
+                            identifier = "event_" + str(year) + str(day) + str(month)
+                            event_json = {
+                                "identifier": identifier,
+                                "url": url_plenary_session,
+                                "name": name,
+                                'date': date,
+                                'organization_id': chamber_id
+                            }
+                            events_list.append(event_json)
+        return events_list
+
+    def events_list(self):
+        all_events = []
+        chamber_ids = {}
+        all_chambers = vpapi.getall("organizations", where={'classification': "chamber"})
+        for chamber in all_chambers:
+            chamber_ids[chamber['identifiers'][0]['identifier']] = chamber['id']
+
+        chambers = self.chambers()
+        last_chamber_url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_pd1"
+        last_chamber_events = self.scrape_events(last_chamber_url, chamber_ids['9'])
+        all_events += last_chamber_events
         for i in range(3, int(max(chambers.keys())) - 1):
             if i == 3:
                 print "\n3\n"
-                url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_arh_h1?nom_skl=3"
-                soup_3 = self.download_html_file(url)
-                for each_li in soup_3.find('ul', {"class": "m_ses"}).findAll('li'):
-                    url_sessions = "http://w1.c1.rada.gov.ua" + each_li.get('onclick').replace("load_out_html('", "").replace("','Data_fr')", "")
-                    soup_events = self.download_html_file(url_sessions)
-                    for each_tr in soup_events.find('table', {"border": "0"}).findAll('tr'):
-                        for each_td in each_tr.findAll("td"):
-                            for each_li_event in each_td.find("ul").findAll('li', {"style": "background-color:#FFFFAE;"}):
-                                if each_li_event.find('a'):
-                                    url_plenary_session = each_li_event.find('a').get('href')
-                                    parsed_url = urlparse.urlparse(url_plenary_session)
-                                    day = urlparse.parse_qs(parsed_url.query)['day_'][0]
-                                    month = urlparse.parse_qs(parsed_url.query)['month_'][0]
-                                    year = urlparse.parse_qs(parsed_url.query)['year'][0]
-                                    date = year + "-" + month + "-" + day
-                                    # soup_event = self.download_html_file(url_plenary_session)
-                                    # all_li_tags = soup_event.find('ul', {"class": "npd"}).findAll("li")
-                                    # start_time = all_li_tags[0].find('b').get_text()
-                                    # end_time = all_li_tags[len(all_li_tags) - 1].find('b').get_text()
-                                    # print "start_date: " + date + ": " + start_time
-                                    # print "end_date: " + date + ": " + end_time
-                                    print date
-                                    print url_plenary_session
-                                    print "----------------------------------------------->"
+                url_3 = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_arh_h1?nom_skl=3"
+                chamber_events = self.scrape_events(url_3, chamber_ids['3'])
+                all_events += chamber_events
             else:
                 print "\n%s\n" % str(i+1)
                 url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_arh_h1?nom_skl=%s" % str(i+1)
-                soup = self.download_html_file(url)
-                for each_li in soup.find('ul', {"class": "m_ses"}).findAll('li'):
-                    url_sessions = "http://w1.c1.rada.gov.ua" + each_li.get('onclick').replace("load_out_html('", "").replace("','Data_fr')", "")
-                    soup_events = self.download_html_file(url_sessions)
-                    for each_tr in soup_events.find('table', {"border": "0"}).findAll('tr'):
-                        for each_td in each_tr.findAll("td"):
-                            for each_li_event in each_td.find("ul").findAll('li', {"style": "background-color:#FFFFAE;"}):
-                                if each_li_event.find('a'):
-                                    url_plenary_session = each_li_event.find('a').get('href')
-                                    parsed_url = urlparse.urlparse(url_plenary_session)
-                                    day = urlparse.parse_qs(parsed_url.query)['day_'][0]
-                                    month = urlparse.parse_qs(parsed_url.query)['month_'][0]
-                                    year = urlparse.parse_qs(parsed_url.query)['year'][0]
-                                    date = year + "-" + month + "-" + day
-                                    # soup_event = self.download_html_file(url_plenary_session)
-                                    # all_li_tags = soup_event.find('ul', {"class": "npd"}).findAll("li")
-                                    # start_time = all_li_tags[0].find('b').get_text()
-                                    # end_time = all_li_tags[len(all_li_tags) - 1].find('b').get_text()
-                                    # print "start_date: " + date + ": " + start_time
-                                    # print "end_date: " + date + ": " + end_time
-                                    print date
-                                    print url_plenary_session
-                                    print "----------------------------------------------->"
+                chamber_events = self.scrape_events(url, chamber_ids[str(i+2)])
+                all_events += chamber_events
+        print str(len(all_events))
+        return all_events
 
     def chamber_membership(self):
         membership = {}
