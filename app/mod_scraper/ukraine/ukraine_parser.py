@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from progressbar import ProgressBar, Percentage, ETA, Counter, Bar
 import dateutil.parser as dparser
 from datetime import datetime
+from operator import itemgetter
 import requests
 import pprint
 import urlparse
@@ -559,30 +560,38 @@ class UkraineParser():
             if "-" in time_text:
                 time_list = time_text.split("-")
                 if len(time_list) > 1:
-                    if time_list[0] != "00:00:00" and time_list[1] != "00:00:00":
+                    if time_list[0] != "00:00:00" and time_list[1] != "00:00:00" and time_list[1] != "...":
                         time1 = datetime.strptime(date + " " + time_list[0], "%Y-%m-%d %H:%M:%S")
                         time2 = datetime.strptime(date + " " + time_list[1], "%Y-%m-%d %H:%M:%S")
                         timestamps_array.append(time1)
                         timestamps_array.append(time2)
                 else:
-                    if time_list[0] != "00:00:00":
+                    if time_list[0] != "00:00:00" and time_list[0] != "...":
                         time1 = datetime.strptime(date + " " + time_list[0], "%Y-%m-%d %H:%M:%S")
                         timestamps_array.append(dparser.parse(time1))
             else:
-                if time_text != "00:00:00":
-                    time1 = datetime.atetime.strptime(date + " " + time_text, "%Y-%m-%d %H:%M:%S")
+                if time_text != "00:00:00" and time_text != "...":
+                    time1 = datetime.strptime(date + " " + time_text, "%Y-%m-%d %H:%M:%S")
                     timestamps_array.append(time1)
-        max_min_json['min'] = str(min(timestamps_array))
+        if len(timestamps_array) == 0:
+            time1 = datetime.strptime(date + " 00:00:00", "%Y-%m-%d %H:%M:%S")
+            timestamps_array.append(time1)
         max_min_json['max'] = str(max(timestamps_array))
+        max_min_json['min'] = str(min(timestamps_array))
         return max_min_json
 
     def events(self):
         events = []
+        last_event = vpapi.getfirst("events", sort='-start_date')
         events_list = self.events_list()
+        if last_event:
+            index = next(index for (index, d) in enumerate(events_list) if d["url"] == last_event['sources'][0]['url']) + 1
+        else:
+            index = 0
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
                    ' ', ETA(), " - Processed: ", Counter(), ' events             ']
         pbar = ProgressBar(widgets=widgets)
-        for event in pbar(events_list[:10]):
+        for event in pbar(events_list[index:]):
             soup_event = self.download_html_file(event['url'])
             date = event['date']
             if soup_event.find('ul', {"class": "pd"}):
@@ -616,8 +625,8 @@ class UkraineParser():
                             day = urlparse.parse_qs(parsed_url.query)['day_'][0]
                             month = urlparse.parse_qs(parsed_url.query)['month_'][0]
                             year = urlparse.parse_qs(parsed_url.query)['year'][0]
-                            date = year + "-" + month + "-" + day
-                            name = plenary_session + " " + date
+                            date_str = year + "-" + month + "-" + day
+                            name = plenary_session + " " + date_str
                             # soup_event = self.download_html_file(url_plenary_session)
                             # if soup_event.find('ul', {"class": "pd"}):
                             #     all_b_tags = soup_event.find('ul', {"class": "pd"}).findAll('b')
@@ -633,11 +642,13 @@ class UkraineParser():
                             # print start_date
                             # print end_date
                             identifier = "event_" + str(year) + str(day) + str(month)
+                            date = datetime.strptime(date_str, "%Y-%m-%d")
                             event_json = {
+                                "date_obj": date,
                                 "identifier": identifier,
                                 "url": url_plenary_session,
                                 "name": name,
-                                'date': date,
+                                'date': date_str,
                                 'organization_id': chamber_id
                             }
                             events_list.append(event_json)
@@ -652,12 +663,10 @@ class UkraineParser():
         chambers = self.chambers()
         for i in range(3, int(max(chambers.keys())) - 1):
             if i == 3:
-                print "\n3\n"
                 url_3 = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_arh_h1?nom_skl=3"
                 chamber_events = self.scrape_events(url_3, chamber_ids['3'])
                 all_events += chamber_events
             else:
-                print "\n%s\n" % str(i+1)
                 url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_arh_h1?nom_skl=%s" % str(i+1)
                 chamber_events = self.scrape_events(url, chamber_ids[str(i+2)])
                 all_events += chamber_events
@@ -665,7 +674,8 @@ class UkraineParser():
         last_chamber_url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_pd1"
         last_chamber_events = self.scrape_events(last_chamber_url, chamber_ids['9'])
         all_events += last_chamber_events
-        return all_events
+        sorted_events = sorted(all_events, key=itemgetter('date_obj'))
+        return sorted_events
 
     def chamber_membership(self):
         membership = {}

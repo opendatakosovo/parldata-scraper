@@ -87,7 +87,7 @@ def scrape(countries, people, votes):
                     # print(event_json)
                     # vpapi.post('events', event_json)
 
-                    # references[item.lower()].scrape_events()
+                    references[item.lower()].events_text()
                     # references[item.lower()].members_list()
                     # members = references[item.lower()].scrape_mp_bio_data()
                     # chamber = references[item.lower()].scrape_chamber()
