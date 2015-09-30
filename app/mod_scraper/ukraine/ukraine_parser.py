@@ -586,7 +586,27 @@ class UkraineParser():
         for event in events_list:
             soup = self.download_html_file(event['url'])
             if soup.find('ul', {"class": "pd"}):
-                all_a_tags = soup.find('ul', {"class": "pd"}).findAll('a')
+                print "\n\t" + event['identifier'] + "\n\t"
+                for each_li in soup.find('ul', {"class": "pd"}).findAll('li'):
+                    # print each_li
+                    if each_li.find("div", {'class': "block_pd"}) or each_li.find("div", {'class': "block_tab"}):
+                        block_pd = each_li.find("div", {'class': "block_pd"})
+                        block_tab = each_li.find("div", {'class': "block_tab"})
+                        if block_pd:
+                            print block_pd.find('div', {'class': "nomer"}).find('a').get('href')
+                            # for each_div in soup.find('ul', {"class": "pd"}).findAll('div', {"class": "block_tab"}):
+                            #     print each_div.find("td", {'class': "exnomer"}).find('a').get('href')
+                            counter += 1
+                            print "\tCounter: " + str(counter)
+                            print "------------------------------------------------>"
+                        elif block_tab:
+                            print block_tab.find('td', {'class': "exnomer"}).find('a').get('href')
+                            # for each_div in soup.find('ul', {"class": "pd"}).findAll('div', {"class": "block_tab"}):
+                            #     print each_div.find("td", {'class': "exnomer"}).find('a').get('href')
+                            counter += 1
+                            print "\tCounter: " + str(counter)
+                            print "------------------------------------------------>"
+                print "=========================================>"
             else:
                 print "\n\t" + event['identifier'] + "\n\t"
                 all_a_tags = soup.find('ul', {"class": "npd"}).findAll('a')
@@ -598,6 +618,7 @@ class UkraineParser():
                         counter += 1
                         print a_tag.get('href')
                         print text
+                        print "\tCounter: " + str(counter)
                         print "------------------------------------------------>"
         print "\tScraped %s vote events" % str(counter)
 
@@ -613,7 +634,7 @@ class UkraineParser():
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
                    ' ', ETA(), " - Processed: ", Counter(), ' events             ']
         pbar = ProgressBar(widgets=widgets)
-        for event in pbar(events_list[index:800]):
+        for event in pbar(events_list[index:]):
             soup_event = self.download_html_file(event['url'])
             date = event['date']
             if soup_event.find('ul', {"class": "pd"}):
@@ -631,7 +652,7 @@ class UkraineParser():
             events.append(event)
         return events
 
-    def scrape_events(self, url, chamber_id):
+    def scrape_events(self, url, chamber_id, term):
         plenary_session = "пленарні засідання".decode('utf-8')
         events_list = []
         soup = self.download_html_file(url)
@@ -663,9 +684,10 @@ class UkraineParser():
                             #
                             # print start_date
                             # print end_date
-                            identifier = "event_" + str(year) + str(day) + str(month)
+                            identifier = "event_" + str(year) + str(month) + str(day)
                             date = datetime.strptime(date_str, "%Y-%m-%d")
                             event_json = {
+                                "term": term,
                                 "date_obj": date,
                                 "identifier": identifier,
                                 "url": url_plenary_session,
@@ -686,15 +708,15 @@ class UkraineParser():
         for i in range(3, int(max(chambers.keys())) - 1):
             if i == 3:
                 url_3 = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_arh_h1?nom_skl=3"
-                chamber_events = self.scrape_events(url_3, chamber_ids['3'])
+                chamber_events = self.scrape_events(url_3, chamber_ids['3'], "3")
                 all_events += chamber_events
             else:
                 url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_arh_h1?nom_skl=%s" % str(i+1)
-                chamber_events = self.scrape_events(url, chamber_ids[str(i+2)])
+                chamber_events = self.scrape_events(url, chamber_ids[str(i+2)], str(i+2))
                 all_events += chamber_events
 
         last_chamber_url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_pd1"
-        last_chamber_events = self.scrape_events(last_chamber_url, chamber_ids['9'])
+        last_chamber_events = self.scrape_events(last_chamber_url, chamber_ids['9'], "9")
         all_events += last_chamber_events
         sorted_events = sorted(all_events, key=itemgetter('date_obj'))
         return sorted_events
