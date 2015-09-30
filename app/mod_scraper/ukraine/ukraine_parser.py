@@ -583,7 +583,11 @@ class UkraineParser():
     def vote_events_list(self):
         events_list = self.events_list()
         counter = 0
-        for event in events_list:
+        for event in events_list[800:]:
+            if event['term'] != "9":
+                url_plenary_session = event['url']
+                parsed_url = urlparse.urlparse(url_plenary_session)
+                skl = urlparse.parse_qs(parsed_url.query)['nom_skl'][0]
             soup = self.download_html_file(event['url'])
             if soup.find('ul', {"class": "pd"}):
                 print "\n\t" + event['identifier'] + "\n\t"
@@ -593,19 +597,38 @@ class UkraineParser():
                         block_pd = each_li.find("div", {'class': "block_pd"})
                         block_tab = each_li.find("div", {'class': "block_tab"})
                         if block_pd:
-                            print block_pd.find('div', {'class': "nomer"}).find('a').get('href')
-                            # for each_div in soup.find('ul', {"class": "pd"}).findAll('div', {"class": "block_tab"}):
-                            #     print each_div.find("td", {'class': "exnomer"}).find('a').get('href')
-                            counter += 1
-                            print "\tCounter: " + str(counter)
-                            print "------------------------------------------------>"
+                            law_id = block_pd.find('div', {'class': "nomer"}).find('a').get_text().strip()
+                            if law_id != "":
+                                if event['term'] != "9":
+                                    url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_arh_zakon_gol_dep_WOHF?zn=%s&n_skl=%s" % (law_id, skl)
+                                else:
+                                    url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_zakon_gol_dep_wohf?zn=%s" % law_id
+                                soup_vote_event = self.download_html_file(url)
+                                if soup_vote_event.find('ul', {"id": "gol_v"}):
+                                    for each_li_vote_event in soup_vote_event.find('ul', {"id": "gol_v"}).findAll('li')[1:]:
+                                        if each_li_vote_event.find('div', {"class": "fr_data"}):
+                                            print each_li_vote_event.find('div', {"class": "fr_data"}).get_text()
+                                            # for each_div in soup.find('ul', {"class": "pd"}).findAll('div', {"class": "block_tab"}):
+                                            #     print each_div.find("td", {'class': "exnomer"}).find('a').get('href')
+                                            counter += 1
+                                            print "\tCounter: " + str(counter)
+                                            print "------------------------------------------------>"
                         elif block_tab:
-                            print block_tab.find('td', {'class': "exnomer"}).find('a').get('href')
-                            # for each_div in soup.find('ul', {"class": "pd"}).findAll('div', {"class": "block_tab"}):
-                            #     print each_div.find("td", {'class': "exnomer"}).find('a').get('href')
-                            counter += 1
-                            print "\tCounter: " + str(counter)
-                            print "------------------------------------------------>"
+                            law_id = block_tab.find('div', {'class': "exnomer"}).find('a').get_text().strip()
+                            if law_id != "":
+                                if event['term'] != "9":
+                                    url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_arh_zakon_gol_dep_WOHF?zn=%s&n_skl=%s" % (law_id, skl)
+                                else:
+                                    url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_zakon_gol_dep_wohf?zn=%s" % law_id
+                                soup_vote_event = self.download_html_file(url)
+                                if soup_vote_event.find('ul', {"id": "gol_v"}):
+                                    for each_li_vote_event in soup_vote_event.find('ul', {"id": "gol_v"}).findAll('li')[1:]:
+                                        print each_li_vote_event.find('div', {"class": "fr_data"}).get_text()
+                                        # for each_div in soup.find('ul', {"class": "pd"}).findAll('div', {"class": "block_tab"}):
+                                        #     print each_div.find("td", {'class': "exnomer"}).find('a').get('href')
+                                        counter += 1
+                                        print "\tCounter: " + str(counter)
+                                        print "------------------------------------------------>"
                 print "=========================================>"
             else:
                 print "\n\t" + event['identifier'] + "\n\t"
@@ -672,20 +695,6 @@ class UkraineParser():
                             year = urlparse.parse_qs(parsed_url.query)['year'][0]
                             date_str = year + "-" + month + "-" + day
                             name = plenary_session + " " + date_str
-                            # soup_event = self.download_html_file(url_plenary_session)
-                            # if soup_event.find('ul', {"class": "pd"}):
-                            #     all_b_tags = soup_event.find('ul', {"class": "pd"}).findAll('b')
-                            #     start_end_time = self.find_start_end_time(all_b_tags, timestamps_array, date, 1)
-                            #     start_date = start_end_time['min']
-                            #     end_date = start_end_time['max']
-                            # else:
-                            #     all_b_tags = soup_event.find('ul', {"class": "npd"}).findAll('b')
-                            #     start_end_time = self.find_start_end_time(all_b_tags, timestamps_array, date, 0)
-                            #     start_date = start_end_time['min']
-                            #     end_date = start_end_time['max']
-                            #
-                            # print start_date
-                            # print end_date
                             identifier = "event_" + str(year) + str(month) + str(day)
                             date = datetime.strptime(date_str, "%Y-%m-%d")
                             event_json = {
