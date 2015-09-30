@@ -116,8 +116,8 @@ class UkraineScraper():
         }
         return json_doc
 
-    def events_text(self):
-        parser.events()
+    def events_test(self):
+        parser.vote_events_list()
 
     def scrape_events(self):
         print "\n\tScraping events from Ukraine's parliament..."

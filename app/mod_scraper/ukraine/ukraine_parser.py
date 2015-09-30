@@ -580,6 +580,28 @@ class UkraineParser():
         max_min_json['min'] = str(min(timestamps_array))
         return max_min_json
 
+    def vote_events_list(self):
+        events_list = self.events_list()
+        counter = 0
+        for event in events_list:
+            soup = self.download_html_file(event['url'])
+            if soup.find('ul', {"class": "pd"}):
+                all_a_tags = soup.find('ul', {"class": "pd"}).findAll('a')
+            else:
+                print "\n\t" + event['identifier'] + "\n\t"
+                all_a_tags = soup.find('ul', {"class": "npd"}).findAll('a')
+                for a_tag in all_a_tags[1:]:
+                    text = a_tag.get_text().encode('utf-8')
+                    if "Реєстрація в залі." in text:
+                        continue
+                    else:
+                        counter += 1
+                        print a_tag.get('href')
+                        print text
+                        print "------------------------------------------------>"
+        print "\tScraped %s vote events" % str(counter)
+
+
     def events(self):
         events = []
         last_event = vpapi.getfirst("events", sort='-start_date')
@@ -591,7 +613,7 @@ class UkraineParser():
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
                    ' ', ETA(), " - Processed: ", Counter(), ' events             ']
         pbar = ProgressBar(widgets=widgets)
-        for event in pbar(events_list[index:]):
+        for event in pbar(events_list[index:800]):
             soup_event = self.download_html_file(event['url'])
             date = event['date']
             if soup_event.find('ul', {"class": "pd"}):
