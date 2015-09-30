@@ -124,20 +124,21 @@ class UkraineScraper():
         print "\tPlease wait. This may take a few moments...\n"
         events = parser.events()
         events_list = []
-        for event in events:
-            event_json = {
-                'id': event['identifier'],
-                "name": event['name'],
-                'end_date': event['end_date'],
-                'identifier': event['identifier'],
-                'organization_id': event['organization_id'],
-                'start_date': event['start_date'],
-                'sources': [{
-                    'url': event['url'],
-                    "note": "веб-сайт"
-                }]
-            }
-            events_list.append(event_json)
+        if len(events) > 0:
+            for event in events:
+                event_json = {
+                    'id': event['identifier'],
+                    "name": event['name'],
+                    'end_date': event['end_date'],
+                    'identifier': event['identifier'],
+                    'organization_id': event['organization_id'],
+                    'start_date': event['start_date'],
+                    'sources': [{
+                        'url': event['url'],
+                        "note": "веб-сайт"
+                    }]
+                }
+                events_list.append(event_json)
         print "\n\tScraping completed! \n\tScraped " + str(len(events_list)) + " members"
         return events_list
 

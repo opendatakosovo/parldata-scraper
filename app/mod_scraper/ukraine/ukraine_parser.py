@@ -622,7 +622,6 @@ class UkraineParser():
                         print "------------------------------------------------>"
         print "\tScraped %s vote events" % str(counter)
 
-
     def events(self):
         events = []
         last_event = vpapi.getfirst("events", sort='-start_date')
@@ -634,22 +633,25 @@ class UkraineParser():
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
                    ' ', ETA(), " - Processed: ", Counter(), ' events             ']
         pbar = ProgressBar(widgets=widgets)
-        for event in pbar(events_list[index:]):
-            soup_event = self.download_html_file(event['url'])
-            date = event['date']
-            if soup_event.find('ul', {"class": "pd"}):
-                all_b_tags = soup_event.find('ul', {"class": "pd"}).findAll('b')
-                start_end_time = self.find_start_end_time(all_b_tags, date, 1)
-                start_date = start_end_time['min']
-                end_date = start_end_time['max']
-            else:
-                all_b_tags = soup_event.find('ul', {"class": "npd"}).findAll('b')
-                start_end_time = self.find_start_end_time(all_b_tags, date, 0)
-                start_date = start_end_time['min']
-                end_date = start_end_time['max']
-            event['start_date'] = start_date.replace(" ", "T")
-            event['end_date'] = end_date.replace(" ", "T")
-            events.append(event)
+        if len(events_list[index:]) > 0:
+            for event in pbar(events_list[index:]):
+                soup_event = self.download_html_file(event['url'])
+                date = event['date']
+                if soup_event.find('ul', {"class": "pd"}):
+                    all_b_tags = soup_event.find('ul', {"class": "pd"}).findAll('b')
+                    start_end_time = self.find_start_end_time(all_b_tags, date, 1)
+                    start_date = start_end_time['min']
+                    end_date = start_end_time['max']
+                else:
+                    all_b_tags = soup_event.find('ul', {"class": "npd"}).findAll('b')
+                    start_end_time = self.find_start_end_time(all_b_tags, date, 0)
+                    start_date = start_end_time['min']
+                    end_date = start_end_time['max']
+                event['start_date'] = start_date.replace(" ", "T")
+                event['end_date'] = end_date.replace(" ", "T")
+                events.append(event)
+        else:
+            print "\n\tThere are no new events to scrape"
         return events
 
     def scrape_events(self, url, chamber_id, term):
