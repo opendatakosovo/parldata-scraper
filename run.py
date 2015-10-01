@@ -181,14 +181,14 @@ def scrape(countries, people, votes):
                     #         continue
                 if votes == "yes":
                     voting_data_collections = {
-                        "events": references[item.lower()].scrape_events(),
-                        # "motions": references[item.lower()].motions(),
+                        # "events": references[item.lower()].scrape_events(),
+                        "motions": references[item.lower()].motions(),
                         # "vote-events": references[item.lower()].vote_events(),
                     }
-
                     for collection in voting_data_collections:
                         try:
                             if len(voting_data_collections[collection]) > 0:
+                                print voting_data_collections[collection]
                                 resp = vpapi.post(collection, voting_data_collections[collection])
                                 if resp["_status"] != "OK":
                                     raise Exception("Invalid status code")

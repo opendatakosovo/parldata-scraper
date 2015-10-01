@@ -116,8 +116,21 @@ class UkraineScraper():
         }
         return json_doc
 
-    def events_test(self):
-        parser.vote_events_list()
+    def motions(self):
+        print "\n\n\tScraping Motions data from Georgia's parliament..."
+        vote_events = parser.vote_events_list()
+        motions = []
+        for motion in vote_events:
+            json_motion = motion
+            del json_motion['counts']
+            del json_motion['motion_id']
+            del json_motion['start_date']
+            motions.append(json_motion)
+        if len(motions) > 0:
+            print "\n\tScraping completed! \n\tScraped " + str(len(motions)) + " motions"
+        else:
+            print "\n\tThere are no new motions."
+        return motions
 
     def scrape_events(self):
         print "\n\tScraping events from Ukraine's parliament..."

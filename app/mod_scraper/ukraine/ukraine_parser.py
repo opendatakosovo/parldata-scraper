@@ -580,12 +580,8 @@ class UkraineParser():
         max_min_json['min'] = str(min(timestamps_array))
         return max_min_json
 
-    def split_vote_count(self, vote_text):
-        vote_list = vote_text.split("-")
-        return vote_list[1]
-
-    def split_vote_count_5th_chamber(self, vote_text):
-        vote_list = vote_text.split(":")
+    def split_vote_count(self, separator, vote_text):
+        vote_list = vote_text.split(separator)
         return vote_list[1]
 
     def build_date_time_str(self, date_text):
@@ -594,10 +590,47 @@ class UkraineParser():
         time = date_time_list[1]
         date_list = date.split('.')
         date_str = date_list[2] + "-" + date_list[1] + "-" + date_list[0]
-        date_time_str = date_str + "T" + time.strip()
+        date_time_str = date_str + "T" + time.strip() + ":00"
         return date_time_str
 
+    def build_json_motion(self, date_text, url, motion_id, event_id, organization_id, name, result, yes_counts,
+                          no_counts, abstain_counts, absent_counts):
+        return {
+            "date": self.build_date_time_str(date_text),
+            "start_date": self.build_date_time_str(date_text),
+            "sources": [{
+                "url": url,
+                "note": "веб-сайт"
+            }],
+            "id": motion_id,
+            "identifier": motion_id,
+            "legislative_session_id": event_id,
+            "motion_id": motion_id,
+            "organization_id": organization_id,
+            "text": name,
+            "result": result,
+            "counts": [
+                {
+                    "option": "yes",
+                    "value": yes_counts
+                },
+                {
+                    "option": "no",
+                    "value": no_counts
+                },
+                {
+                    "option": "abstain",
+                    "value": abstain_counts
+                },
+                {
+                    "option": "absent",
+                    "value": absent_counts
+                }
+            ]
+        }
+
     def scrape_vote_event(self, event_id, law_id, skl, organization_id):
+        events = []
         passed_status_correction = {
             "Рішення прийняте": "pass",
             "Рішення не прийняте": "fail"
@@ -623,45 +656,20 @@ class UkraineParser():
                         no_votes = counts_list[1]
                         abstain_votes = counts_list[2]
                         absent_votes = counts_list[4]
-                        json_motion = {
-                            "date": self.build_date_time_str(date_text),
-                            "start_date": self.build_date_time_str(date_text),
-                            "sources": [{
-                                "url": url,
-                                "note": "веб-сайт"
-                            }],
-                            "id": motion_id,
-                            "identifier": motion_id,
-                            "legislative_session_id": event_id,
-                            "motion_id": motion_id,
-                            "organization_id": organization_id,
-                            "name": name,
-                            "result": passed_status_correction[passed_status.encode('utf-8')],
-                            "counts": [
-                                {
-                                    "option": "yes",
-                                    "value": self.split_vote_count(yes_votes)
-                                },
-                                {
-                                    "option": "no",
-                                    "value": self.split_vote_count(no_votes)
-                                },
-                                {
-                                    "option": "abstain",
-                                    "value": self.split_vote_count(abstain_votes)
-                                },
-                                {
-                                    "option": "absent",
-                                    "value": self.split_vote_count(absent_votes)
-                                }
-                            ]
-                        }
+                        separator = "-"
+                        yes_counts = self.split_vote_count(separator, yes_votes)
+                        abstain_counts = self.split_vote_count(separator, abstain_votes)
+                        no_counts = self.split_vote_count(separator, no_votes)
+                        absent_counts = self.split_vote_count(separator, absent_votes)
+                        result = passed_status_correction[passed_status.encode('utf-8')]
+                        json_motion = self.build_json_motion(date_text, url, motion_id, event_id, organization_id, name,
+                                                             result, yes_counts, no_counts, abstain_counts, absent_counts)
+                        events.append(json_motion)
 
-                        vote_event_json = json_motion
-                        del vote_event_json['text']
-                        del vote_event_json['sources']
-                        del vote_event_json['date']
-
+                        # vote_event_json = json_motion
+                        # del vote_event_json['text']
+                        # del vote_event_json['sources']
+                        # del vote_event_json['date']
 
                         '''
                         motions
@@ -669,20 +677,16 @@ class UkraineParser():
                         del motion['motion_id']
                         del motion['start_date']
                         '''
-                        # json_counts = {
-                        #     "name": name,
-                        #     "date_text": date_text,
-                        #     "url": url,
-                        #     "yes": self.split_vote_count(yes_votes),
-                        #     "no": self.split_vote_count(no_votes),
-                        #     "abstain": self.split_vote_count(abstain_votes),
-                        #     "absent": self.split_vote_count(absent_votes),
-                        #     "status": passed_status_correction[passed_status.encode('utf-8')]
-                        # }
-                        pprint.pprint(json_motion)
-                        print "------------------------------------------------>"
+        return events
 
-    def scrape_5th_chamber_vote_event(self, all_a_tags):
+    def scrape_5th_chamber_vote_event(self, all_a_tags, event_id, organization_id):
+        chamber_motions = []
+        passed_status_correction = {
+            "Рішення прийняте": "pass",
+            "Рішення прийнято": "pass",
+            "Рішення не прийнято": "fail",
+            "Рішення не прийняте": "fail"
+        }
         for a_tag in all_a_tags[1:]:
             text = a_tag.get_text().encode('utf-8')
             if "Реєстрація в залі." in text:
@@ -691,30 +695,39 @@ class UkraineParser():
                 url = "http://w1.c1.rada.gov.ua" + a_tag.get('href')
                 soup_motion = self.download_html_file(url)
                 motion_text = soup_motion.find("div", {"class": "head_gol"}).get_text().strip()
-                # print motion_text
-                # print text
+                parsed_url = urlparse.urlparse(url)
+                motion_id = urlparse.parse_qs(parsed_url.query)['g_id'][0]
                 motion_text_list = motion_text.split("\n")
-                print "date: " + self.build_date_time_str(motion_text_list[1])
-                print "counts: " + motion_text_list[2]
-                print "result: " + motion_text_list[3]
-                # counts_list = counts_text.split("  ")
-                # yes_votes = counts_list[0]
-                # no_votes = counts_list[1]
-                # abstain_votes = counts_list[2]
-                # absent_votes = counts_list[4]
-                print "------------------------------------------------>"
+                date_text = motion_text_list[1]
+                passed_status = motion_text_list[3]
+                result = passed_status_correction[passed_status.encode('utf-8')]
+                counts_text = motion_text_list[2]
+                counts_list = counts_text.split("  ")
+                yes_votes = counts_list[0]
+                no_votes = counts_list[1]
+                abstain_votes = counts_list[2]
+                absent_votes = counts_list[4]
+                separator = ":"
+                yes_counts = self.split_vote_count(separator, yes_votes)
+                abstain_counts = self.split_vote_count(separator, abstain_votes)
+                no_counts = self.split_vote_count(separator, no_votes)
+                absent_counts = self.split_vote_count(separator, absent_votes)
+                json_motion = self.build_json_motion(date_text, url, motion_id, event_id, organization_id, text,
+                                                     result, yes_counts, no_counts, abstain_counts, absent_counts)
+                chamber_motions.append(json_motion)
+        return chamber_motions
 
     def vote_events_list(self):
+        vote_event_list = []
         chambers = {}
         all_chambers = vpapi.getall("organizations", where={'classification': 'chamber'})
         for chamber in all_chambers:
             chambers[chamber['identifiers'][0]['identifier']] = chamber['id']
         events_list = self.events_list()
-        counter = 0
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
                    ' ', ETA(), " - Processed: ", Counter(), ' events             ']
         pbar = ProgressBar(widgets=widgets)
-        for event in pbar(events_list[:30]):
+        for event in pbar(events_list[:1]):
             if event['term'] != "9":
                 url_plenary_session = event['url']
                 parsed_url = urlparse.urlparse(url_plenary_session)
@@ -723,7 +736,7 @@ class UkraineParser():
                 skl = None
             soup = self.download_html_file(event['url'])
             if soup.find('ul', {"class": "pd"}):
-                print "\n\t" + event['url'] + "\n\t"
+                # print "\n\t" + event['url'] + "\n\t"
                 for each_li in soup.find('ul', {"class": "pd"}).findAll('li'):
                     if each_li.find("div", {'class': "block_pd"}) or each_li.find("div", {'class': "block_tab"}):
                         block_pd = each_li.find("div", {'class': "block_pd"})
@@ -731,18 +744,20 @@ class UkraineParser():
                         if block_pd:
                             law_id = block_pd.find('div', {'class': "nomer"}).find('a').get_text().strip()
                             if law_id != "":
-                                self.scrape_vote_event(event['identifier'], law_id, skl, chambers[event['term']])
+                                motions = self.scrape_vote_event(event['identifier'], law_id, skl, chambers[event['term']])
+                                vote_event_list += motions
                         elif block_tab:
                             law_id = block_tab.find('td', {'class': "exnomer"}).find('a').get_text().strip()
                             if law_id != "":
-                                self.scrape_vote_event(event['identifier'], law_id, skl, chambers[event['term']])
-                print "=========================================>"
+                                motions = self.scrape_vote_event(event['identifier'], law_id, skl, chambers[event['term']])
+                                vote_event_list += motions
+                # print "=========================================>"
             else:
-                print "\n\t" + event['identifier'] + "\n\t"
+                # print "\n\t" + event['identifier'] + "\n\t"
                 all_a_tags = soup.find('ul', {"class": "npd"}).findAll('a')
-                self.scrape_5th_chamber_vote_event(all_a_tags)
-
-        print "\tScraped %s vote events" % str(counter)
+                motions = self.scrape_5th_chamber_vote_event(all_a_tags, event['identifier'], chambers[event['term']])
+                vote_event_list += motions
+        return vote_event_list
 
     def events(self):
         events = []
