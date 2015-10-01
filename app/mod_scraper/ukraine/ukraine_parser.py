@@ -580,10 +580,30 @@ class UkraineParser():
         max_min_json['min'] = str(min(timestamps_array))
         return max_min_json
 
+    def scrape_vote_event(self, event, counter, law_id, skl):
+        if event['term'] != "9":
+            url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_arh_zakon_gol_dep_WOHF?zn=%s&n_skl=%s" % (law_id, skl)
+        else:
+            url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_zakon_gol_dep_wohf?zn=%s" % law_id
+        soup_vote_event = self.download_html_file(url)
+        if soup_vote_event.find('ul', {"id": "gol_v"}):
+            if len(soup_vote_event.find('ul', {"id": "gol_v"}).findAll('li')) > 1:
+                for each_li_vote_event in soup_vote_event.find('ul', {"id": "gol_v"}).findAll('li')[1:]:
+                    if each_li_vote_event.find('div', {"class": "fr_data"}):
+                        print each_li_vote_event.find('div', {"class": "fr_data"}).get_text()
+                        print each_li_vote_event.find('div', {"class": "fr_nazva"}).find('a').get_text()
+                        print each_li_vote_event.find('div', {"class": "fr_nazva"}).find('a').get("href")
+                        counter += 1
+                        print "\tCounter: " + str(counter)
+                        print "------------------------------------------------>"
+
     def vote_events_list(self):
         events_list = self.events_list()
         counter = 0
-        for event in events_list[800:]:
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' events             ']
+        pbar = ProgressBar(widgets=widgets)
+        for event in pbar(events_list):
             if event['term'] != "9":
                 url_plenary_session = event['url']
                 parsed_url = urlparse.urlparse(url_plenary_session)
@@ -599,36 +619,11 @@ class UkraineParser():
                         if block_pd:
                             law_id = block_pd.find('div', {'class': "nomer"}).find('a').get_text().strip()
                             if law_id != "":
-                                if event['term'] != "9":
-                                    url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_arh_zakon_gol_dep_WOHF?zn=%s&n_skl=%s" % (law_id, skl)
-                                else:
-                                    url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_zakon_gol_dep_wohf?zn=%s" % law_id
-                                soup_vote_event = self.download_html_file(url)
-                                if soup_vote_event.find('ul', {"id": "gol_v"}):
-                                    for each_li_vote_event in soup_vote_event.find('ul', {"id": "gol_v"}).findAll('li')[1:]:
-                                        if each_li_vote_event.find('div', {"class": "fr_data"}):
-                                            print each_li_vote_event.find('div', {"class": "fr_data"}).get_text()
-                                            # for each_div in soup.find('ul', {"class": "pd"}).findAll('div', {"class": "block_tab"}):
-                                            #     print each_div.find("td", {'class': "exnomer"}).find('a').get('href')
-                                            counter += 1
-                                            print "\tCounter: " + str(counter)
-                                            print "------------------------------------------------>"
+                                self.scrape_vote_event(event, counter, law_id, skl)
                         elif block_tab:
                             law_id = block_tab.find('div', {'class': "exnomer"}).find('a').get_text().strip()
                             if law_id != "":
-                                if event['term'] != "9":
-                                    url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_arh_zakon_gol_dep_WOHF?zn=%s&n_skl=%s" % (law_id, skl)
-                                else:
-                                    url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_zakon_gol_dep_wohf?zn=%s" % law_id
-                                soup_vote_event = self.download_html_file(url)
-                                if soup_vote_event.find('ul', {"id": "gol_v"}):
-                                    for each_li_vote_event in soup_vote_event.find('ul', {"id": "gol_v"}).findAll('li')[1:]:
-                                        print each_li_vote_event.find('div', {"class": "fr_data"}).get_text()
-                                        # for each_div in soup.find('ul', {"class": "pd"}).findAll('div', {"class": "block_tab"}):
-                                        #     print each_div.find("td", {'class': "exnomer"}).find('a').get('href')
-                                        counter += 1
-                                        print "\tCounter: " + str(counter)
-                                        print "------------------------------------------------>"
+                                self.scrape_vote_event(event, counter, law_id, skl)
                 print "=========================================>"
             else:
                 print "\n\t" + event['identifier'] + "\n\t"
