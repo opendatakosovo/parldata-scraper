@@ -216,6 +216,15 @@ class MoldovaScraper():
         return members
         # print "Scraped %s members" % str(counter)
 
+    def motions(self):
+        return []
+
+    def events(self):
+        return []
+
+    def vote_events(self):
+        return []
+
     def committee_list(self):
         committee_list = []
         url = "http://www.parlament.md/StructuraParlamentului/Comisiipermanente/tabid/84/language/ro-RO/Default.aspx"

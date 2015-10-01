@@ -32,6 +32,15 @@ class BelarusLowerhouseScraper():
             members.append(member_json)
         return members
 
+    def motions(self):
+        return []
+
+    def events(self):
+        return []
+
+    def vote_events(self):
+        return []
+
     def build_json_doc(self, identifier, full_name, first_name, last_name, url, image_url, email, gender, birth_date):
         json_doc = {
             "identifiers": [{

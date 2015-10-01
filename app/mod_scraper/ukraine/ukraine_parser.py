@@ -666,15 +666,6 @@ class UkraineParser():
                         json_motion = self.build_json_motion(date_text, url, motion_id, event_id, organization_id, name,
                                                              result, yes_counts, no_counts, abstain_counts, absent_counts)
                         events.append(json_motion)
-
-
-
-                        '''
-                        motions
-                        del motion['counts']
-                        del motion['motion_id']
-                        del motion['start_date']
-                        '''
         return events
 
     def scrape_5th_chamber_vote_event(self, all_a_tags, event_id, organization_id):
@@ -730,8 +721,7 @@ class UkraineParser():
             index = next(index for (index, d) in enumerate(events_list) if d["identifier"] == last_event['legislative_session_id'])
         else:
             index = 0
-        print index
-        for event in pbar(events_list[index:57]):
+        for event in pbar(events_list[index:20]):
             if event['term'] != "9":
                 url_plenary_session = event['url']
                 parsed_url = urlparse.urlparse(url_plenary_session)
@@ -740,7 +730,6 @@ class UkraineParser():
                 skl = None
             soup = self.download_html_file(event['url'])
             if soup.find('ul', {"class": "pd"}):
-                # print "\n\t" + event['url'] + "\n\t"
                 for each_li in soup.find('ul', {"class": "pd"}).findAll('li'):
                     if each_li.find("div", {'class': "block_pd"}) or each_li.find("div", {'class': "block_tab"}):
                         block_pd = each_li.find("div", {'class': "block_pd"})
@@ -755,9 +744,7 @@ class UkraineParser():
                             if law_id != "":
                                 motions = self.scrape_vote_event(event['identifier'], law_id, skl, chambers[event['term']])
                                 vote_event_list += motions
-                # print "=========================================>"
             else:
-                # print "\n\t" + event['identifier'] + "\n\t"
                 all_a_tags = soup.find('ul', {"class": "npd"}).findAll('a')
                 motions = self.scrape_5th_chamber_vote_event(all_a_tags, event['identifier'], chambers[event['term']])
                 vote_event_list += motions

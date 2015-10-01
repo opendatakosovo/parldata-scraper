@@ -446,6 +446,9 @@ class GeorgiaScraper():
                 laws_array.append(json_motion)
         return laws_array
 
+    def events(self):
+        return []
+
     def vote_events(self):
         print "\n\n\tScraping Vote Events data from Georgia's parliament..."
         laws_list = self.laws()
