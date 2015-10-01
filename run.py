@@ -72,32 +72,15 @@ def scrape(countries, people, votes):
                 vpapi.timezone(creds[item.lower()]['timezone'])
                 vpapi.authorize(creds[item.lower()]['api_user'], creds[item.lower()]['password'])
                 if people == "yes":
-                    # vpapi.delete('events')
-                    # start_date = local_to_utc("2015-09-02 08:50:05")
-                    # end_date = local_to_utc("2015-09-02 18:50:05")
-                    # event_json = {
-                    #     'start_date': "2015-09-02T08:50:05",
-                    #     'end_date': "2015-09-02T18:50:05",
-                    #     'id': 'event_20150209',
-                    #     'identifier': 'event_20150209',
-                    #     'type': 'session',
-                    #     'name': 'пленарні засідання 2015-09-16',
-                    #     'organization_id': '56029761273a396fc109118a'
-                    # }
-                    # print(event_json)
-                    # vpapi.post('events', event_json)
-
-                    references[item.lower()].test_date_sort()
-                    # references[item.lower()].members_list()
-                    # members = references[item.lower()].scrape_mp_bio_data()
-                    # chamber = references[item.lower()].scrape_chamber()
-                    # parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
-                    # committee = references[item.lower()].scrape_committee()
+                    members = references[item.lower()].scrape_mp_bio_data()
+                    chamber = references[item.lower()].scrape_chamber()
+                    parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
+                    committee = references[item.lower()].scrape_committee()
                     data_collections = {
-                        # "a-people": members,
-                        # "b-chamber": chamber,
-                        # "c-parliamentary_groups": parliamentary_groups,
-                        # "d-committe": committee
+                        "a-people": members,
+                        "b-chamber": chamber,
+                        "c-parliamentary_groups": parliamentary_groups,
+                        "d-committe": committee
                     }
                     # inserts data for each data collection in Visegrad+ Api
                     for collection in sorted(set(data_collections)):
@@ -109,8 +92,7 @@ def scrape(countries, people, votes):
                         if len(data_collections[collection]) > 0:
                             for json_doc in pbar(data_collections[collection]):
                                 if collection == "a-people":
-                                    where_condition = {'name': json_doc['name']}
-                                    # where_condition = {'identifiers': {'$elemMatch': json_doc['identifiers'][0]}}
+                                    where_condition = {'identifiers': {'$elemMatch': json_doc['identifiers'][0]}}
                                     collection_of_data = "people"
                                 elif collection == "c-parliamentary_groups" or collection == "d-committe":
                                     if item.lower() == "armenia" or item.lower() == "belarus-upperhouse"\
@@ -140,7 +122,6 @@ def scrape(countries, people, votes):
                                 if resp["_status"] != "OK":
                                     raise Exception("Invalid status code")
 
-                                # print "\t------------------------------------------------"
                             print "\n\tFinished Posting and updating data from %s data collection\n" % collection[2:]
                     if item.lower() != "georgia":
                         memberships = {
