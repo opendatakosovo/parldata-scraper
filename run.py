@@ -165,17 +165,17 @@ def scrape(countries, people, votes):
                     if len(events) > 0:
                         post_data("events", events)
                     else:
-                        print "There's not any event to post from %s parliament" % item
+                        print "\tThere's not any event to post from %s parliament" % item
                     motions = references[item.lower()].motions()
                     if len(motions) > 0:
                         post_data("motions", motions)
                     else:
-                        print "There's not any motion to post from %s parliament" % item
+                        print "\tThere's not any motion to post from %s parliament" % item
                     vote_events = references[item.lower()].vote_events()
                     if len(vote_events) > 0:
                         post_data("vote-events", vote_events)
                     else:
-                        print "There's not any event to post from %s parliament" % item
+                        print "\tThere's not any event to post from %s parliament" % item
 
                     # votes = references[item.lower()].scrape_votes()
                     # try:
