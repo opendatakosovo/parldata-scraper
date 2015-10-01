@@ -595,7 +595,7 @@ class UkraineParser():
 
     def build_json_motion(self, date_text, url, motion_id, event_id, organization_id, name, result, yes_counts,
                           no_counts, abstain_counts, absent_counts):
-        return {
+        json_doc = {
             "date": self.build_date_time_str(date_text),
             "start_date": self.build_date_time_str(date_text),
             "sources": [{
@@ -628,6 +628,7 @@ class UkraineParser():
                 }
             ]
         }
+        return json_doc
 
     def scrape_vote_event(self, event_id, law_id, skl, organization_id):
         events = []
@@ -666,10 +667,7 @@ class UkraineParser():
                                                              result, yes_counts, no_counts, abstain_counts, absent_counts)
                         events.append(json_motion)
 
-                        # vote_event_json = json_motion
-                        # del vote_event_json['text']
-                        # del vote_event_json['sources']
-                        # del vote_event_json['date']
+
 
                         '''
                         motions
@@ -717,17 +715,23 @@ class UkraineParser():
                 chamber_motions.append(json_motion)
         return chamber_motions
 
-    def vote_events_list(self):
+    def vote_events_list(self, data_collection, sort):
         vote_event_list = []
         chambers = {}
         all_chambers = vpapi.getall("organizations", where={'classification': 'chamber'})
         for chamber in all_chambers:
             chambers[chamber['identifiers'][0]['identifier']] = chamber['id']
-        events_list = self.events_list()
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
                    ' ', ETA(), " - Processed: ", Counter(), ' events             ']
         pbar = ProgressBar(widgets=widgets)
-        for event in pbar(events_list[:1]):
+        events_list = self.events_list()
+        last_event = vpapi.getfirst(data_collection, sort=sort)
+        if last_event:
+            index = next(index for (index, d) in enumerate(events_list) if d["identifier"] == last_event['legislative_session_id'])
+        else:
+            index = 0
+        print index
+        for event in pbar(events_list[index:57]):
             if event['term'] != "9":
                 url_plenary_session = event['url']
                 parsed_url = urlparse.urlparse(url_plenary_session)
@@ -757,12 +761,13 @@ class UkraineParser():
                 all_a_tags = soup.find('ul', {"class": "npd"}).findAll('a')
                 motions = self.scrape_5th_chamber_vote_event(all_a_tags, event['identifier'], chambers[event['term']])
                 vote_event_list += motions
-        return vote_event_list
+        sorted_vote_events = sorted(vote_event_list, key=itemgetter('date'))
+        return sorted_vote_events
 
     def events(self):
         events = []
-        last_event = vpapi.getfirst("events", sort='-start_date')
         events_list = self.events_list()
+        last_event = vpapi.getfirst("events", sort='-start_date')
         if last_event:
             index = next(index for (index, d) in enumerate(events_list) if d["url"] == last_event['sources'][0]['url']) + 1
         else:

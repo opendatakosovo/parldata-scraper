@@ -2,6 +2,8 @@
 from progressbar import ProgressBar, Percentage, ETA, Counter, Bar
 import vpapi
 import ukraine_parser
+from operator import itemgetter
+
 import pprint
 
 parser = ukraine_parser.UkraineParser()
@@ -32,6 +34,25 @@ class UkraineScraper():
             members.append(member_json)
         print "\n\tScraping completed! \n\tScraped " + str(len(members)) + " members"
         return members
+
+    def test_date_sort(self):
+        date_list = [
+            {
+                "date": "1998-09-19T17:55:00",
+                "name": "DATA E PARE"
+            },
+            {
+                "date": "1998-01-19T17:55:00",
+                "name": "DATA E PARE"
+            },
+            {
+                "date": "1998-06-19T17:55:00",
+                "name": "DATA E PARE"
+            }
+        ]
+        sorted_vote_events = sorted(date_list, key=itemgetter('date'))
+        print sorted_vote_events
+        return sorted_vote_events
 
     def scrape_committee(self):
         print "\n\tScraping committee groups from Ukraine's parliament...\n"
@@ -116,11 +137,39 @@ class UkraineScraper():
         }
         return json_doc
 
+    def vote_events(self):
+        print "\n\n\tScraping Vote Events data from Georgia's parliament..."
+        vote_events = parser.vote_events_list("vote-events", '-start_date')
+        last_event = vpapi.getfirst("vote-events", sort='-start_date')
+        if last_event:
+            index = next(index for (index, d) in enumerate(vote_events) if d["identifier"] == last_event['identifier']) + 1
+        else:
+            index = 0
+        print index
+        voting_events = []
+        for vote_event in vote_events[index:]:
+            vote_event_json = vote_event
+            del vote_event_json['text']
+            del vote_event_json['sources']
+            del vote_event_json['date']
+            voting_events.append(vote_event_json)
+        if len(voting_events) > 0:
+            print "\n\tScraping completed! \n\tScraped " + str(len(voting_events)) + " vote events"
+        else:
+            print "\n\tThere are no new motions."
+        return voting_events
+
     def motions(self):
         print "\n\n\tScraping Motions data from Georgia's parliament..."
-        vote_events = parser.vote_events_list()
+        vote_events = parser.vote_events_list("motions", '-date')
+        last_event = vpapi.getfirst("motions", sort='-date')
+        if last_event:
+            index = next(index for (index, d) in enumerate(vote_events) if d["identifier"] == last_event['identifier']) + 1
+        else:
+            index = 0
+        print index
         motions = []
-        for motion in vote_events:
+        for motion in vote_events[index:]:
             json_motion = motion
             del json_motion['counts']
             del json_motion['motion_id']

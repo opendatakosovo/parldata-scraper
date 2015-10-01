@@ -87,7 +87,7 @@ def scrape(countries, people, votes):
                     # print(event_json)
                     # vpapi.post('events', event_json)
 
-                    references[item.lower()].events_test()
+                    references[item.lower()].test_date_sort()
                     # references[item.lower()].members_list()
                     # members = references[item.lower()].scrape_mp_bio_data()
                     # chamber = references[item.lower()].scrape_chamber()
@@ -180,21 +180,12 @@ def scrape(countries, people, votes):
                     #         print "\n\tThere is no data from %s membership data collection\n" % data_collection
                     #         continue
                 if votes == "yes":
-                    voting_data_collections = {
-                        # "events": references[item.lower()].scrape_events(),
-                        "motions": references[item.lower()].motions(),
-                        # "vote-events": references[item.lower()].vote_events(),
-                    }
-                    for collection in voting_data_collections:
-                        try:
-                            if len(voting_data_collections[collection]) > 0:
-                                print voting_data_collections[collection]
-                                resp = vpapi.post(collection, voting_data_collections[collection])
-                                if resp["_status"] != "OK":
-                                    raise Exception("Invalid status code")
-                                print "\n\tFinished Posting and updating data from %s data collection" % collection
-                        except BaseException as ex:
-                            print ex.message
+                    events = references[item.lower()].scrape_events()
+                    post_data("events", events)
+                    motions = references[item.lower()].motions()
+                    post_data("motions", motions)
+                    vote_events = references[item.lower()].vote_events()
+                    post_data("vote-events", vote_events)
 
                     # votes = references[item.lower()].scrape_votes()
                     # try:
@@ -209,6 +200,16 @@ def scrape(countries, people, votes):
     else:
         print "\n\tInvalid country/ies added"
 
+
+def post_data(collection_str, data_collection):
+    try:
+        if len(data_collection) > 0:
+            resp = vpapi.post(collection_str, data_collection)
+            if resp["_status"] != "OK":
+                raise Exception("Invalid status code")
+            print "\n\tFinished Posting and updating data from %s data collection" % collection_str
+    except BaseException as ex:
+        print ex.message
 
 # Define the arguments.
 if __name__ == "__main__":
