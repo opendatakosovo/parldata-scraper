@@ -580,8 +580,12 @@ class UkraineParser():
         max_min_json['min'] = str(min(timestamps_array))
         return max_min_json
 
-    def scrape_vote_event(self, event, counter, law_id, skl):
-        if event['term'] != "9":
+    def split_vote_count(self, vote_text):
+        vote_list = vote_text.split("-")
+        return vote_list[1]
+
+    def scrape_vote_event(self, counter, law_id, skl):
+        if skl:
             url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_arh_zakon_gol_dep_WOHF?zn=%s&n_skl=%s" % (law_id, skl)
         else:
             url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_zakon_gol_dep_wohf?zn=%s" % law_id
@@ -593,6 +597,20 @@ class UkraineParser():
                         print each_li_vote_event.find('div', {"class": "fr_data"}).get_text()
                         print each_li_vote_event.find('div', {"class": "fr_nazva"}).find('a').get_text()
                         print each_li_vote_event.find('div', {"class": "fr_nazva"}).find('a').get("href")
+                        passed_status = each_li_vote_event.find('div', {"class": "fr_nazva"}).find('center').find('font').get_text().strip()
+                        counts_text = each_li_vote_event.find('div', {"class": "fr_nazva"}).find('center').get_text().replace(passed_status, "").strip()
+                        counts_list = counts_text.split(" ")
+                        yes_votes = counts_list[0]
+                        no_votes = counts_list[1]
+                        abstain_votes = counts_list[2]
+                        absent_votes = counts_list[4]
+                        json_counts = {
+                            "yes": self.split_vote_count(yes_votes),
+                            "no": self.split_vote_count(no_votes),
+                            "abstain": self.split_vote_count(abstain_votes),
+                            "absent": self.split_vote_count(absent_votes),
+                        }
+                        pprint.pprint(json_counts)
                         counter += 1
                         print "\tCounter: " + str(counter)
                         print "------------------------------------------------>"
@@ -603,27 +621,28 @@ class UkraineParser():
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
                    ' ', ETA(), " - Processed: ", Counter(), ' events             ']
         pbar = ProgressBar(widgets=widgets)
-        for event in pbar(events_list):
+        for event in pbar(events_list[1020:]):
             if event['term'] != "9":
                 url_plenary_session = event['url']
                 parsed_url = urlparse.urlparse(url_plenary_session)
                 skl = urlparse.parse_qs(parsed_url.query)['nom_skl'][0]
+            else:
+                skl = None
             soup = self.download_html_file(event['url'])
             if soup.find('ul', {"class": "pd"}):
-                print "\n\t" + event['identifier'] + "\n\t"
+                print "\n\t" + event['url'] + "\n\t"
                 for each_li in soup.find('ul', {"class": "pd"}).findAll('li'):
-                    # print each_li
                     if each_li.find("div", {'class': "block_pd"}) or each_li.find("div", {'class': "block_tab"}):
                         block_pd = each_li.find("div", {'class': "block_pd"})
                         block_tab = each_li.find("div", {'class': "block_tab"})
                         if block_pd:
                             law_id = block_pd.find('div', {'class': "nomer"}).find('a').get_text().strip()
                             if law_id != "":
-                                self.scrape_vote_event(event, counter, law_id, skl)
+                                self.scrape_vote_event(counter, law_id, skl)
                         elif block_tab:
-                            law_id = block_tab.find('div', {'class': "exnomer"}).find('a').get_text().strip()
+                            law_id = block_tab.find('td', {'class': "exnomer"}).find('a').get_text().strip()
                             if law_id != "":
-                                self.scrape_vote_event(event, counter, law_id, skl)
+                                self.scrape_vote_event(counter, law_id, skl)
                 print "=========================================>"
             else:
                 print "\n\t" + event['identifier'] + "\n\t"
