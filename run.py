@@ -144,8 +144,8 @@ def scrape(countries, people, votes):
                             print "\n\tFinished Posting and updating data from %s data collection\n" % collection[2:]
                     if item.lower() != "georgia":
                         memberships = {
-                            # "chambers": references[item.lower()].scrape_membership(),
-                            # "parliamentary_groups": references[item.lower()].scrape_parliamentary_group_membership(),
+                            "chambers": references[item.lower()].scrape_membership(),
+                            "parliamentary_groups": references[item.lower()].scrape_parliamentary_group_membership(),
                             "committees": references[item.lower()].scrape_committee_members()
                         }
                     elif item.lower() == "georgia":
