@@ -721,33 +721,36 @@ class UkraineParser():
             index = next(index for (index, d) in enumerate(events_list) if d["identifier"] == last_event['legislative_session_id'])
         else:
             index = 0
-        for event in pbar(events_list[index:20]):
-            if event['term'] != "9":
-                url_plenary_session = event['url']
-                parsed_url = urlparse.urlparse(url_plenary_session)
-                skl = urlparse.parse_qs(parsed_url.query)['nom_skl'][0]
-            else:
-                skl = None
-            soup = self.download_html_file(event['url'])
-            if soup.find('ul', {"class": "pd"}):
-                for each_li in soup.find('ul', {"class": "pd"}).findAll('li'):
-                    if each_li.find("div", {'class': "block_pd"}) or each_li.find("div", {'class': "block_tab"}):
-                        block_pd = each_li.find("div", {'class': "block_pd"})
-                        block_tab = each_li.find("div", {'class': "block_tab"})
-                        if block_pd:
-                            law_id = block_pd.find('div', {'class': "nomer"}).find('a').get_text().strip()
-                            if law_id != "":
-                                motions = self.scrape_vote_event(event['identifier'], law_id, skl, chambers[event['term']])
-                                vote_event_list += motions
-                        elif block_tab:
-                            law_id = block_tab.find('td', {'class': "exnomer"}).find('a').get_text().strip()
-                            if law_id != "":
-                                motions = self.scrape_vote_event(event['identifier'], law_id, skl, chambers[event['term']])
-                                vote_event_list += motions
-            else:
-                all_a_tags = soup.find('ul', {"class": "npd"}).findAll('a')
-                motions = self.scrape_5th_chamber_vote_event(all_a_tags, event['identifier'], chambers[event['term']])
-                vote_event_list += motions
+        if len(events_list) > 0:
+            for event in pbar(events_list[index:20]):
+                if event['term'] != "9":
+                    url_plenary_session = event['url']
+                    parsed_url = urlparse.urlparse(url_plenary_session)
+                    skl = urlparse.parse_qs(parsed_url.query)['nom_skl'][0]
+                else:
+                    skl = None
+                soup = self.download_html_file(event['url'])
+                if soup.find('ul', {"class": "pd"}):
+                    for each_li in soup.find('ul', {"class": "pd"}).findAll('li'):
+                        if each_li.find("div", {'class': "block_pd"}) or each_li.find("div", {'class': "block_tab"}):
+                            block_pd = each_li.find("div", {'class': "block_pd"})
+                            block_tab = each_li.find("div", {'class': "block_tab"})
+                            if block_pd:
+                                law_id = block_pd.find('div', {'class': "nomer"}).find('a').get_text().strip()
+                                if law_id != "":
+                                    motions = self.scrape_vote_event(event['identifier'], law_id, skl, chambers[event['term']])
+                                    vote_event_list += motions
+                            elif block_tab:
+                                law_id = block_tab.find('td', {'class': "exnomer"}).find('a').get_text().strip()
+                                if law_id != "":
+                                    motions = self.scrape_vote_event(event['identifier'], law_id, skl, chambers[event['term']])
+                                    vote_event_list += motions
+                else:
+                    all_a_tags = soup.find('ul', {"class": "npd"}).findAll('a')
+                    motions = self.scrape_5th_chamber_vote_event(all_a_tags, event['identifier'], chambers[event['term']])
+                    vote_event_list += motions
+        else:
+            print "\n\tThere are no new items."
         sorted_vote_events = sorted(vote_event_list, key=itemgetter('date'))
         return sorted_vote_events
 

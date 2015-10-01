@@ -169,12 +169,13 @@ class UkraineScraper():
             index = 0
         print index
         motions = []
-        for motion in vote_events[index:]:
-            json_motion = motion
-            del json_motion['counts']
-            del json_motion['motion_id']
-            del json_motion['start_date']
-            motions.append(json_motion)
+        if len(vote_events[index:]) > 0:
+            for motion in vote_events[index:]:
+                json_motion = motion
+                del json_motion['counts']
+                del json_motion['motion_id']
+                del json_motion['start_date']
+                motions.append(json_motion)
         if len(motions) > 0:
             print "\n\tScraping completed! \n\tScraped " + str(len(motions)) + " motions"
         else:
