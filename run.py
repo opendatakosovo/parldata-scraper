@@ -167,16 +167,27 @@ def scrape(countries, people, votes):
                     # #     post_data("events", events)
                     # # else:
                     # #     print "\tThere's not any event to post from %s parliament" % item
-                    # motions = references[item.lower()].motions()
-                    # if len(motions) > 0:
-                    #     post_data("motions", motions)
-                    # else:
-                    #     print "\tThere's not any motion to post from %s parliament" % item
-                    vote_events = references[item.lower()].vote_events()
-                    if len(vote_events) > 0:
-                        post_data("vote-events", vote_events)
+                    motions, vote_events = references[item.lower()].vote_events()
+                    if len(motions) > 0:
+                        print "\n\tPosting Motions data from %s parliament" % item
+                        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+                        pbar = ProgressBar(widgets=widgets)
+                        for motion in pbar(motions):
+                            vpapi.post("motions", motion)
                     else:
-                        print "\tThere's not any event to post from %s parliament" % item
+                        print "\tThere's not any motion to post from %s parliament" % item
+
+                    if len(vote_events) > 0:
+                        print "\n\tPosting Vote Events data from %s parliament" % item
+                        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+                        pbar = ProgressBar(widgets=widgets)
+                        for vote_event in pbar(vote_events):
+                            print vote_event
+                            vpapi.post("vote-events", vote_event)
+                    else:
+                        print "\tThere's not any vote event to post from %s parliament" % item
 
                     # votes = references[item.lower()].scrape_votes()
                     # try:

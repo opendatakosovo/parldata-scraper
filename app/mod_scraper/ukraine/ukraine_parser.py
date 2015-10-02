@@ -736,7 +736,7 @@ class UkraineParser():
         else:
             index = 0
         if len(events_list[index:]) > 0:
-            for event in pbar(events_list[index:110]):
+            for event in pbar(events_list[index:157]):
                 if event['term'] != "9":
                     url_plenary_session = event['url']
                     parsed_url = urlparse.urlparse(url_plenary_session)
@@ -896,10 +896,15 @@ class UkraineParser():
         }
 
     def scrape_voting_records(self):
-        soup = self.download_html_file("http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_arh_golos?g_id=18503&n_skl=3")
-        print soup.find("li", {"id": "00"}).prettify()
-        # for each_li in soup.find("li", {"id": "00"}).find("ul", {'class': "fr"}).find("ul", {'class': "frd"}).findAll('li'):
-        #     print each_li.prettify()
+        sys.setrecursionlimit(100000000)
+        soup = self.download_html_file("http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_arh_golos?g_id=768603&n_skl=3")
+        all_votes = soup.findAll('div', {"class": "golos"})
+        counter = 0
+        for each_li in soup.findAll('div', {"class": "dep"}):
+            print all_votes[counter].prettify()
+            print each_li.prettify()
+            print "------------------------------------------>"
+            counter += 1
         motions = {}
         all_motions = vpapi.getall("motions")
         for motion in all_motions:

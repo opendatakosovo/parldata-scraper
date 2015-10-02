@@ -137,27 +137,38 @@ class UkraineScraper():
         }
         return json_doc
 
-    def vote_events(self):
-        print "\n\n\tScraping Vote Events data from Ukraine's parliament..."
-        vote_events = parser.vote_events_list("vote-events", '-start_date')
-        last_event = vpapi.getfirst("vote-events", sort='-start_date')
+    def get_index(self, collection, sort, vote_events):
+        last_event = vpapi.getfirst(collection, sort=sort)
         if last_event:
             index = next(index for (index, d) in enumerate(vote_events) if d["identifier"] == last_event['identifier']) + 1
         else:
             index = 0
-        print index
+        return index
+
+    def vote_events(self):
+        print "\n\n\tScraping Motions and Vote Events data from Ukraine's parliament..."
+        vote_events = parser.vote_events_list("vote-events", '-start_date')
+        index_vote_events = self.get_index("vote-events", "-start_date", vote_events)
         voting_events = []
-        for vote_event in vote_events[index:]:
+        for vote_event in vote_events[index_vote_events:]:
             vote_event_json = vote_event
             del vote_event_json['text']
             del vote_event_json['sources']
             del vote_event_json['date']
             voting_events.append(vote_event_json)
-        if len(voting_events) > 0:
-            print "\n\tScraping completed! \n\tScraped " + str(len(voting_events)) + " vote events"
+
+        motions = []
+        for motion in vote_events[index_vote_events:]:
+            json_motion = motion
+            del json_motion['counts']
+            del json_motion['motion_id']
+            del json_motion['start_date']
+            motions.append(json_motion)
+        if len(voting_events) > 0 and len(motions) > 0:
+            print "\n\tScraping completed! \n\tScraped " + str(len(voting_events)) + "motions and vote events"
         else:
-            print "\n\tThere are no new motions."
-        return voting_events
+            print "\n\tThere are no new motions or vote events."
+        return (motions, voting_events)
 
     def scrape_votes(self):
         parser.scrape_voting_records()
@@ -178,6 +189,7 @@ class UkraineScraper():
             del json_motion['motion_id']
             del json_motion['start_date']
             motions.append(json_motion)
+            vpapi.post("vote-events", json_motion)
         if len(motions) > 0:
             print "\n\tScraping completed! \n\tScraped " + str(len(motions)) + " motions"
         else:
