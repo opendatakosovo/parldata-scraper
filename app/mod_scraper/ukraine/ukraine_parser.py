@@ -11,6 +11,8 @@ import urlparse
 import re
 import vpapi
 import dateutil.parser
+from time import sleep
+import sys
 
 scrape = scraper.Scraper()
 
@@ -32,12 +34,24 @@ class UkraineParser():
     }
 
     def download_html_file(self, url, encoding_type=None):
-        response = requests.get(url)
-        if encoding_type:
-            response.encoding = "utf-8"
-        html_content = response.text
-        soup = BeautifulSoup(html_content, 'html.parser')
+        try:
+            while True:
+                response = requests.get(url)
+                if response.status_code == 200:
+                    response = requests.get(url)
+                    if encoding_type:
+                        response.encoding = "utf-8"
+                    html_content = response.text
+                    soup = BeautifulSoup(html_content, 'html.parser')
+                    break
+                else:
+                    print "Connection timeout"
+        except Exception as ex:
+            print ex.message
+
         return soup
+
+
 
     def local_to_utc(self, dt_str):
         dt = dateutil.parser.parse(dt_str, dayfirst=True)
@@ -721,8 +735,8 @@ class UkraineParser():
             index = next(index for (index, d) in enumerate(events_list) if d["identifier"] == last_event['legislative_session_id'])
         else:
             index = 0
-        if len(events_list) > 0:
-            for event in pbar(events_list[index:20]):
+        if len(events_list[index:]) > 0:
+            for event in pbar(events_list[index:110]):
                 if event['term'] != "9":
                     url_plenary_session = event['url']
                     parsed_url = urlparse.urlparse(url_plenary_session)
@@ -880,6 +894,24 @@ class UkraineParser():
             "Член Комітету": "member",
             "Голова підкомітету": "subcommittee-chairman"
         }
+
+    def scrape_voting_records(self):
+        soup = self.download_html_file("http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_arh_golos?g_id=18503&n_skl=3")
+        print soup.find("li", {"id": "00"}).prettify()
+        # for each_li in soup.find("li", {"id": "00"}).find("ul", {'class': "fr"}).find("ul", {'class': "frd"}).findAll('li'):
+        #     print each_li.prettify()
+        motions = {}
+        all_motions = vpapi.getall("motions")
+        for motion in all_motions:
+            motions[motion['date']] = {
+                "url": motion['sources'][0]['url'],
+                "identifier": motion['identifier']
+            }
+
+        # for motion in sorted(motions):
+        #     url = motions[motion]['url']
+            # print self.download_html_file(url)
+            # print soup
 
     def mps_list(self):
         roles = self.membership_correction()
