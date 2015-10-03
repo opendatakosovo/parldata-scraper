@@ -35,25 +35,6 @@ class UkraineScraper():
         print "\n\tScraping completed! \n\tScraped " + str(len(members)) + " members"
         return members
 
-    def test_date_sort(self):
-        date_list = [
-            {
-                "date": "1998-09-19T17:55:00",
-                "name": "DATA E PARE"
-            },
-            {
-                "date": "1998-01-19T17:55:00",
-                "name": "DATA E PARE"
-            },
-            {
-                "date": "1998-06-19T17:55:00",
-                "name": "DATA E PARE"
-            }
-        ]
-        sorted_vote_events = sorted(date_list, key=itemgetter('date'))
-        print sorted_vote_events
-        return sorted_vote_events
-
     def scrape_committee(self):
         print "\n\tScraping committee groups from Ukraine's parliament...\n"
         committee_list = parser.committees()
@@ -145,30 +126,86 @@ class UkraineScraper():
             index = 0
         return index
 
+
+    def build_vote_event_json(self, start_date, event_id, motion_id, organization_id, result, counts):
+        json_doc = {
+            "start_date": start_date,
+            "id": motion_id,
+            "identifier": motion_id,
+            "legislative_session_id": event_id,
+            "motion_id": motion_id,
+            "organization_id": organization_id,
+            "result": result,
+            "counts": counts
+        }
+        return json_doc
+
+    def build_json_motion(self, date, url, motion_id, event_id, organization_id, name, result):
+        json_doc = {
+            "date": date,
+            "sources": [{
+                "url": url,
+                "note": "веб-сайт"
+            }],
+            "id": motion_id,
+            "identifier": motion_id,
+            "legislative_session_id": event_id,
+            "organization_id": organization_id,
+            "text": name,
+            "result": result
+        }
+        return json_doc
+
     def vote_events(self):
         print "\n\n\tScraping Motions and Vote Events data from Ukraine's parliament..."
-        vote_events = parser.vote_events_list("vote-events", '-start_date')
-        index_vote_events = self.get_index("vote-events", "-start_date", vote_events)
+        vote_events = parser.vote_events_list()
+        index_vote_events = self.get_index("vote-events", '-start_date', vote_events)
+        index_motions = self.get_index("motions", '-date', vote_events)
         voting_events = []
-        for vote_event in vote_events[index_vote_events:]:
-            vote_event_json = vote_event
-            del vote_event_json['text']
-            del vote_event_json['sources']
-            del vote_event_json['date']
-            voting_events.append(vote_event_json)
-
         motions = []
-        for motion in vote_events[index_vote_events:]:
-            json_motion = motion
-            del json_motion['counts']
-            del json_motion['motion_id']
-            del json_motion['start_date']
-            motions.append(json_motion)
-        if len(voting_events) > 0 and len(motions) > 0:
-            print "\n\tScraping completed! \n\tScraped " + str(len(voting_events)) + "motions and vote events"
+        if len(vote_events) > 0:
+
+            print "\n\n\tPosting Motions data to the Visegrad+ API from Ukraine's parliament..."
+            widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                       ' ', ETA(), " - Processed: ", Counter(), ' motions             ']
+            pbar = ProgressBar(widgets=widgets)
+            if len(vote_events[index_motions:]) > 0:
+                for motion in pbar(vote_events[index_motions:]):
+                    json_motion = self.build_json_motion(motion['date'], motion['sources'][0]['url'],
+                                                         motion['id'], motion['legislative_session_id'],
+                                                         motion['organization_id'], motion['text'],
+                                                         motion['result'])
+                    motions.append(json_motion)
+                    existing = vpapi.getfirst("motions", where={"identifier": json_motion['identifier']})
+                    if not existing:
+                        vpapi.post("motions", json_motion)
+                    else:
+                        continue
+                print "\n\tFinished posting motion data."
+            else:
+                print "\n\tThere are no new motion data."
+
+            print "\n\n\tPosting Vote events data to the Visegrad+ API from Ukraine's parliament..."
+            widgets1 = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                        ' ', ETA(), " - Processed: ", Counter(), ' vote events             ']
+            pbar1 = ProgressBar(widgets=widgets1)
+            if len(vote_events[index_vote_events:]) > 0:
+                for vote_events in pbar1(vote_events[index_vote_events:]):
+                    json_vote_event = self.build_vote_event_json(vote_events['date'], vote_events['legislative_session_id'],
+                                                                 vote_events['id'], vote_events['organization_id'],
+                                                                 vote_events['result'], vote_events['counts'])
+                    voting_events.append(json_vote_event)
+                    existing1 = vpapi.getfirst("vote-events", where={"id": json_vote_event['id']})
+                    if not existing1:
+                        vpapi.post("vote-events", json_vote_event)
+                    else:
+                        continue
+                print "\n\tFinished posting vote events data."
+            else:
+                print "\n\tThere are no new vote events data."
         else:
             print "\n\tThere are no new motions or vote events."
-        return (motions, voting_events)
+        return motions, voting_events
 
     def scrape_votes(self):
         parser.scrape_voting_records()

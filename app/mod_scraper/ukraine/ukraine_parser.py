@@ -604,8 +604,10 @@ class UkraineParser():
         time = date_time_list[1]
         date_list = date.split('.')
         date_str = date_list[2] + "-" + date_list[1] + "-" + date_list[0]
-        date_time_str = date_str + "T" + time.strip() + ":00"
-        return date_time_str
+        date_time_str = date_str + "T" + time.strip()
+        if len(date_time_str) < 20:
+            date_time_str += ":00"
+        return str(date_time_str)
 
     def build_json_motion(self, date_text, url, motion_id, event_id, organization_id, name, result, yes_counts,
                           no_counts, abstain_counts, absent_counts):
@@ -720,7 +722,7 @@ class UkraineParser():
                 chamber_motions.append(json_motion)
         return chamber_motions
 
-    def vote_events_list(self, data_collection, sort):
+    def vote_events_list(self):
         vote_event_list = []
         chambers = {}
         all_chambers = vpapi.getall("organizations", where={'classification': 'chamber'})
@@ -730,13 +732,20 @@ class UkraineParser():
                    ' ', ETA(), " - Processed: ", Counter(), ' events             ']
         pbar = ProgressBar(widgets=widgets)
         events_list = self.events_list()
-        last_event = vpapi.getfirst(data_collection, sort=sort)
-        if last_event:
-            index = next(index for (index, d) in enumerate(events_list) if d["identifier"] == last_event['legislative_session_id'])
+        last_event_motion = vpapi.getfirst("motions", sort="-date")
+        if last_event_motion:
+            index_motion = next(index for (index, d) in enumerate(events_list) if d["identifier"] == last_event_motion['legislative_session_id'])
         else:
-            index = 0
+            index_motion = 0
+        last_event = vpapi.getfirst("vote-events", sort="-start_date")
+        if last_event:
+            index_event = next(index for (index, d) in enumerate(events_list) if d["identifier"] == last_event['legislative_session_id'])
+        else:
+            index_event = 0
+
+        index = min(index_motion, index_event)
         if len(events_list[index:]) > 0:
-            for event in pbar(events_list[index:157]):
+            for event in pbar(events_list[index:6]):
                 if event['term'] != "9":
                     url_plenary_session = event['url']
                     parsed_url = urlparse.urlparse(url_plenary_session)

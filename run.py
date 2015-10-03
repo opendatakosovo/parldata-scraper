@@ -168,26 +168,38 @@ def scrape(countries, people, votes):
                     # # else:
                     # #     print "\tThere's not any event to post from %s parliament" % item
                     motions, vote_events = references[item.lower()].vote_events()
-                    if len(motions) > 0:
-                        print "\n\tPosting Motions data from %s parliament" % item
-                        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
-                        pbar = ProgressBar(widgets=widgets)
-                        for motion in pbar(motions):
-                            vpapi.post("motions", motion)
-                    else:
-                        print "\tThere's not any motion to post from %s parliament" % item
-
-                    if len(vote_events) > 0:
-                        print "\n\tPosting Vote Events data from %s parliament" % item
-                        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                                   ' ', ETA(), " - Processed: ", Counter(), ' items             ']
-                        pbar = ProgressBar(widgets=widgets)
-                        for vote_event in pbar(vote_events):
-                            print vote_event
-                            vpapi.post("vote-events", vote_event)
-                    else:
-                        print "\tThere's not any vote event to post from %s parliament" % item
+                    # import pprint
+                    # pprint.pprint(motions)
+                    # print "=====================================================================>"
+                    # pprint.pprint(vote_events)
+                    # post_data("motions", motions)
+                    # post_data("vote-events", vote_events)
+                    # import pprint
+                    # for motion in motions:
+                    #     pprint.pprint(motion)
+                    # print "------------------------->"
+                    # for vote_event in vote_events:
+                    #     pprint.pprint(vote_event)
+                    # if len(motions) > 0:
+                    #     print "\n\tPosting Motions data from %s parliament" % item
+                    #     widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                    #                ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+                    #     pbar = ProgressBar(widgets=widgets)
+                    #     for motion in pbar(motions):
+                    #         vpapi.post("motions", motion)
+                    # else:
+                    #     print "\tThere's not any motion to post from %s parliament" % item
+                    #
+                    # if len(vote_events) > 0:
+                    #     print "\n\tPosting Vote Events data from %s parliament" % item
+                    #     widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                    #                ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+                    #     pbar = ProgressBar(widgets=widgets)
+                    #     for vote_event in pbar(vote_events):
+                    #         print vote_event
+                    #         vpapi.post("vote-events", vote_event)
+                    # else:
+                    #     print "\tThere's not any vote event to post from %s parliament" % item
 
                     # votes = references[item.lower()].scrape_votes()
                     # try:
