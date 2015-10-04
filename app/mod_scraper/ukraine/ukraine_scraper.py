@@ -161,48 +161,42 @@ class UkraineScraper():
         vote_events = parser.vote_events_list()
         index_vote_events = self.get_index("vote-events", '-start_date', vote_events)
         index_motions = self.get_index("motions", '-date', vote_events)
+        index = min(index_vote_events, index_motions)
         voting_events = []
         motions = []
         if len(vote_events) > 0:
 
-            print "\n\n\tPosting Motions data to the Visegrad+ API from Ukraine's parliament..."
-            widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                       ' ', ETA(), " - Processed: ", Counter(), ' motions             ']
-            pbar = ProgressBar(widgets=widgets)
-            if len(vote_events[index_motions:]) > 0:
-                for motion in pbar(vote_events[index_motions:]):
-                    json_motion = self.build_json_motion(motion['date'], motion['sources'][0]['url'],
+            print "\n\n\tPosting Motions and Vote events data to the Visegrad+ API from Ukraine's parliament..."
+            if len(vote_events[index:]) > 0:
+                for motion in vote_events[index:]:
+                    json_motion = self.build_json_motion(motion['date'][:19], motion['sources'][0]['url'],
                                                          motion['id'], motion['legislative_session_id'],
                                                          motion['organization_id'], motion['text'],
                                                          motion['result'])
                     motions.append(json_motion)
                     existing = vpapi.getfirst("motions", where={"identifier": json_motion['identifier']})
                     if not existing:
+                        pprint.pprint(json_motion)
+                        print "--------------------------->"
                         vpapi.post("motions", json_motion)
                     else:
                         continue
-                print "\n\tFinished posting motion data."
-            else:
-                print "\n\tThere are no new motion data."
 
-            print "\n\n\tPosting Vote events data to the Visegrad+ API from Ukraine's parliament..."
-            widgets1 = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                        ' ', ETA(), " - Processed: ", Counter(), ' vote events             ']
-            pbar1 = ProgressBar(widgets=widgets1)
-            if len(vote_events[index_vote_events:]) > 0:
-                for vote_events in pbar1(vote_events[index_vote_events:]):
-                    json_vote_event = self.build_vote_event_json(vote_events['date'], vote_events['legislative_session_id'],
-                                                                 vote_events['id'], vote_events['organization_id'],
-                                                                 vote_events['result'], vote_events['counts'])
+                    json_vote_event = self.build_vote_event_json(motion['date'][:19], motion['legislative_session_id'],
+                                                                 motion['id'], motion['organization_id'],
+                                                                 motion['result'], motion['counts'])
                     voting_events.append(json_vote_event)
                     existing1 = vpapi.getfirst("vote-events", where={"id": json_vote_event['id']})
                     if not existing1:
+                        pprint.pprint(json_vote_event)
+                        print "--------------------------->"
                         vpapi.post("vote-events", json_vote_event)
                     else:
                         continue
-                print "\n\tFinished posting vote events data."
+                print "\n\tFinished posting motions and vote events data."
+                print "\tScraped %s motions and vote events" % str(len(vote_events[index:]) * 2)
             else:
-                print "\n\tThere are no new vote events data."
+                print "\n\tThere are no new motion and vote events data."
         else:
             print "\n\tThere are no new motions or vote events."
         return motions, voting_events
