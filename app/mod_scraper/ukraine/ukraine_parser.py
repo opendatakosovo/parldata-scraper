@@ -745,7 +745,7 @@ class UkraineParser():
 
         index = min(index_motion, index_event)
         if len(events_list[index:]) > 0:
-            for event in pbar(events_list[index:200]):
+            for event in pbar(events_list[index:]):
                 if event['term'] != "9":
                     url_plenary_session = event['url']
                     parsed_url = urlparse.urlparse(url_plenary_session)

@@ -89,11 +89,10 @@ class UkraineScraper():
         terms = parser.chambers()
         mps_list = parser.mps_list()
         chambers_membership = []
-
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
                    ' ', ETA(), " - Processed: ", Counter(), ' items             ']
         pbar = ProgressBar(widgets=widgets)
-        for member in pbar(mps_list[900:]):
+        for member in pbar(mps_list):
             if member['name'] in members:
                 p_id = members[member['name']]
                 o_id = chambers[member['term']]
@@ -165,10 +164,12 @@ class UkraineScraper():
         voting_events = []
         motions = []
         if len(vote_events) > 0:
-
             print "\n\n\tPosting Motions and Vote events data to the Visegrad+ API from Ukraine's parliament..."
             if len(vote_events[index:]) > 0:
-                for motion in vote_events[index:]:
+                widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                           ' ', ETA(), " - Processed: ", Counter(), ' events             ']
+                pbar = ProgressBar(widgets=widgets)
+                for motion in pbar(vote_events[index:]):
                     json_motion = self.build_json_motion(motion['date'][:19], motion['sources'][0]['url'],
                                                          motion['id'], motion['legislative_session_id'],
                                                          motion['organization_id'], motion['text'],
@@ -176,8 +177,6 @@ class UkraineScraper():
                     motions.append(json_motion)
                     existing = vpapi.getfirst("motions", where={"identifier": json_motion['identifier']})
                     if not existing:
-                        pprint.pprint(json_motion)
-                        print "--------------------------->"
                         vpapi.post("motions", json_motion)
                     else:
                         continue
@@ -188,8 +187,6 @@ class UkraineScraper():
                     voting_events.append(json_vote_event)
                     existing1 = vpapi.getfirst("vote-events", where={"id": json_vote_event['id']})
                     if not existing1:
-                        pprint.pprint(json_vote_event)
-                        print "--------------------------->"
                         vpapi.post("vote-events", json_vote_event)
                     else:
                         continue
@@ -203,29 +200,6 @@ class UkraineScraper():
 
     def scrape_votes(self):
         parser.scrape_voting_records()
-
-    def motions(self):
-        print "\n\n\tScraping Motions data from Ukraine's parliament..."
-        vote_events = parser.vote_events_list("motions", '-date')
-        last_event = vpapi.getfirst("motions", sort='-date')
-        if last_event:
-            index = next(index for (index, d) in enumerate(vote_events) if d["identifier"] == last_event['identifier']) + 1
-        else:
-            index = 0
-        print index
-        motions = []
-        for motion in vote_events[index:]:
-            json_motion = motion
-            del json_motion['counts']
-            del json_motion['motion_id']
-            del json_motion['start_date']
-            motions.append(json_motion)
-            vpapi.post("vote-events", json_motion)
-        if len(motions) > 0:
-            print "\n\tScraping completed! \n\tScraped " + str(len(motions)) + " motions"
-        else:
-            print "\n\tThere are no new motions."
-        return motions
 
     def scrape_events(self):
         print "\n\tScraping events from Ukraine's parliament..."
