@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from progressbar import ProgressBar, Percentage, ETA, Counter, Bar
+from datetime import date
 import vpapi
 import ukraine_parser
 from operator import itemgetter
@@ -198,6 +199,33 @@ class UkraineScraper():
             print "\n\tThere are no new motions or vote events."
         return motions, voting_events
 
+    def effective_date(self):
+        return date.today().isoformat()
+
+    def update_motion_url(self):
+        print "\n\tUpdating url of motions"
+        motions = vpapi.getall("motions")
+        counter = 0
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' events             ']
+        pbar = ProgressBar(widgets=widgets)
+        for motion in motions:
+            counter += 1
+            sources = motion['sources']
+            url = sources[0]['url']
+            print(str(counter))
+            if "http://w1.c1.rada.gov.ua" not in url:
+                motion_id = motion['id']
+                motion['sources'][0]['url'] = "http://w1.c1.rada.gov.ua" + url
+                items_to_delete = ["created_at", "updated_at", "_links", "id"]
+                for item_delete in items_to_delete:
+                    del motion[item_delete]
+                vpapi.put("motions", motion_id, motion, effective_date=self.effective_date())
+            else:
+                continue
+        print "\n\tFinished updating motions url"
+
+
     def scrape_votes(self):
         parser.scrape_voting_records()
 
@@ -235,8 +263,7 @@ class UkraineScraper():
         print "\n\tScraping committee groups membership from Ukraine's parliament...\n"
         committee_membership = parser.committee_membership()
         memberships = []
-        for member in committee_membership[740:]:
-            # person_id, organization_id, label, role, url
+        for member in committee_membership:
             committee_membership_json = self.build_memberships_doc(member['person_id'], member['organization_id'],
                                                                    member['membership'], member['role'], member['url'])
             if not member['role']:

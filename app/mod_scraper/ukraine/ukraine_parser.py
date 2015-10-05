@@ -38,11 +38,11 @@ class UkraineParser():
             while True:
                 response = requests.get(url)
                 if response.status_code == 200:
+                    soup = self.get_response_from_url(response, encoding_type)
+                    break
+                elif response.status_code == 301:
                     response = requests.get(url)
-                    if encoding_type:
-                        response.encoding = "utf-8"
-                    html_content = response.text
-                    soup = BeautifulSoup(html_content, 'html.parser')
+                    soup = self.get_response_from_url(response, encoding_type)
                     break
                 else:
                     print "Connection timeout"
@@ -51,7 +51,12 @@ class UkraineParser():
 
         return soup
 
-
+    def get_response_from_url(self, response, encoding_type=None ):
+        if encoding_type:
+            response.encoding = "utf-8"
+        html_content = response.text
+        soup = BeautifulSoup(html_content, 'html.parser')
+        return soup
 
     def local_to_utc(self, dt_str):
         dt = dateutil.parser.parse(dt_str, dayfirst=True)
@@ -664,6 +669,8 @@ class UkraineParser():
                         date_text = each_li_vote_event.find('div', {"class": "fr_data"}).get_text()
                         name = each_li_vote_event.find('div', {"class": "fr_nazva"}).find('a').get_text()
                         url = each_li_vote_event.find('div', {"class": "fr_nazva"}).find('a').get("href")
+                        if "http://w1.c1.rada.gov.ua" not in url:
+                            url = "http://w1.c1.rada.gov.ua" + url
                         parsed_url = urlparse.urlparse(url)
                         motion_id = urlparse.parse_qs(parsed_url.query)['g_id'][0]
                         passed_status = each_li_vote_event.find('div', {"class": "fr_nazva"}).find('center').find('font').get_text().strip()
@@ -906,26 +913,36 @@ class UkraineParser():
 
     def scrape_voting_records(self):
         sys.setrecursionlimit(100000000)
-        soup = self.download_html_file("http://w1.c1.rada.gov.ua/pls/radan_gs09/ns_arh_golos?g_id=768603&n_skl=3")
-        all_votes = soup.findAll('div', {"class": "golos"})
-        counter = 0
-        for each_li in soup.findAll('div', {"class": "dep"}):
-            print all_votes[counter].prettify()
-            print each_li.prettify()
-            print "------------------------------------------>"
-            counter += 1
+        print "\n\tScraping voting results data from Ukraine's parliament."
+        chambers = {}
+        all_chambers = vpapi.getall("organizations", where={"classification": "chamber"})
+        for chamber in all_chambers:
+            chambers[chamber['id']] = chamber['identifiers'][0]['identifier']
         motions = {}
         all_motions = vpapi.getall("motions")
         for motion in all_motions:
             motions[motion['date']] = {
                 "url": motion['sources'][0]['url'],
-                "identifier": motion['identifier']
+                "identifier": motion['identifier'],
+                "term": chambers[motion['organization_id']],
+                "organization_id": motion['organization_id']
             }
-
-        # for motion in sorted(motions):
-        #     url = motions[motion]['url']
-            # print self.download_html_file(url)
-            # print soup
+        counter_all = 0
+        for motion in sorted(motions):
+            url = motions[motion]['url']
+            print url
+            print motions[motion]['term']
+            soup = self.download_html_file(url)
+            counter = 0
+            for each_li in soup.findAll('div', {"class": "dep"}):
+                counter_all += 1
+                all_votes = soup.findAll('div', {"class": "golos"})
+                print all_votes[counter].prettify()
+                print each_li.prettify()
+                print str(counter_all)
+                print "------------------------------------------------->"
+                counter += 1
+        print '======>====>===>=>>'
 
     def mps_list(self):
         roles = self.membership_correction()
