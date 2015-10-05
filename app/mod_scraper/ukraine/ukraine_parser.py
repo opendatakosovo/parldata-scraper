@@ -914,6 +914,7 @@ class UkraineParser():
     def scrape_voting_records(self):
         sys.setrecursionlimit(100000000)
         print "\n\tScraping voting results data from Ukraine's parliament."
+        print "\tPlease wait. This may take a few moments...\n"
         chambers = {}
         all_chambers = vpapi.getall("organizations", where={"classification": "chamber"})
         for chamber in all_chambers:
@@ -927,7 +928,19 @@ class UkraineParser():
                 "term": chambers[motion['organization_id']],
                 "organization_id": motion['organization_id']
             }
+
+        members = {}
+        all_members = vpapi.getall("people")
+        for member in all_members:
+            name = member['name']
+            name_list = name.split(" ")
+            name_ordered = name_list[2] + " " + name_list[0][:1] + "." + name_list[1][:1] + "."
+            members[name_ordered] = member['id']
         counter_all = 0
+        vote_correction = {
+            "За": "yes",
+            "Не голосував": "no",
+        }
         for motion in sorted(motions):
             url = motions[motion]['url']
             print url
@@ -937,8 +950,11 @@ class UkraineParser():
             for each_li in soup.findAll('div', {"class": "dep"}):
                 counter_all += 1
                 all_votes = soup.findAll('div', {"class": "golos"})
-                print all_votes[counter].prettify()
-                print each_li.prettify()
+                print all_votes[counter].get_text().strip()
+                name = each_li.get_text().strip()
+                print each_li.get_text().strip()
+                if name in members:
+                    print members[name]
                 print str(counter_all)
                 print "------------------------------------------------->"
                 counter += 1
