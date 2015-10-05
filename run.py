@@ -162,12 +162,37 @@ def scrape(countries, people, votes):
                     #         print "\n\tThere is no data from %s membership data collection\n" % data_collection
                     #         continue
                 if votes == "yes":
-                    # # events = references[item.lower()].scrape_events()
-                    # # if len(events) > 0:
-                    # #     post_data("events", events)
-                    # # else:
-                    # #     print "\tThere's not any event to post from %s parliament" % item
-                    motions, vote_events = references[item.lower()].vote_events()
+                    if item.lower() == "ukraine":
+                        events = references[item.lower()].scrape_events()
+                        if len(events) > 0:
+                            post_data("events", events)
+                        else:
+                            print "\tThere's not any event to post from %s parliament" % item
+                        motions_vote_events = references[item.lower()].vote_events()
+                    elif item.lower == "georgia":
+                        voting_data_collections = {
+                            "motions": references[item.lower()].motions(),
+                            "vote-events": references[item.lower()].vote_events(),
+                        }
+
+                        for collection in voting_data_collections:
+                            try:
+                                if len(voting_data_collections[collection]) > 0:
+                                    resp = vpapi.post(collection, voting_data_collections[collection])
+                                    if resp["_status"] != "OK":
+                                        raise Exception("Invalid status code")
+                                    print "\n\tFinished Posting and updating data from %s data collection" % collection
+                            except BaseException as ex:
+                                print ex.message
+
+                        votes = references[item.lower()].scrape_votes()
+                        try:
+                            if len(votes) > 0:
+                                vpapi.post("votes", votes)
+                        except BaseException as ex:
+                            print ex.message
+                    else:
+                        print "\tThere are no voting records for %s" % item
                     # import pprint
                     # pprint.pprint(motions)
                     # print "=====================================================================>"

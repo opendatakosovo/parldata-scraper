@@ -47,15 +47,6 @@ class BelarusUpperhouseScraper():
     def scrape_parliamentary_group_membership(self):
         return []
 
-    def motions(self):
-        return []
-
-    def events(self):
-        return []
-
-    def vote_events(self):
-        return []
-
     def scrape_committee_members(self):
         print "\n\tScraping committee groups from Belarus Upperhouse parliament...\n"
         members = {}

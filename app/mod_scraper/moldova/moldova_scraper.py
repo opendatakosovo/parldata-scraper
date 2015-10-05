@@ -214,16 +214,6 @@ class MoldovaScraper():
             members.append(member_json)
         print "\n\tScraping completed! \n\tScraped " + str(len(members)) + " members"
         return members
-        # print "Scraped %s members" % str(counter)
-
-    def motions(self):
-        return []
-
-    def events(self):
-        return []
-
-    def vote_events(self):
-        return []
 
     def committee_list(self):
         committee_list = []

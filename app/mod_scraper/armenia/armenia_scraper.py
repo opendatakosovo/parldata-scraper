@@ -471,15 +471,6 @@ class ArmeniaScraper():
                     committee_list.append(committee_json)
         return committee_list
 
-    def motions(self):
-        return []
-
-    def events(self):
-        return []
-
-    def vote_events(self):
-        return []
-
     def scrape_committee(self):
         print "\n\tScraping committee groups from Armenia's parliament..."
         committees = self.committee_list()
