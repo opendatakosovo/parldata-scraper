@@ -202,6 +202,16 @@ class UkraineScraper():
     def effective_date(self):
         return date.today().isoformat()
 
+    def test(self):
+        last_motion = vpapi.get("votes")
+        if len(last_motion['_items']) > 0:
+            last_motion_page_text = last_motion['_links']['last']['href']
+            index = last_motion_page_text.index("page=") + 5
+            last_motion_page = last_motion_page_text[index:]
+            pprint.pprint(last_motion_page)
+        else:
+            print "NO events"
+
     def update_motion_url(self):
         print "\n\tUpdating url of motions"
         motions = vpapi.getall("motions")

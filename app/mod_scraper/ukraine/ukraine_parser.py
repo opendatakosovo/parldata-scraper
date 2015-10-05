@@ -919,15 +919,28 @@ class UkraineParser():
         all_chambers = vpapi.getall("organizations", where={"classification": "chamber"})
         for chamber in all_chambers:
             chambers[chamber['id']] = chamber['identifiers'][0]['identifier']
-        motions = {}
+        motions = []
         all_motions = vpapi.getall("motions")
         for motion in all_motions:
-            motions[motion['date']] = {
+            json_motion = {
+                "start_date": motion['date'],
                 "url": motion['sources'][0]['url'],
                 "identifier": motion['identifier'],
                 "term": chambers[motion['organization_id']],
                 "organization_id": motion['organization_id']
             }
+            motions.append(json_motion)
+
+        parliamentary_groups = {}
+        for chamber in chambers:
+            parliamentary_groups[chambers[chamber]] = {}
+            all_parties = vpapi.getall("organizations", where={"classification": "parliamentary group", "parent_id": chamber})
+            for party in all_parties:
+                members_of_party = vpapi.getall("memberships", where={'organization_id': party['id']})
+                for person in members_of_party:
+                    parliamentary_groups[chambers[chamber]][person['person_id']] = party['id']
+
+        pprint.pprint(parliamentary_groups)
 
         members = {}
         all_members = vpapi.getall("people")
@@ -939,26 +952,82 @@ class UkraineParser():
         counter_all = 0
         vote_correction = {
             "За": "yes",
-            "Не голосував": "no",
+            "Проти": "no",
+            "Відсутня": "absent",
+            "Утримався": "abstain",
+            "Утрималась": "abstain",
+            "Не голосував": "not voting",
+            "Не голосувала": "not voting",
+            "Не голосував*": "not voting",
+            "Відсутній": "absent"
         }
-        for motion in sorted(motions):
-            url = motions[motion]['url']
+        votes = []
+
+        last_motion = vpapi.get("votes")
+        if len(last_motion['_items']) > 0:
+            last_motion_page_text = last_motion['_links']['last']['href']
+            index = last_motion_page_text.index("page=") + 5
+            last_motion_page = last_motion_page_text[index:]
+        else:
+            last_motion_page = None
+
+        if last_motion_page:
+            last_page_motions = vpapi.getall("votes", page=last_motion_page)
+            last_page_motions_list = []
+            for motion in last_page_motions:
+                last_page_motions_list.append(motion['id'])
+            index_start = next(index for (index, d) in enumerate(motions) if d["identifier"] == last_page_motions_list[-1]) + 1
+
+        else:
+            index_start = 0
+
+        for motion in sorted(motions[1114:1116]):
+            url = motion['url']
             print url
-            print motions[motion]['term']
+            chamber = motion['term']
+            vote_event_id = motion['identifier']
+            print chamber + "\n\n"
             soup = self.download_html_file(url)
             counter = 0
             for each_li in soup.findAll('div', {"class": "dep"}):
                 counter_all += 1
                 all_votes = soup.findAll('div', {"class": "golos"})
-                print all_votes[counter].get_text().strip()
+                option_text = all_votes[counter].get_text().strip()
+                option = vote_correction[option_text.encode('utf-8')]
                 name = each_li.get_text().strip()
-                print each_li.get_text().strip()
                 if name in members:
-                    print members[name]
+                    p_id = members[name]
+                else:
+                    p_id = None
+                if p_id:
+                    json_vote = {
+                        "vote_event_id": vote_event_id,
+                        "option": option,
+                        "voter_id": p_id
+                    }
+                    if p_id in parliamentary_groups[chamber]:
+                        o_id = parliamentary_groups[chamber][p_id]
+                        print o_id
+                    else:
+                        o_id = None
+                    if o_id:
+                        json_vote['group_id'] = o_id
+
+                        # existing = vpapi.getfirst("votes", where={"voter_id": p_id, "vote_event_id": vote_event_id})
+                        # if existing:
+                        #     continue
+                        # else:
+                        #     vpapi.post("votes", json_vote)
+                    print chamber
+                    pprint.pprint(json_vote)
+                    votes.append(json_vote)
                 print str(counter_all)
                 print "------------------------------------------------->"
                 counter += 1
         print '======>====>===>=>>'
+        # sorted_votes = sorted(votes, key=itemgetter('vote_event_id'))
+        # pprint.pprint(sorted_votes)
+        return votes
 
     def mps_list(self):
         roles = self.membership_correction()
