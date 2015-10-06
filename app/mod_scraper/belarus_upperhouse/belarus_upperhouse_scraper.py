@@ -37,7 +37,7 @@ class BelarusUpperhouseScraper():
             chamber_json = self.build_organization_doc("chamber", chambers[chamber]['name'], chamber,
                                                        chambers[chamber]['start_date'], chambers[chamber]['end_date'],
                                                        chambers[chamber]['url'], "", "")
-            if chambers[chamber]["end_date"]:
+            if len(chambers[chamber]["end_date"]) == 0:
                 del chamber_json['dissolution_date']
 
             del chamber_json['contact_details']
