@@ -926,8 +926,6 @@ class UkraineParser():
 
     def scrape_voting_records(self):
         sys.setrecursionlimit(100000000)
-        print "\n\tScraping voting results data from Ukraine's parliament."
-        print "\tPlease wait. This may take a few moments...\n"
         chambers = {}
         all_chambers = vpapi.getall("organizations", where={"classification": "chamber"})
         for chamber in all_chambers:
@@ -975,7 +973,6 @@ class UkraineParser():
         votes = []
 
         last_motion_page = self.get_last_page()
-        pprint.pprint(last_motion_page)
         if last_motion_page:
             last_page_motions = vpapi.get("votes", page=last_motion_page)
             last_page_motions_list = []
@@ -985,17 +982,14 @@ class UkraineParser():
 
         else:
             index_start = 0
-
         print index_start
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                   ' ', ETA(), " - Processed: ", Counter(), ' events             ']
+                   ' ', ETA(), " - Processed: ", Counter(), ' vote events             ']
         pbar = ProgressBar(widgets=widgets)
-        for motion in pbar(motions[index_start:5]):
+        for motion in pbar(sorted(motions[index_start:20])):
             url = motion['url']
-            print url
             chamber = motion['term']
             vote_event_id = motion['identifier']
-            print chamber + "\n\n"
             soup = self.download_html_file(url)
             counter = 0
             for each_li in soup.findAll('div', {"class": "dep"}):
@@ -1021,12 +1015,8 @@ class UkraineParser():
                         o_id = None
                     if o_id:
                         json_vote['group_id'] = o_id
-                    print chamber
                     votes.append(json_vote)
                 counter += 1
-        print '======>====>===>=>>'
-        # sorted_votes = sorted(votes, key=itemgetter('vote_event_id'))
-        # pprint.pprint(sorted_votes)
         return votes
 
     def mps_list(self):

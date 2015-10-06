@@ -251,7 +251,20 @@ class UkraineScraper():
         print "\n\tFinished updating motions url"
 
     def scrape_votes(self):
-        return parser.scrape_voting_records()
+        print "\n\tScraping voting results data from Ukraine's parliament."
+        print "\tPlease wait. This may take a few moments...\n"
+        votes = parser.scrape_voting_records()
+        votes_list = []
+        prevent_duplicates = []
+        for vote in votes:
+            voter_vote_event_id = vote['voter_id'] + vote['vote_event_id']
+            if voter_vote_event_id not in prevent_duplicates:
+                prevent_duplicates.append(voter_vote_event_id)
+                votes_list.append(vote)
+            else:
+                continue
+        print "\n\tScraping completed! \n\tScraped " + str(len(votes_list)) + " votes"
+        return votes_list
 
     def scrape_events(self):
         print "\n\tScraping events from Ukraine's parliament..."
