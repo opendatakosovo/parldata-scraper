@@ -164,20 +164,20 @@ def scrape(countries, people, votes):
                     #         continue
                 if votes == "yes":
                     if item.lower() == "ukraine":
-                        # events = references[item.lower()].scrape_events()
-                        # try:
-                        #     if len(events) > 0:
-                        #         resp = vpapi.post("events", events)
-                        #         if resp["_status"] != "OK":
-                        #             raise Exception("Invalid status code")
-                        #         print "\n\tFinished Posting and updating data from events data collection"
-                        #     else:
-                        #         print "\n\tThere are no new events"
-                        # except BaseException as ex:
-                        #     print ex.message
-                        # else:
-                        #     print "\tThere's not any event to post from %s parliament" % item
-                        # motions_vote_events = references[item.lower()].vote_events()
+                        events = references[item.lower()].scrape_events()
+                        try:
+                            if len(events) > 0:
+                                resp = vpapi.post("events", events)
+                                if resp["_status"] != "OK":
+                                    raise Exception("Invalid status code")
+                                print "\n\tFinished Posting and updating data from events data collection"
+                            else:
+                                print "\n\tThere are no new events"
+                        except BaseException as ex:
+                            print ex.message
+                        else:
+                            print "\tThere's not any event to post from %s parliament" % item
+                        motions_vote_events = references[item.lower()].vote_events()
                         voting_results = references[item.lower()].scrape_votes()
                         try:
                             if len(voting_results) > 0:

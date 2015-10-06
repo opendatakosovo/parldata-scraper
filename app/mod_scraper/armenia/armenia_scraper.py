@@ -33,7 +33,9 @@ class ArmeniaScraper():
     }
 
     def members_list(self):
+        # returns an array with json documents which every json contains basic information of a MP
         mps_list = []
+        # Iterating through every term to grab mp data
         for term in list(reversed(sorted(self.terms.keys()))):
             url = "http://www.parliament.am/deputies.php?lang=arm&sel=full&ord=alpha&show_session=" + term
             soup = scrape.download_html_file(url)
@@ -75,19 +77,21 @@ class ArmeniaScraper():
                     }
                 mps_list.append(members_json)
         return mps_list
-        # print array
 
     def mps_list(self):
+        # Returns MP list with the basic information data for each member of any chamber for Armenia's parliament.
         members_list = []
         names_deputies = []
         mps = self.members_list()
         for member in mps:
+            # Doesn't allow mp to be duplicated in the API.
             if member['name'] not in names_deputies:
                 names_deputies.append(member['name'])
                 members_list.append(member)
         return members_list
 
     def guess_gender(self, first_name):
+        # Returns gender of a member based on his/her first name.
         females = ["Հերմինե", "Հեղինե", "Մարգարիտ", "Նաիրա", "Արփինե", "Մարինե", "Ռուզաննա", "Շուշան",
                    "Կարինե", "Զարուհի", "Էլինար", "Լյուդմիլա", "Լարիսա", "Անահիտ", "Լիլիթ", "Գոհար",
                    "Ալվարդ", "Հռիփսիմե", "Հրանուշ", "Արմենուհի", "Էմմա"]
@@ -98,6 +102,7 @@ class ArmeniaScraper():
             return "male"
 
     def membership_correction(self):
+        # Returns the json document which can translate the ukrainian membership labels to english..
         return {
             "Ազգային ժողովի նախագահ": "chairman",
             "Ազգային ժողովի նախագահի տեղակալ": "vice-chairman",
@@ -109,6 +114,8 @@ class ArmeniaScraper():
         }
 
     def scrape_committee_members(self):
+        # Returns committee groups membership list with the basic information data
+        # for each member of every committee group for Armenia's parliament.
         print "\n\tScraping committee groups membership from Armenia's parliament...\n"
         committees = self.committee_list()
         committee_membership = []
@@ -163,6 +170,8 @@ class ArmeniaScraper():
         return committee_membership
 
     def scrape_parliamentary_group_membership(self):
+        # Returns parliamentary groups membership list with the basic information data
+        # for each member of every parliamentary group for Armenia's parliament.
         print "\n\tScraping parliamentary groups membership from Armenia's parliament...\n"
         chambers = {}
         groups = {}
@@ -223,6 +232,8 @@ class ArmeniaScraper():
         # print counter
 
     def scrape_membership(self):
+        # Returns chambers membership list with the basic information data
+        # for each member of every chamber for Armenia's parliament.
         print "\n\tScraping membership's data from Armenia's parliament...\n"
         mps = self.members_list()
         memberships = []
@@ -255,6 +266,7 @@ class ArmeniaScraper():
         return memberships
 
     def build_memberships_doc(self, person_id, organization_id, label, role, url):
+        # Returns the json structure of membership document that Visegrad+ API accepts
         json_doc = {
             "person_id": person_id,
             "organization_id": organization_id,
@@ -269,6 +281,7 @@ class ArmeniaScraper():
 
     def build_json_doc(self, identifier, full_name, first_name, last_name, url, image_url,
                        email, date_of_birth, gender, biography):
+        # Returns the json structure of member document that Visegrad+ API accepts
         json_doc = {
             "identifiers": [{
                                 "identifier": identifier,
@@ -295,6 +308,8 @@ class ArmeniaScraper():
         return json_doc
 
     def scrape_mp_bio_data(self):
+        # Returns members list with the basic information data
+        # for each member of every chamber with the json structure that Visegrad+ API accepts for Armenia's parliament.
         print "\n\tScraping people data from Armenia's parliament..."
         print "\tThis may take a few minutes...\n"
         mps_list = self.mps_list()
@@ -342,6 +357,7 @@ class ArmeniaScraper():
 
     def build_organization_doc(self, classification, name, identifier, founding_date,
                                dissolution_date, url, email, parent_id):
+        # Returns the json structure of an organization document that Visegrad+ API accepts
         return {
             "classification": classification,
             "name": name,
@@ -364,6 +380,7 @@ class ArmeniaScraper():
         }
 
     def parliamentary_groups(self):
+        # Returns the list of parliamentary groups with basic information for each
         parties_doc = {}
         parties_correction = {
             "«ԺՈՂՈՎՐԴԱԿԱՆ ՊԱՏԳԱՄԱՎՈՐ» պատգամավորական խումբ": "«ԺՈՂՈՎՐԴԱԿԱՆ ՊԱՏԳԱՄԱՎՈՐ»",
@@ -395,6 +412,8 @@ class ArmeniaScraper():
         return parties_doc
 
     def scrape_parliamentary_groups(self):
+        # Scrapes parliamentary groups and Returns the list of
+        # parliamentary groups with all the information needed for each
         parties_list = []
         terms_ids = {}
 
@@ -449,6 +468,7 @@ class ArmeniaScraper():
         return parties_list
 
     def committee_list(self):
+        # Returns the list of committee groups with basic information for each
         committee_list = []
         chambers = {}
         all_chambers = vpapi.getall("organizations", where={"classification": "chamber"})
@@ -472,6 +492,8 @@ class ArmeniaScraper():
         return committee_list
 
     def scrape_committee(self):
+        # Scrapes committee groups and Returns the list of
+        # committee groups with all the information needed for each.
         print "\n\tScraping committee groups from Armenia's parliament..."
         committees = self.committee_list()
         committees_list = []
@@ -503,6 +525,7 @@ class ArmeniaScraper():
         return date.today().isoformat()
 
     def scrape_chamber(self):
+        # Scrapes chambers and Returns the list of chambers with all the information needed for each
         url = "http://www.parliament.am/deputies.php?sel=ful&ord=photo&show_session=5&lang=arm&enc=utf8"
         soup = scrape.download_html_file(url)
         chambers_list = []

@@ -986,7 +986,7 @@ class UkraineParser():
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
                    ' ', ETA(), " - Processed: ", Counter(), ' vote events             ']
         pbar = ProgressBar(widgets=widgets)
-        for motion in pbar(sorted(motions[index_start:20])):
+        for motion in pbar(sorted(motions[index_start:100])):
             url = motion['url']
             chamber = motion['term']
             vote_event_id = motion['identifier']
