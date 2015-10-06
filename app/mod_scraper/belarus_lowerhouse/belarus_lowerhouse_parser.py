@@ -26,6 +26,7 @@ class BelarusLowerhouseParser():
     }
 
     def guess_gender(self, name):
+        # Returns gender of a member based on his/her first name.
         females = ["Наталля"]
         if name[-1] == "а".decode('utf-8') or name.encode('utf-8') in females:
             return "female"
@@ -33,6 +34,7 @@ class BelarusLowerhouseParser():
             return "male"
 
     def mps_list(self):
+        # Returns MP list with the basic information data for each member for Belarus Lower house parliament.
         members_list = []
         url = "http://house.gov.by/index.php/,17041,,,,2,,,0.html"
         soup = scrape.download_html_file(url)
@@ -74,6 +76,7 @@ class BelarusLowerhouseParser():
         return members_list
 
     def membership_correction(self):
+        # Returns the json document which can translate the belarus language membership labels to english..
         return {
             "Старшыня": "chairman",
             "Намеснікі старшыні": "vice-chairman",
@@ -85,6 +88,7 @@ class BelarusLowerhouseParser():
         }
 
     def committee_membership_list(self):
+        # Returns the list of committee groups membership for Belarus Lower house parliament.
         committee_list = self.committee_list()
         element_positions = {}
         for committee in committee_list:
@@ -104,6 +108,8 @@ class BelarusLowerhouseParser():
         return element_positions
 
     def committee_membership(self):
+        # Returns committee groups membership list with all needed information data
+        # for each member of every committee group for Belarus Lower house parliament.
         committee_list = self.committee_list()
         element_positions = self.committee_membership_list()
         committee_members = {}
@@ -152,6 +158,8 @@ class BelarusLowerhouseParser():
         return committee_members
 
     def parliamentary_group_membership(self):
+        # Returns parliamentary groups membership list with all needed information data
+        # for each member of every parliamentary group for Belarus Lower house parliament.
         party_membership_list = []
         roles = self.membership_correction()
         party = self.parliamentary_groups()
@@ -189,6 +197,7 @@ class BelarusLowerhouseParser():
         return party_membership_list
 
     def chamber_memberships(self):
+        # Returns chambers membership list with the basic information data
         membership_json = {}
         url_membership = "http://house.gov.by/index.php/,15490,,,,2,,,0.html"
         soup_membership = scrape.download_html_file(url_membership)
@@ -204,6 +213,7 @@ class BelarusLowerhouseParser():
         return membership_json
 
     def mp(self):
+        # Returns members list with all needed information data for posting to the API for each member.
         print "\n\tScraping people data from Belarus Lower House parliament..."
         print "\tPlease wait. This may take a few minutes...\n"
         mps_list = self.mps_list()
@@ -260,6 +270,7 @@ class BelarusLowerhouseParser():
         return members
 
     def chambers(self):
+        # returns the hardcoded chambers docs with information that cannot be found in the official website.
         return {
             "1": {
                 "start_date": "1919",
@@ -274,6 +285,7 @@ class BelarusLowerhouseParser():
         }
 
     def committee_list(self):
+        # Returns the list of committee groups with basic information for each
         url = "http://house.gov.by/index.php/,17052,,,,2,,,0.html"
         soup = scrape.download_html_file(url)
         committees = []
@@ -294,6 +306,8 @@ class BelarusLowerhouseParser():
         return committees
 
     def committees(self):
+        # Scrapes committee groups and Returns the list of
+        # committee groups with all the information needed for each.
         committee_list = self.committee_list()
         committees = []
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
@@ -315,6 +329,7 @@ class BelarusLowerhouseParser():
         return committees
 
     def parliamentary_groups(self):
+        # Scrapes parliamentary groups and Returns the list json doc of parliamentary group
         url = "http://house.gov.by/index.php/,17543,,,,2,,,0.html"
         index_start = url.index("/,") + 2
         index_end = url.index(",,,,2")

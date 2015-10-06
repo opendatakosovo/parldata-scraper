@@ -308,8 +308,8 @@ class ArmeniaScraper():
         return json_doc
 
     def scrape_mp_bio_data(self):
-        # Returns members list with the basic information data
-        # for each member of every chamber with the json structure that Visegrad+ API accepts for Armenia's parliament.
+        # Returns members list with the basic information data for each member of every
+        # chamber with the json structure that Visegrad+ API accepts for Armenia's parliament.
         print "\n\tScraping people data from Armenia's parliament..."
         print "\tThis may take a few minutes...\n"
         mps_list = self.mps_list()

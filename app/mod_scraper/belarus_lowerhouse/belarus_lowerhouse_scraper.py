@@ -11,6 +11,8 @@ scrape = scraper.Scraper()
 
 class BelarusLowerhouseScraper():
     def scrape_mp_bio_data(self):
+        # Iterates in every MP json doc and returns the MP list which
+        # was built with the json document structure that Visegrad+ API accepts
         mps_list = parser.mp()
         members = []
         for member in mps_list:
@@ -33,6 +35,7 @@ class BelarusLowerhouseScraper():
         return members
 
     def build_json_doc(self, identifier, full_name, first_name, last_name, url, image_url, email, gender, birth_date):
+        # Returns the json structure of a member document that Visegrad+ API accepts
         json_doc = {
             "identifiers": [{
                 "identifier": identifier,
@@ -59,6 +62,7 @@ class BelarusLowerhouseScraper():
 
     def build_organization_doc(self, classification, name, identifier, founding_date,
                                dissolution_date, url, email, parent_id):
+        # Returns the json structure of organization document that Visegrad+ API accepts
         return {
             "classification": classification,
             "name": name,
@@ -81,6 +85,7 @@ class BelarusLowerhouseScraper():
         }
 
     def build_memberships_doc(self, person_id, organization_id, label, role, url):
+        # Returns the json structure of membership document that Visegrad+ API accepts
         json_doc = {
             "person_id": person_id,
             "organization_id": organization_id,
@@ -94,6 +99,8 @@ class BelarusLowerhouseScraper():
         return json_doc
 
     def scrape_committee_members(self):
+        # Iterates in every committee member json doc and returns the
+        # list with the json document structure that Visegrad+ API accepts
         print "\n\tScraping committee groups membership from Belarus Lowerhouse parliament..."
         committee_membership_list = []
         committee_list = parser.committee_membership()
@@ -114,6 +121,8 @@ class BelarusLowerhouseScraper():
         return committee_membership_list
 
     def scrape_parliamentary_group_membership(self):
+        # Iterates in every parliamentary group member json document and
+        # returns the list with the json document structure that Visegrad+ API accepts
         print "\n\tScraping parliamentary groups membership from Belarus Lowerhouse's parliament..."
         party_membership = parser.parliamentary_group_membership()
         parties_membership_list = []
@@ -125,6 +134,8 @@ class BelarusLowerhouseScraper():
         return parties_membership_list
 
     def scrape_membership(self):
+        # Iterates in chamber member json document and
+        # returns the list with the json document structure that Visegrad+ API accepts
         print "\n\tScraping membership's data from Belarus Lowerhouese parliament..."
         mp_list = parser.mps_list()
         chamber_membership_list = []
@@ -146,6 +157,8 @@ class BelarusLowerhouseScraper():
         return date.today().isoformat()
 
     def scrape_committee(self):
+        # Iterates in every committee group json document and
+        # returns the list with the json document structure that Visegrad+ API accepts
         print "\n\tScraping committee groups from Belarus Lowerhouse parliament..."
         committee_list = []
         committees = parser.committees()
@@ -172,6 +185,8 @@ class BelarusLowerhouseScraper():
 
 
     def scrape_parliamentary_groups(self):
+        # Iterates in every parliamentary group json document and
+        # returns the list with the json document structure that Visegrad+ API accepts
         print "\n\tScraping parliamentary groups from Belarus Lowerhouse parliament..."
         party_list = []
         parties = parser.parliamentary_groups()
@@ -185,6 +200,8 @@ class BelarusLowerhouseScraper():
         return party_list
 
     def scrape_chamber(self):
+        # Iterates in every chamber json document and
+        # returns the list with the json document structure that Visegrad+ API accepts
         print "\n\tScraping chambers from Belarus Lowerhouse parliament..."
         chambers = parser.chambers()
         chambers_list = []
