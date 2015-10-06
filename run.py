@@ -72,7 +72,7 @@ def scrape(countries, people, votes):
                 vpapi.timezone(creds[item.lower()]['timezone'])
                 vpapi.authorize(creds[item.lower()]['api_user'], creds[item.lower()]['password'])
                 if people == "yes":
-                    references[item.lower()].scrape_votes()
+                    references[item.lower()].test()
                     # references[item.lower()].update_motion_url()
                     # members = references[item.lower()].scrape_mp_bio_data()
                     # chamber = references[item.lower()].scrape_chamber()
@@ -178,6 +178,12 @@ def scrape(countries, people, votes):
                         else:
                             print "\tThere's not any event to post from %s parliament" % item
                         motions_vote_events = references[item.lower()].vote_events()
+                        voting_results = references[item.lower()].scrape_votes()
+                        try:
+                            if len(voting_results) > 0:
+                                vpapi.post("votes", voting_results)
+                        except BaseException as ex:
+                            print ex.message
                     elif item.lower() == "georgia":
                         voting_data_collections = {
                             "motions": references[item.lower()].motions(),

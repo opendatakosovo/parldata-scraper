@@ -578,7 +578,9 @@ class UkraineParser():
             time_text = b_tag.get_text().replace('\n', "")
             if "-" in time_text:
                 time_list = time_text.split("-")
-                if len(time_list) > 1:
+                if len(time_list) > 1 and len(time_list[1]) > 0:
+                    print time_list
+                    print "---------------------_>"
                     if time_list[0] != "00:00:00" and time_list[1] != "00:00:00" and time_list[1] != "...":
                         time1 = datetime.strptime(date + " " + time_list[0], "%Y-%m-%d %H:%M:%S")
                         time2 = datetime.strptime(date + " " + time_list[1], "%Y-%m-%d %H:%M:%S")
@@ -587,11 +589,12 @@ class UkraineParser():
                 else:
                     if time_list[0] != "00:00:00" and time_list[0] != "...":
                         time1 = datetime.strptime(date + " " + time_list[0], "%Y-%m-%d %H:%M:%S")
-                        timestamps_array.append(dparser.parse(time1))
+                        timestamps_array.append(time1)
             else:
                 if time_text != "00:00:00" and time_text != "...":
                     time1 = datetime.strptime(date + " " + time_text, "%Y-%m-%d %H:%M:%S")
                     timestamps_array.append(time1)
+        pprint.pprint(timestamps_array)
         if len(timestamps_array) == 0:
             time1 = datetime.strptime(date + " 00:00:00", "%Y-%m-%d %H:%M:%S")
             timestamps_array.append(time1)
@@ -911,6 +914,16 @@ class UkraineParser():
             "Голова підкомітету": "subcommittee-chairman"
         }
 
+    def get_last_page(self):
+        last_motion = vpapi.get("votes", page='1')
+        if len(last_motion['_items']) > 0:
+            last_motion_page_text = last_motion['_links']['last']['href']
+            index = last_motion_page_text.index("page=") + 5
+            last_motion_page = last_motion_page_text[index:]
+        else:
+            last_motion_page = None
+        return last_motion_page
+
     def scrape_voting_records(self):
         sys.setrecursionlimit(100000000)
         print "\n\tScraping voting results data from Ukraine's parliament."
@@ -940,8 +953,6 @@ class UkraineParser():
                 for person in members_of_party:
                     parliamentary_groups[chambers[chamber]][person['person_id']] = party['id']
 
-        pprint.pprint(parliamentary_groups)
-
         members = {}
         all_members = vpapi.getall("people")
         for member in all_members:
@@ -963,25 +974,23 @@ class UkraineParser():
         }
         votes = []
 
-        last_motion = vpapi.get("votes")
-        if len(last_motion['_items']) > 0:
-            last_motion_page_text = last_motion['_links']['last']['href']
-            index = last_motion_page_text.index("page=") + 5
-            last_motion_page = last_motion_page_text[index:]
-        else:
-            last_motion_page = None
-
+        last_motion_page = self.get_last_page()
+        pprint.pprint(last_motion_page)
         if last_motion_page:
-            last_page_motions = vpapi.getall("votes", page=last_motion_page)
+            last_page_motions = vpapi.get("votes", page=last_motion_page)
             last_page_motions_list = []
-            for motion in last_page_motions:
-                last_page_motions_list.append(motion['id'])
+            for motion in last_page_motions["_items"]:
+                last_page_motions_list.append(motion['vote_event_id'])
             index_start = next(index for (index, d) in enumerate(motions) if d["identifier"] == last_page_motions_list[-1]) + 1
 
         else:
             index_start = 0
 
-        for motion in sorted(motions[1114:1116]):
+        print index_start
+        widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' events             ']
+        pbar = ProgressBar(widgets=widgets)
+        for motion in pbar(motions[index_start:5]):
             url = motion['url']
             print url
             chamber = motion['term']
@@ -1012,17 +1021,8 @@ class UkraineParser():
                         o_id = None
                     if o_id:
                         json_vote['group_id'] = o_id
-
-                        # existing = vpapi.getfirst("votes", where={"voter_id": p_id, "vote_event_id": vote_event_id})
-                        # if existing:
-                        #     continue
-                        # else:
-                        #     vpapi.post("votes", json_vote)
                     print chamber
-                    pprint.pprint(json_vote)
                     votes.append(json_vote)
-                print str(counter_all)
-                print "------------------------------------------------->"
                 counter += 1
         print '======>====>===>=>>'
         # sorted_votes = sorted(votes, key=itemgetter('vote_event_id'))

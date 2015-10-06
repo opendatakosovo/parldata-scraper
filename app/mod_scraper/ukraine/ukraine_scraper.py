@@ -202,15 +202,30 @@ class UkraineScraper():
     def effective_date(self):
         return date.today().isoformat()
 
+    def test1(self):
+        pprint.pprint(vpapi.getfirst("people", where={'name': 'Ігор Олексійович Гринів'},
+                                     embed=['memberships.organization']))
+
     def test(self):
-        last_motion = vpapi.get("votes")
+        last_motion = vpapi.get("votes", page='1')
+        pprint.pprint(last_motion['_links'])
         if len(last_motion['_items']) > 0:
             last_motion_page_text = last_motion['_links']['last']['href']
             index = last_motion_page_text.index("page=") + 5
             last_motion_page = last_motion_page_text[index:]
-            pprint.pprint(last_motion_page)
+            pprint.pprint(last_motion_page.encode('utf-8'))
         else:
-            print "NO events"
+            last_motion_page = None
+
+        if last_motion_page:
+            last_page_motions = vpapi.get("votes", page=last_motion_page)
+            last_page_motions_list = []
+            for motion in last_page_motions["_items"]:
+                last_page_motions_list.append(motion['vote_event_id'])
+            print last_page_motions_list[-1]
+            # index_start = next(index for (index, d) in enumerate(motions) if d["identifier"] == last_page_motions_list[-1]) + 1
+        else:
+            index_start = 0
 
     def update_motion_url(self):
         print "\n\tUpdating url of motions"
@@ -235,9 +250,8 @@ class UkraineScraper():
                 continue
         print "\n\tFinished updating motions url"
 
-
     def scrape_votes(self):
-        parser.scrape_voting_records()
+        return parser.scrape_voting_records()
 
     def scrape_events(self):
         print "\n\tScraping events from Ukraine's parliament..."
@@ -259,7 +273,7 @@ class UkraineScraper():
                     }]
                 }
                 events_list.append(event_json)
-        print "\n\tScraping completed! \n\tScraped " + str(len(events_list)) + " members"
+        print "\n\tScraping completed! \n\tScraped " + str(len(events_list)) + " events"
         return events_list
 
     def test_ids(self):
