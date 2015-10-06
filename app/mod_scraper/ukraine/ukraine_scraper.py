@@ -203,8 +203,13 @@ class UkraineScraper():
         return date.today().isoformat()
 
     def test1(self):
-        pprint.pprint(vpapi.getfirst("people", where={'name': 'Ігор Олексійович Гринів'},
-                                     embed=['memberships.organization']))
+        motions = vpapi.getall("motions")
+        counter = 0
+        for motion in motions:
+            counter += 1
+            print counter
+            print motion['id']
+            print "------------------------------------------------>"
 
     def test(self):
         last_motion = vpapi.get("votes", page='1')
@@ -226,6 +231,7 @@ class UkraineScraper():
             # index_start = next(index for (index, d) in enumerate(motions) if d["identifier"] == last_page_motions_list[-1]) + 1
         else:
             index_start = 0
+        print index_start
 
     def update_motion_url(self):
         print "\n\tUpdating url of motions"

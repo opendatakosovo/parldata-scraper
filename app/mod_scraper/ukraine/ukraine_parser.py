@@ -924,6 +924,19 @@ class UkraineParser():
             last_motion_page = None
         return last_motion_page
 
+    def vote_correction(self):
+        return {
+            "За": "yes",
+            "Проти": "no",
+            "Відсутня": "absent",
+            "Утримався": "abstain",
+            "Утрималась": "abstain",
+            "Не голосував": "not voting",
+            "Не голосувала": "not voting",
+            "Не голосував*": "not voting",
+            "Відсутній": "absent"
+        }
+
     def scrape_voting_records(self):
         sys.setrecursionlimit(100000000)
         chambers = {}
@@ -941,7 +954,7 @@ class UkraineParser():
                 "organization_id": motion['organization_id']
             }
             motions.append(json_motion)
-
+        sorted_motions = sorted(motions, key=itemgetter('start_date'))
         parliamentary_groups = {}
         for chamber in chambers:
             parliamentary_groups[chambers[chamber]] = {}
@@ -959,17 +972,7 @@ class UkraineParser():
             name_ordered = name_list[2] + " " + name_list[0][:1] + "." + name_list[1][:1] + "."
             members[name_ordered] = member['id']
         counter_all = 0
-        vote_correction = {
-            "За": "yes",
-            "Проти": "no",
-            "Відсутня": "absent",
-            "Утримався": "abstain",
-            "Утрималась": "abstain",
-            "Не голосував": "not voting",
-            "Не голосувала": "not voting",
-            "Не голосував*": "not voting",
-            "Відсутній": "absent"
-        }
+        vote_correction = self.vote_correction()
         votes = []
 
         last_motion_page = self.get_last_page()
@@ -978,7 +981,7 @@ class UkraineParser():
             last_page_motions_list = []
             for motion in last_page_motions["_items"]:
                 last_page_motions_list.append(motion['vote_event_id'])
-            index_start = next(index for (index, d) in enumerate(motions) if d["identifier"] == last_page_motions_list[-1]) + 1
+            index_start = next(index for (index, d) in enumerate(sorted_motions) if d["identifier"] == last_page_motions_list[-1]) + 1
 
         else:
             index_start = 0
@@ -986,7 +989,7 @@ class UkraineParser():
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
                    ' ', ETA(), " - Processed: ", Counter(), ' vote events             ']
         pbar = ProgressBar(widgets=widgets)
-        for motion in pbar(sorted(motions[index_start:100])):
+        for motion in pbar(sorted_motions[index_start:150]):
             url = motion['url']
             chamber = motion['term']
             vote_event_id = motion['identifier']
