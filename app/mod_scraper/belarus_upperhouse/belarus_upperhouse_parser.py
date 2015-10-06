@@ -52,6 +52,7 @@ class BelarusUpperhouseParser():
     }
 
     def chambers_list(self):
+        # Returns chambers list with the basic information data for Belarus Upper house parliament.
         url = "http://www.sovrep.gov.by/ru/sozyvy-ru/"
         soup = scrape.download_html_file(url)
         chambers = {}
@@ -68,6 +69,7 @@ class BelarusUpperhouseParser():
         return chambers
 
     def membership_correction(self):
+        # Returns the json document which can translate the belarus language membership labels to english..
         return {
             "Председатель комиссии": "chairman",
             "Заместитель председателя комиссии": "vice-chairman",
@@ -78,6 +80,7 @@ class BelarusUpperhouseParser():
         }
 
     def members_list(self):
+        # Returns MP list with the basic information data for each member for Belarus Upper house parliament.
         terms = self.chambers_list()
         mps_list = []
         roles = self.membership_correction()
@@ -144,6 +147,7 @@ class BelarusUpperhouseParser():
         return mps_list
 
     def guess_gender(self, first_name):
+        # Returns gender of a member based on his/her first name.
         females = ["Лидия", "Лилия", "Наталия", "Наталья", "Клавдия", "Евгения", "Мария", "Софья", "Любовь"]
         if first_name[-1] == "а".decode('utf-8') or first_name.encode('utf-8') in females:
             return "female"
@@ -151,6 +155,7 @@ class BelarusUpperhouseParser():
             return "male"
 
     def committe_list(self):
+        # Returns the list of committee groups with basic information for each
         committee_list = []
         chambers_list = {}
         chambers_api = vpapi.getall("organizations", where={"classification": "chamber"})
@@ -186,6 +191,8 @@ class BelarusUpperhouseParser():
         return committee_list
 
     def committee_membership(self):
+        # Returns committee groups membership list with all needed information data
+        # for each member of every committee group for Belarus Upper house parliament.
         roles = self.membership_correction()
         committee_list = self.committe_list()
         committee_membership_list = []
@@ -228,8 +235,8 @@ class BelarusUpperhouseParser():
                 committee_membership_list.append(committee_membership_json)
         return committee_membership_list
 
-
     def mps_list(self):
+        # Returns MP list with all the information needed data for each member for Belarus Upper house parliament.
         members = self.members_list()
         members_list = []
         members_prevent_duplicates = []

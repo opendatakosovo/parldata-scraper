@@ -200,7 +200,7 @@ class BelarusLowerhouseScraper():
         return party_list
 
     def scrape_chamber(self):
-        # Iterates in every chamber json document and
+        # Iterates in every parliamentary group json document and
         # returns the list with the json document structure that Visegrad+ API accepts
         print "\n\tScraping chambers from Belarus Lowerhouse parliament..."
         chambers = parser.chambers()

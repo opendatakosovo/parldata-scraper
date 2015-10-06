@@ -25,6 +25,8 @@ class BelarusUpperhouseScraper():
     }
 
     def scrape_chamber(self):
+        # Iterates in every chamber json document and returns the
+        # list with the json document structure that Visegrad+ API accepts
         print "\n\tScraping chambers from Belarus Upperhouse parliament...\n"
         chambers_list = []
         chambers = parser.chambers_list()
@@ -45,9 +47,12 @@ class BelarusUpperhouseScraper():
         return chambers_list
 
     def scrape_parliamentary_group_membership(self):
+        # Returns an empty list because there are no parliamentary groups data available in the official website.
         return []
 
     def scrape_committee_members(self):
+        # Iterates in every committee member json doc and returns the
+        # list with the json document structure that Visegrad+ API accepts
         print "\n\tScraping committee groups from Belarus Upperhouse parliament...\n"
         members = {}
         committee_membership = []
@@ -86,6 +91,8 @@ class BelarusUpperhouseScraper():
         return committee_membership
 
     def scrape_membership(self):
+        # Iterates in chamber member json document and
+        # returns the list with the json document structure that Visegrad+ API accepts
         print "\n\tScraping chambers membership's data from Belarus Upperhouse parliament...\n"
         members = {}
         all_members = vpapi.getall("people")
@@ -115,9 +122,11 @@ class BelarusUpperhouseScraper():
         return chambers_membership
 
     def scrape_committee_membership(self):
+        # Returns the list of scraped and structured committee groups membership
         committee_membership = parser.committee_membership()
 
     def build_memberships_doc(self, person_id, organization_id, label, role, url):
+        # Returns the json structure of membership document that Visegrad+ API accepts
         json_doc = {
             "person_id": person_id,
             "organization_id": organization_id,
@@ -131,6 +140,8 @@ class BelarusUpperhouseScraper():
         return json_doc
 
     def scrape_committee(self):
+        # Iterates in every committee member json doc and returns the
+        # list with the json document structure that Visegrad+ API accepts
         print "\n\tScraping committee groups from Belarus Upperhouse parliament...\n"
         committe_list = parser.committe_list()
         committees = []
@@ -150,6 +161,7 @@ class BelarusUpperhouseScraper():
 
     def build_organization_doc(self, classification, name, identifier, founding_date,
                                dissolution_date, url, email, parent_id):
+        # Returns the json structure of organization document that Visegrad+ API accepts
         return {
             "classification": classification,
             "name": name,
@@ -172,9 +184,12 @@ class BelarusUpperhouseScraper():
         }
 
     def scrape_parliamentary_groups(self):
+        # Returns an empty list because there are no parliamentary groups data available in the official website.
         return []
 
     def scrape_mp_bio_data(self):
+        # Iterates in every MP json doc and returns the MP list which
+        # was built with the json document structure that Visegrad+ API accepts
         print "\n\tScraping people data from Belarus Upper House parliament..."
         print "\tPlease wait. This may take a few minutes...\n"
         mps_list = parser.mps_list()
@@ -222,6 +237,7 @@ class BelarusUpperhouseScraper():
         return members
 
     def build_json_doc(self, identifier, full_name, first_name, last_name, url, image_url, phone, gender, birth_date):
+        # Returns the json structure of a member document that Visegrad+ API accepts
         json_doc = {
             "identifiers": [{
                 "identifier": identifier,
@@ -247,6 +263,7 @@ class BelarusUpperhouseScraper():
         return json_doc
 
     def guess_gender(self, name):
+        # Returns gender of a member based on his/her first name.
         females = ["Наталля"]
         if name[-1] == "а".decode('utf-8') or name.encode('utf-8') in females:
             return "female"
