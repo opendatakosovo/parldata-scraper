@@ -284,23 +284,23 @@ class ArmeniaScraper():
         # Returns the json structure of member document that Visegrad+ API accepts
         json_doc = {
             "identifiers": [{
-                                "identifier": identifier,
-                                "scheme": "parliament.am"
-                            }],
+                "identifier": identifier,
+                "scheme": "parliament.am"
+            }],
             "gender": gender,
             "name": full_name,
             "given_name": first_name,
             "family_name": last_name,
             "sources": [{
-                            "note": "վեբ էջ",
-                            "url": url
-                        }],
+                "note": "վեբ էջ",
+                "url": url
+            }],
             "image": image_url,
             "contact_details": [{
-                                    "label": "Էլ. փոստ",
-                                    "type": "email",
-                                    "value": email
-                                }],
+                "label": "Էլ. փոստ",
+                "type": "email",
+                "value": email
+            }],
             "sort_name": last_name + ", " + first_name,
             "birth_date": date_of_birth,
             "biography": biography

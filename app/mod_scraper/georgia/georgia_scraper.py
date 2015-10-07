@@ -44,6 +44,7 @@ class GeorgiaScraper():
     }
 
     def local_to_utc(self, dt_str):
+        # Function that converts a date string to utc and returns date string
         dt = dateutil.parser.parse(dt_str, dayfirst=True)
         if ':' in dt_str:
             return vpapi.local_to_utc(dt, to_string=True)
@@ -65,6 +66,7 @@ class GeorgiaScraper():
         return mp_list
 
     def names_to_fix(self, name):
+        # Names of MP that needs to fix, different names are in different pages for one MP.
         if name in self.names_to_fix_json:
             first_name = self.names_to_fix_json[name]
         else:
@@ -72,6 +74,7 @@ class GeorgiaScraper():
         return first_name
 
     def mps_list(self):
+        # Returns MP list with the basic information data for each member of Georgia's parliament.
         mps_list = []
         deputy_list_url = "http://www.parliament.ge/ge/parlamentarebi/deputatebis-sia"
         scrape = scraper.Scraper()
@@ -117,6 +120,7 @@ class GeorgiaScraper():
         return mps_list
 
     def membership_correction(self):
+        # Returns the json document which can translate the membership labels from georgian language to english..
         return {
             "პარლამენტის თავმჯდომარე": "chairman",
             "პარლამენტის თავმჯდომარის მოადგილე": "vice-chairman",
@@ -133,9 +137,8 @@ class GeorgiaScraper():
         }
 
     def scrape_mp_bio_data(self):
-        '''
-        Scraping members data of the Georgian Parliament.
-        '''
+        # Returns members list with all the information needed data for each member
+        # with the json structure that Visegrad+ API accepts for Armenia's parliament.
         print "\n\tScraping people data from Georgia's parliament..."
         mps_list = self.mps_list()
         db.mps_list.remove({})
@@ -202,6 +205,7 @@ class GeorgiaScraper():
         return parties
 
     def parliamentary_committes_list(self):
+        # Returns the list of parliamentary groups with basic information for each
         parties_list_url = "http://www.parliament.ge/ge/saparlamento-saqmianoba/komitetebi"
         scrape = scraper.Scraper()
 
@@ -219,9 +223,8 @@ class GeorgiaScraper():
         return committes
 
     def scrape_parliamentary_groups(self):
-        '''
-        Scapres organisation data from the official web page of Georgian parliament
-        '''
+        # Scrapes parliamentary groups and returns the list of
+        # parliamentary groups with all the information needed for each
         print "\n\tScraping parliamentary groups data from Georgia's parliament..."
         parties_list = []
         parties = self.parliamentary_grous_list()
@@ -247,6 +250,8 @@ class GeorgiaScraper():
         return parties_list
 
     def scrape_committee(self):
+        # Scrapes committee groups and returns the list of
+        # committee groups with all the information needed for each.
         committees_list = []
         committees = self.parliamentary_committes_list()
         print "\n\tScraping committees data from Georgia's parliament..."
@@ -284,6 +289,8 @@ class GeorgiaScraper():
         return committees_list
 
     def scrape_membership(self):
+        # Returns chambers membership list with all the information data
+        # needed for each member of Georgia's parliament.
         membership_array = []
         mp_list = self.get_member_id()
         members_list = self.mps_list()
@@ -355,6 +362,7 @@ class GeorgiaScraper():
         return membership_array
 
     def build_memberships_doc(self, person_id, organization_id, label, role, url):
+        # Returns the json structure of membership document that Visegrad+ API accepts
         json_doc = {
             "person_id": person_id,
             "organization_id": organization_id,
@@ -368,6 +376,8 @@ class GeorgiaScraper():
         return json_doc
 
     def laws(self):
+        # Returns the list of the json structure of motions and
+        # vote events document with all the information data needed for both.
         laws_url = "http://votes.parliament.ge/en/search/passed_laws?sEcho=1&iColumns=7&sColumns=&iDisplayStart=0" \
                    "&iDisplayLength=3000000&mDataProp_0=0&mDataProp_1=1&mDataProp_2=2&mDataProp_3=3&mDataProp_4=4" \
                    "&mDataProp_5=5&mDataProp_6=6&sSearch=&bRegex=false&sSearch_0=&bRegex_0=false" \
@@ -450,6 +460,8 @@ class GeorgiaScraper():
         return []
 
     def vote_events(self):
+        # Returns the list with the json structure of vote events, deleting
+        # some keys that we will not need for posting to the Visegrad+ API accepts
         print "\n\n\tScraping Vote Events data from Georgia's parliament..."
         laws_list = self.laws()
         vote_events = []
@@ -465,6 +477,8 @@ class GeorgiaScraper():
         return vote_events
 
     def motions(self):
+        # Returns the list with the json structure of motions, deleting
+        # some keys that we will not need for posting to the Visegrad+ API accepts
         print "\n\n\tScraping Motions data from Georgia's parliament..."
         laws_list = self.laws()
         motions = []
@@ -481,6 +495,7 @@ class GeorgiaScraper():
         return motions
 
     def get_group_id(self):
+        # Returns the json with all the organization IDs
         groups = {}
         parties_ids = []
         all_groups = vpapi.getall("organizations", where={"classification": "parliamentary group"})
@@ -505,6 +520,7 @@ class GeorgiaScraper():
         return members
 
     def scrape_votes(self):
+        # Scrapes votes and returns the list of votes with the json structure that Visegrad+ API accepts
         print "\n\n\tScraping votes data from Georgia's parliament...\n\tPlease wait. This may take a few minutes..."
         vote_events = self.vote_events()
         memberships = self.get_group_id()
@@ -542,6 +558,7 @@ class GeorgiaScraper():
         return votes_array
 
     def get_chamber_identifier(self, founding_year):
+        # Returns the chamber identifier
         if founding_year == "2008":
             return "7"
         elif founding_year == "2004":
@@ -556,6 +573,8 @@ class GeorgiaScraper():
             return "2"
 
     def scrape_chamber(self):
+        # Returns the list with the json structure of vote events, deleting some keys
+        # that we will not need for posting to the Visegrad+ API accepts
         print "\n\tScraping chamber's data from Georgia's parliament..."
         chambers_list = []
         chambers_list.append({
@@ -594,6 +613,7 @@ class GeorgiaScraper():
         return chambers_list
 
     def build_organizations_doc(self, classification, name, url):
+        # Returns the json structure of an organization document that Visegrad+ API accepts
         json_doc = {
             "classification": classification,
             "name": name,
@@ -605,6 +625,7 @@ class GeorgiaScraper():
         return json_doc
 
     def build_chamber_doc(self, name, identifiers, founding_date, dissolution_date, url):
+        # Returns the json structure of an chamber document that Visegrad+ API accepts
         return {
             "classification": "chamber",
             "name": name,
@@ -619,6 +640,7 @@ class GeorgiaScraper():
 
     def build_json_doc(self, identifier, full_name, first_name, last_name, url, image_url,
                        phone_number, date_of_birth, gender):
+        # Returns the json structure of member document that Visegrad+ API accepts
         json_doc = {
             "identifiers": [identifier],
             "gender": gender,
@@ -641,6 +663,7 @@ class GeorgiaScraper():
         return json_doc
 
     def guess_gender(self, name):
+        # Returns gender of a member based on his/her first name.
         females = ["მანანა", "ეკა", "თინათინ", "ხათუნა", "ნინო", "მარიკა", "ჩიორა", "თამარ", "გუგული",
                    "ანი", "ირმა", "მარიამ", "ნანა", "ელისო", "დარეჯან", "ფატი", "ეკატერინე"]
         if name in females:

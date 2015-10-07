@@ -945,7 +945,11 @@ class UkraineParser():
             chambers[chamber['id']] = chamber['identifiers'][0]['identifier']
         motions = []
         all_motions = vpapi.getall("motions")
-        for motion in all_motions:
+        widgets1 = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                   ' ', ETA(), " - Processed: ", Counter(), ' vote events             ']
+        pbar1 = ProgressBar(widgets=widgets1)
+        print "\n\tScraping vote events from Ukraine's parliament...\n"
+        for motion in pbar1(all_motions):
             json_motion = {
                 "start_date": motion['date'],
                 "url": motion['sources'][0]['url'],
@@ -986,10 +990,11 @@ class UkraineParser():
         else:
             index_start = 0
         print index_start
+        print "\n\tScraping votes from Ukraine's parliament...\n"
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
                    ' ', ETA(), " - Processed: ", Counter(), ' vote events             ']
         pbar = ProgressBar(widgets=widgets)
-        for motion in pbar(sorted_motions[index_start:170]):
+        for motion in pbar(sorted_motions[index_start:200]):
             url = motion['url']
             chamber = motion['term']
             vote_event_id = motion['identifier']
