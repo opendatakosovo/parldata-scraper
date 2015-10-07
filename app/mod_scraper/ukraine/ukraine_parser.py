@@ -579,8 +579,6 @@ class UkraineParser():
             if "-" in time_text:
                 time_list = time_text.split("-")
                 if len(time_list) > 1 and len(time_list[1]) > 0:
-                    print time_list
-                    print "---------------------_>"
                     if time_list[0] != "00:00:00" and time_list[1] != "00:00:00" and time_list[1] != "...":
                         time1 = datetime.strptime(date + " " + time_list[0], "%Y-%m-%d %H:%M:%S")
                         time2 = datetime.strptime(date + " " + time_list[1], "%Y-%m-%d %H:%M:%S")
@@ -594,7 +592,6 @@ class UkraineParser():
                 if time_text != "00:00:00" and time_text != "...":
                     time1 = datetime.strptime(date + " " + time_text, "%Y-%m-%d %H:%M:%S")
                     timestamps_array.append(time1)
-        pprint.pprint(timestamps_array)
         if len(timestamps_array) == 0:
             time1 = datetime.strptime(date + " 00:00:00", "%Y-%m-%d %H:%M:%S")
             timestamps_array.append(time1)
@@ -944,12 +941,10 @@ class UkraineParser():
         for chamber in all_chambers:
             chambers[chamber['id']] = chamber['identifiers'][0]['identifier']
         motions = []
-        all_motions = vpapi.getall("motions")
-        widgets1 = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                   ' ', ETA(), " - Processed: ", Counter(), ' vote events             ']
-        pbar1 = ProgressBar(widgets=widgets1)
-        print "\n\tScraping vote events from Ukraine's parliament...\n"
-        for motion in pbar1(all_motions):
+        all_motions = vpapi.getall("motions", sort="date")
+        print "\n\tScraping vote events from Ukraine's parliament..."
+        print "\tPlease wait. This may take a few moments...\n"
+        for motion in all_motions:
             json_motion = {
                 "start_date": motion['date'],
                 "url": motion['sources'][0]['url'],
@@ -994,7 +989,7 @@ class UkraineParser():
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
                    ' ', ETA(), " - Processed: ", Counter(), ' vote events             ']
         pbar = ProgressBar(widgets=widgets)
-        for motion in pbar(sorted_motions[index_start:200]):
+        for motion in pbar(sorted_motions[index_start:5600]):
             url = motion['url']
             chamber = motion['term']
             vote_event_id = motion['identifier']
