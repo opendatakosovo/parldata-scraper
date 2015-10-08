@@ -952,6 +952,7 @@ class UkraineParser():
                 "term": chambers[motion['organization_id']],
                 "organization_id": motion['organization_id']
             }
+            print motion['date']
             motions.append(json_motion)
         sorted_motions = sorted(motions, key=itemgetter('start_date'))
         parliamentary_groups = {}
@@ -989,7 +990,7 @@ class UkraineParser():
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
                    ' ', ETA(), " - Processed: ", Counter(), ' vote events             ']
         pbar = ProgressBar(widgets=widgets)
-        for motion in pbar(sorted_motions[index_start:5600]):
+        for motion in pbar(sorted_motions[index_start:1000]):
             url = motion['url']
             chamber = motion['term']
             vote_event_id = motion['identifier']

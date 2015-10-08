@@ -49,12 +49,14 @@ class MoldovaScraper():
     }
 
     def guess_gender(self, first_name):
+        # Returns gender of a member based on his/her first name.
         if first_name[-1:] == "a":
             return "female"
         else:
             return "male"
 
     def build_json_doc(self, identifier, full_name, first_name, last_name, url, image_url, gender):
+        # Returns the json structure of member document that Visegrad+ API accepts
         json_doc = {
             "identifiers": [{
                 "identifier": identifier,
@@ -74,6 +76,7 @@ class MoldovaScraper():
         return json_doc
 
     def mps_list(self):
+        # Returns MP list with the basic information data for each member of any chamber for Moldova's parliament.
         deputy_list = []
         deputy_list_url = "http://www.parlament.md/StructuraParlamentului/Deputies/tabid/87/language/ro-RO/Default.aspx"
         soup = scrape.download_html_file(deputy_list_url)
@@ -113,6 +116,7 @@ class MoldovaScraper():
         return deputy_list
 
     def membership_correction(self):
+        # Returns the json document which can translate the romanian membership labels to english..
         return {
             "Preşedinte": "chairman",
             "Preşedintele Parlamentului": "chairman",
@@ -124,6 +128,8 @@ class MoldovaScraper():
         }
 
     def scrape_membership(self):
+        # Returns chambers membership list with the basic information data
+        # for each member of every chamber for Moldova's parliament.
         chamber_membership = []
         print "\n\tScraping chambers membership from Moldova's parliament..."
         mps_list = self.mps_list()
@@ -151,6 +157,8 @@ class MoldovaScraper():
         return chamber_membership
 
     def scrape_parliamentary_group_membership(self):
+        # Returns parliamentary groups membership list with the basic information data
+        # for each member of every parliamentary group for Moldova's parliament.
         print "\n\tScraping parliamentary groups membership from Moldova's parliament..."
         parties_list = self.parliamentary_group_list()
         membership_correction = self.membership_correction()
@@ -189,6 +197,7 @@ class MoldovaScraper():
         return parties_membership
 
     def build_memberships_doc(self, person_id, organization_id, label, role, url):
+        # Returns the json structure of membership document that Visegrad+ API accepts
         json_doc = {
             "person_id": person_id,
             "organization_id": organization_id,
@@ -202,6 +211,8 @@ class MoldovaScraper():
         return json_doc
 
     def scrape_mp_bio_data(self):
+        # Returns members list with the basic information data for each member of every
+        # chamber with the json structure that Visegrad+ API accepts for Moldova's parliament.
         print "\n\tScraping people data from Moldova's parliament..."
         print "\tThis may take a few minutes...\n"
         mps_list = self.mps_list()
@@ -216,6 +227,7 @@ class MoldovaScraper():
         return members
 
     def committee_list(self):
+        # Returns the list of committee groups with basic information for each
         committee_list = []
         url = "http://www.parlament.md/StructuraParlamentului/Comisiipermanente/tabid/84/language/ro-RO/Default.aspx"
         soup = scrape.download_html_file(url)
@@ -235,6 +247,8 @@ class MoldovaScraper():
         return committee_list
 
     def scrape_committee(self):
+        # Scrapes committee groups and Returns the list of
+        # committee groups with all the information needed for each.
         print "\n\tScraping parliamentary committees from Moldova's parliament..."
         committees = self.committee_list()
         chamber_id = vpapi.getfirst("organizations",
@@ -280,6 +294,7 @@ class MoldovaScraper():
         return committees_list
 
     def parliamentary_group_list(self):
+        # Returns the list of parliamentary groups with basic information for each
         url = "http://www.parlament.md/StructuraParlamentului/Fractiuniparlamentare/" \
               "tabid/83/language/ro-RO/Default.aspx"
         soup = scrape.download_html_file(url)
@@ -304,6 +319,8 @@ class MoldovaScraper():
         return parties_list
 
     def scrape_parliamentary_groups(self):
+        # Scrapes parliamentary groups and Returns the list of
+        # parliamentary groups with all the information needed for each
         chamber_id = vpapi.getfirst("organizations",
                                     where={"identifiers": {
                                         "$elemMatch": {
@@ -327,6 +344,7 @@ class MoldovaScraper():
         return parties
 
     def scrape_chamber(self):
+        # Scrapes chambers and Returns the list of chambers with all the information needed for each
         url = "http://www.parlament.md/Parlamentarismul%C3%AEnRepublicaMoldova/" \
               "Istorie%C8%99ievolu%C8%9Bie/tabid/96/language/ro-RO/Default.aspx"
         chambers_to_fix = {"XII": "12", "XIII": "13", "XIV": "14", "XV": "15", "XVI": "16", "XVII": "17",
@@ -373,6 +391,8 @@ class MoldovaScraper():
         return chambers
 
     def scrape_committee_members(self):
+        # Returns committee groups membership list with the basic information data
+        # for each member of every committee group for Moldova's parliament.
         print "\n\tScraping committees membership from Moldova's parliament..."
         committees_list = self.committee_list()
         membership_correction = self.membership_correction()
@@ -417,6 +437,7 @@ class MoldovaScraper():
 
     def build_organization_doc(self, classification, name, identifier, founding_date,
                                dissolution_date, url, email, parent_id):
+        # Returns the json structure of an organization document that Visegrad+ API accepts
         return {
             "classification": classification,
             "name": name,

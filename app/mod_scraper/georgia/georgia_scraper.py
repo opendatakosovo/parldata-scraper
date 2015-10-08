@@ -188,6 +188,7 @@ class GeorgiaScraper():
         return p_id
 
     def parliamentary_grous_list(self):
+        # Returns the list of parliamentary groups with basic information for each
         parties_list_url = "http://www.parliament.ge/ge/saparlamento-saqmianoba/fraqciebi-6"
         scrape = scraper.Scraper()
 
@@ -205,7 +206,7 @@ class GeorgiaScraper():
         return parties
 
     def parliamentary_committes_list(self):
-        # Returns the list of parliamentary groups with basic information for each
+        # Returns the list of committee groups with basic information for each
         parties_list_url = "http://www.parliament.ge/ge/saparlamento-saqmianoba/komitetebi"
         scrape = scraper.Scraper()
 
