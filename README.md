@@ -34,6 +34,10 @@ Get VPAPI client and SSH certificate of the server:
 >
 > $ sudo wget https://raw.githubusercontent.com/KohoVolit/api.parldata.eu/master/client/server_cert.p
 
+# Install
+- Install the required libraries for running the scraper.
+> bash install.sh
+
 # Running
 The scraper is executed by running the scrape.sh shell script. The script accepts the following parameters.
 
