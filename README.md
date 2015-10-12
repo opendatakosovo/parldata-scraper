@@ -42,7 +42,7 @@ The scraper is executed by running the scrape.sh shell script. The script accept
 | countries    | Comma Separated String | List the countries from which we want to scrape data.      |
 | people       | String                | Scrape MP data.                                            |
 | votes        | String                | Scrape cast votes.                                       |
-| loop         | Integer                | Loop scraper with given interval sleep time (in seconds).  |
+| loop         | String                | Loop scraper with given interval sleep time (in seconds).  |
 
 To illustrate how the scraper's parameters are used, consider the following examples.
 
