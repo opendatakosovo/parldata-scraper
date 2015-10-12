@@ -1,9 +1,11 @@
 # ParlData Scraper
-Scraping parliament data that scrapes parliement websites and extracts data on MPs, their memberships, and votes. The scraped data is for the [Visegrad+ project](http://parldata.eu/) and made accessible from the Visegrad+ parliament API.
+Data scraper that scans parliement websites and extracts data on MPs, their memberships, and votes. The scraped data is for the [Visegrad+ project](http://parldata.eu/) and is made accessible from the Visegrad+ parliament API.
 
-Data in scraped for the following countries:
+Data is scraped for the following countries:
 - Armenia
 - Belarus
+  - Lower House
+  - Upper House
 - Georgia
 - Moldova
 - Ukraine
@@ -11,6 +13,7 @@ Data in scraped for the following countries:
 # Installation
 - [Prerequisites](#prerequisites)
 - [Download](#download)
+- [Install](#install)
 - [Configuration](#configuration)
 - [Running](#running)
 
@@ -26,8 +29,16 @@ Data in scraped for the following countries:
 >
 >$ sudo git clone https://github.com/opendatakosovo/parldata-scraper.git
 
-# Configuration
-TODO: write instructions for config.cfg file.
+Get VPAPI client and SSH certificate of the server:
+
+> $ sudo wget https://raw.githubusercontent.com/KohoVolit/api.parldata.eu/master/client/vpapi.py
+>
+> $ sudo wget https://raw.githubusercontent.com/KohoVolit/api.parldata.eu/master/client/server_cert.p
+
+# Install
+- Install the required libraries for running the scraper.
+
+> $ bash install.sh
 
 # Running
 The scraper is executed by running the scrape.sh shell script. The script accepts the following parameters.
@@ -35,21 +46,22 @@ The scraper is executed by running the scrape.sh shell script. The script accept
 | Parameter    | Data Type              | Description                                                |
 | -------------|------------------------|------------------------------------------------------------|
 | countries    | Comma Separated String | List the countries from which we want to scrape data.      |
-| people       | Boolean                | Scrape MP data.                                            |
-| votes        | Boolean                | Scrape cast votes.                                       |
-| loop         | Integer                | Loop scraper with given interval sleep time (in seconds).  |
-| overwrite    | Boolean                | Overwrite previously scraped data.                         |
+| people       | String                | Scrape MP data.                                            |
+| votes        | String                | Scrape cast votes.                                       |
+| loop         | String                | Loop scraper with given interval sleep time (in seconds) or (ex. 2d - 'd' means days).  |
 
 To illustrate how the scraper's parameters are used, consider the following examples.
 
-Scrape people and vote data for armenia and georgie. Run the scraper script every 3 minutes and overwrite all previously scraped data:
->bash scraper.sh --countries armenia,georgia --people --votes --loop 180 --overwrite
+Scrape people and vote data for Armenia and Georgia. Run the scraper script every 3 minutes:
+>bash run.sh --countries armenia,georgia --people yes --votes yes --loop 180
 
-Run scraper once to retrieve people and votes data from Armenia parliament:
->bash scraper.sh --countries armenia --people --votes
+Run scraper every 2 days to retrieve people and votes data from Armenia parliament:
+>bash run.sh --countries armenia --people yes --votes yes --loop 2d
 
-Run scraper once to retrieve people data from Armenian parliament:
->bash scraper.sh --countries armenia --people
+Run scraper every day to retrieve people and votes data from all available parliaments:
+>bash run.sh --countries all --people yes --votes yes --loop 1d
 
-Run scraper every 3 minutes to retrieve votes data from Georgia parliament:
->bash scraper.sh --countries georgia --votes --loop 180
+Scrape people and vote data for Belarus Lowerhouse and Upperhouse. Run the scraper script every 3 minutes:
+>bash run.sh --countries belarus-lowerhouse,belarus-upperhouse --people yes --votes yes --loop 180
+
+
