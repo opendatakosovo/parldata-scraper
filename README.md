@@ -43,7 +43,6 @@ The scraper is executed by running the scrape.sh shell script. The script accept
 | people       | String                | Scrape MP data.                                            |
 | votes        | String                | Scrape cast votes.                                       |
 | loop         | Integer                | Loop scraper with given interval sleep time (in seconds).  |
-| overwrite    | String                | Overwrite previously scraped data.                         |
 
 To illustrate how the scraper's parameters are used, consider the following examples.
 
