@@ -13,6 +13,7 @@ Data is scraped for the following countries:
 # Installation
 - [Prerequisites](#prerequisites)
 - [Download](#download)
+- [Install](#install)
 - [Configuration](#configuration)
 - [Running](#running)
 
