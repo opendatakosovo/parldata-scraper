@@ -37,10 +37,10 @@ The scraper is executed by running the scrape.sh shell script. The script accept
 | Parameter    | Data Type              | Description                                                |
 | -------------|------------------------|------------------------------------------------------------|
 | countries    | Comma Separated String | List the countries from which we want to scrape data.      |
-| people       | Boolean                | Scrape MP data.                                            |
-| votes        | Boolean                | Scrape cast votes.                                       |
+| people       | String                | Scrape MP data.                                            |
+| votes        | String                | Scrape cast votes.                                       |
 | loop         | Integer                | Loop scraper with given interval sleep time (in seconds).  |
-| overwrite    | Boolean                | Overwrite previously scraped data.                         |
+| overwrite    | String                | Overwrite previously scraped data.                         |
 
 To illustrate how the scraper's parameters are used, consider the following examples.
 
