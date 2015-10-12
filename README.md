@@ -4,6 +4,8 @@ Scraping parliament data that scrapes parliement websites and extracts data on M
 Data in scraped for the following countries:
 - Armenia
 - Belarus
+  - Lower House
+  - Upper House
 - Georgia
 - Moldova
 - Ukraine
