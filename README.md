@@ -1,7 +1,7 @@
 # ParlData Scraper
-Scraping parliament data that scrapes parliement websites and extracts data on MPs, their memberships, and votes. The scraped data is for the [Visegrad+ project](http://parldata.eu/) and made accessible from the Visegrad+ parliament API.
+Data scraper that scans parliement websites and extracts data on MPs, their memberships, and votes. The scraped data is for the [Visegrad+ project](http://parldata.eu/) and is made accessible from the Visegrad+ parliament API.
 
-Data in scraped for the following countries:
+Data is scraped for the following countries:
 - Armenia
 - Belarus
   - Lower House
@@ -46,7 +46,7 @@ The scraper is executed by running the scrape.sh shell script. The script accept
 
 To illustrate how the scraper's parameters are used, consider the following examples.
 
-Scrape people and vote data for armenia and georgie. Run the scraper script every 3 minutes:
+Scrape people and vote data for Armenia and Georgia. Run the scraper script every 3 minutes:
 >bash run.sh --countries armenia,georgia --people yes --votes yes --loop 180
 
 Run scraper every 2 days to retrieve people and votes data from Armenia parliament:
