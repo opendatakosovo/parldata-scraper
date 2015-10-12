@@ -266,6 +266,7 @@ class UkraineScraper():
             voter_vote_event_id = vote['voter_id'] + vote['vote_event_id']
             if voter_vote_event_id not in prevent_duplicates:
                 prevent_duplicates.append(voter_vote_event_id)
+                del vote['date']
                 votes_list.append(vote)
             else:
                 continue

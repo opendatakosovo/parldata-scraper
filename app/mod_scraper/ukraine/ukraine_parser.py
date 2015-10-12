@@ -990,7 +990,8 @@ class UkraineParser():
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
                    ' ', ETA(), " - Processed: ", Counter(), ' vote events             ']
         pbar = ProgressBar(widgets=widgets)
-        for motion in pbar(sorted_motions[index_start:1000]):
+        # last items scraped from 4050 Page.
+        for motion in pbar(sorted_motions[6700:6750]):
             url = motion['url']
             chamber = motion['term']
             vote_event_id = motion['identifier']
@@ -1008,20 +1009,21 @@ class UkraineParser():
                     p_id = None
                 if p_id:
                     json_vote = {
+                        "date": motion['start_date'],
                         "vote_event_id": vote_event_id,
                         "option": option,
                         "voter_id": p_id
                     }
                     if p_id in parliamentary_groups[chamber]:
                         o_id = parliamentary_groups[chamber][p_id]
-                        print o_id
                     else:
                         o_id = None
                     if o_id:
                         json_vote['group_id'] = o_id
                     votes.append(json_vote)
                 counter += 1
-        return votes
+        sorted_votes = sorted(votes, key=itemgetter('date'))
+        return sorted_votes
 
     def mps_list(self):
         roles = self.membership_correction()

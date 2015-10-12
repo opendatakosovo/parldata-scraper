@@ -263,7 +263,6 @@ if __name__ == "__main__":
     parser.add_argument("--countries", help="Import countries data..", default="all")
     parser.add_argument("--people", help="Import the persons data..", default="yes")
     parser.add_argument("--votes", help="Import the votes data..", default="yes")
-    parser.add_argument("--time_out", help="TimeOut..", default="yes")
     parser.add_argument("--time_out_seconds", help="TimeOut seconds..", default="86400")
 
     # Parse arguments and run the app.
@@ -271,7 +270,6 @@ if __name__ == "__main__":
     countries = args.countries
     people = args.people
     votes = args.votes
-    time_out = args.time_out
     time_out_seconds = args.time_out_seconds
     if time_out_seconds != "":
         while True:
@@ -282,8 +280,6 @@ if __name__ == "__main__":
 
             # Wait for a bit before checking if there are any new edits.
             # But not too much that we would risk missing an edits (because we only look at the latest edit for now)
-            if time_out == "yes":
-                sleep(float(time_out_seconds))
-            else:
-                print "You are out of loop"
-                break
+            if "d" in time_out_seconds:
+                time_out_seconds = float(time_out_seconds.replace('d', "")) * 86400
+            sleep(float(time_out_seconds))
