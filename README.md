@@ -51,7 +51,7 @@ Run scraper once to retrieve people and votes data from Armenia parliament:
 >bash scraper.sh --countries armenia --people yes --votes yes
 
 Run scraper once to retrieve people data from Armenian parliament:
->bash scraper.sh --countries armenia --people
+>bash scraper.sh --countries armenia --people yes
 
 Run scraper every 3 minutes to retrieve votes data from Georgia parliament:
 >bash scraper.sh --countries georgia --votes --loop 180
