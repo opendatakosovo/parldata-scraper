@@ -48,7 +48,7 @@ Scrape people and vote data for armenia and georgie. Run the scraper script ever
 >bash scraper.sh --countries armenia,georgia --people yes --votes yes --overwrite yes --loop 180
 
 Run scraper once to retrieve people and votes data from Armenia parliament:
->bash scraper.sh --countries armenia --people --votes
+>bash scraper.sh --countries armenia --people yes --votes yes
 
 Run scraper once to retrieve people data from Armenian parliament:
 >bash scraper.sh --countries armenia --people
