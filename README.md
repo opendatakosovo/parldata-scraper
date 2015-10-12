@@ -32,8 +32,6 @@ Get VPAPI client and SSH certificate of the server:
 
 > $ sudo wget https://raw.githubusercontent.com/KohoVolit/api.parldata.eu/master/client/vpapi.py
 >
-
-
 > $ sudo wget https://raw.githubusercontent.com/KohoVolit/api.parldata.eu/master/client/server_cert.p
 
 # Running
