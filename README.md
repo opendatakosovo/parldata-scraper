@@ -37,6 +37,7 @@ Get VPAPI client and SSH certificate of the server:
 
 # Install
 - Install the required libraries for running the scraper.
+
 > bash install.sh
 
 # Running
