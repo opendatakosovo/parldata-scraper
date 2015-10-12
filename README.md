@@ -57,3 +57,7 @@ Scrape people and vote data for Armenia and Georgia. Run the scraper script ever
 
 Run scraper every 2 days to retrieve people and votes data from Armenia parliament:
 >bash run.sh --countries armenia --people yes --votes yes --loop 2d
+
+Run scraper every day to retrieve people and votes data from all available parliaments:
+>bash run.sh --countries all --people yes --votes yes --loop 1d
+
