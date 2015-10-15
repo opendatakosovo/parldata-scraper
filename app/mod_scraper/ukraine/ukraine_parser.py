@@ -36,11 +36,13 @@ class UkraineParser():
     def download_html_file(self, url, encoding_type=None):
         try:
             while True:
+                sleep(float(2))
                 response = requests.get(url)
                 if response.status_code == 200:
                     soup = self.get_response_from_url(response, encoding_type)
                     break
                 elif response.status_code == 301:
+                    sleep(float(2))
                     response = requests.get(url)
                     soup = self.get_response_from_url(response, encoding_type)
                     break
@@ -991,7 +993,7 @@ class UkraineParser():
                    ' ', ETA(), " - Processed: ", Counter(), ' vote events             ']
         pbar = ProgressBar(widgets=widgets)
         # last items scraped from 4050 Page.
-        for motion in pbar(sorted_motions[6700:6750]):
+        for motion in pbar(sorted_motions[6850:6860]):
             url = motion['url']
             chamber = motion['term']
             vote_event_id = motion['identifier']
