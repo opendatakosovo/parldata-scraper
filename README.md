@@ -48,7 +48,7 @@ The scraper is executed by running the scrape.sh shell script. The script accept
 | countries    | Comma Separated String | List the countries from which we want to scrape data.      |
 | people       | String                | Scrape MP data.                                            |
 | votes        | String                | Scrape cast votes.                                       |
-| loop         | String                | Loop scraper with given interval sleep time (in seconds) or (ex. 2d - 'd' means days).  |
+| loop         | String                | Loop scraper with given interval sleep time (in seconds) or (e.g. 2d - 'd' means days).  |
 
 To illustrate how the scraper's parameters are used, consider the following examples.
 
@@ -63,5 +63,3 @@ Run scraper every day to retrieve people and votes data from all available parli
 
 Scrape people and vote data for Belarus Lowerhouse and Upperhouse. Run the scraper script every 3 minutes:
 >bash run.sh --countries belarus-lowerhouse,belarus-upperhouse --people yes --votes yes --loop 180
-
-
