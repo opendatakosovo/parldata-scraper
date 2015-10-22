@@ -17,7 +17,7 @@ from app.mod_scraper.belarus_upperhouse import belarus_upperhouse_scraper
 from progressbar import ProgressBar, Percentage, ETA, Counter, Bar
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
-WEBCACHE_PATH = os.path.join(os.path.dirname(__file__), 'webcache')
+WEBCACHE_PATH = os.path.join(os.path.realpath(__file__), 'webcache')
 
 
 def internet_on():
@@ -72,25 +72,22 @@ def scrape(countries, people, votes):
         creds = json.load(f)
     if len(countries_array) > 0:
         for item in countries_array:
-            if internet_on():
-                clear_cache()
+            if internet_on(): # scrape and post data from parliaments if there's internet connection
                 print "\n\tPosting and updating data from %s parliament" % item
                 print "\tThis may take a few minutes..."
                 vpapi.parliament(creds[item.lower()]['parliament'])
                 vpapi.timezone(creds[item.lower()]['timezone'])
                 vpapi.authorize(creds[item.lower()]['api_user'], creds[item.lower()]['password'])
                 if people == "yes":
-                    references[item.lower()].test1()
-                    # references[item.lower()].update_motion_url()
-                    # members = references[item.lower()].scrape_mp_bio_data()
-                    # chamber = references[item.lower()].scrape_chamber()
-                    # parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
-                    # committee = references[item.lower()].scrape_committee()
+                    members = references[item.lower()].scrape_mp_bio_data()
+                    chamber = references[item.lower()].scrape_chamber()
+                    parliamentary_groups = references[item.lower()].scrape_parliamentary_groups()
+                    committee = references[item.lower()].scrape_committee()
                     data_collections = {
-                        # "a-people": members,
-                        # "b-chamber": chamber,
-                        # "c-parliamentary_groups": parliamentary_groups,
-                        # "d-committe": committee
+                        "a-people": members,
+                        "b-chamber": chamber,
+                        "c-parliamentary_groups": parliamentary_groups,
+                        "d-committe": committee
                     }
                     # inserts data for each data collection in Visegrad+ Api
                     for collection in sorted(set(data_collections)):
@@ -172,22 +169,23 @@ def scrape(countries, people, votes):
                             continue
                 if votes == "yes":
                     if item.lower() == "ukraine":
-                        events = references[item.lower()].scrape_events()
-                        try:
-                            if len(events) > 0:
-                                import pprint
-                                pprint.pprint(events)
-                                resp = vpapi.post("events", events)
-                                if resp["_status"] != "OK":
-                                    raise Exception("Invalid status code")
-                                print "\n\tFinished Posting and updating data from events data collection"
-                            else:
-                                print "\n\tThere are no new events"
-                        except BaseException as ex:
-                            print ex.message
-                        else:
-                            print "\tThere's not any event to post from %s parliament" % item
-                        motions_vote_events = references[item.lower()].vote_events()
+                        # clear_cache()
+                        # events = references[item.lower()].scrape_events()
+                        # try:
+                        #     if len(events) > 0:
+                        #         import pprint
+                        #         pprint.pprint(events)
+                        #         resp = vpapi.post("events", events)
+                        #         if resp["_status"] != "OK":
+                        #             raise Exception("Invalid status code")
+                        #         print "\n\tFinished Posting and updating data from events data collection"
+                        #     else:
+                        #         print "\n\tThere are no new events"
+                        # except BaseException as ex:
+                        #     print ex.message
+                        # else:
+                        #     print "\tThere's not any event to post from %s parliament" % item
+                        # motions_vote_events = references[item.lower()].vote_events()
                         voting_results = references[item.lower()].scrape_votes()
                         try:
                             if len(voting_results) > 0:
@@ -199,19 +197,19 @@ def scrape(countries, people, votes):
                             print ex.message
                     elif item.lower() == "georgia":
                         voting_data_collections = {
-                            "motions": references[item.lower()].motions(),
-                            "vote-events": references[item.lower()].vote_events(),
+                            "amotions": references[item.lower()].motions(),
+                            "bvote-events": references[item.lower()].vote_events(),
                         }
-
-                        for collection in voting_data_collections:
-                            try:
-                                if len(voting_data_collections[collection]) > 0:
-                                    resp = vpapi.post(collection, voting_data_collections[collection])
-                                    if resp["_status"] != "OK":
-                                        raise Exception("Invalid status code")
-                                    print "\n\tFinished Posting and updating data from %s data collection" % collection
-                            except BaseException as ex:
-                                print ex.message
+                        for collection in sorted(voting_data_collections):
+                            for json_doc in voting_data_collections[collection]:
+                                try:
+                                    if len(voting_data_collections[collection]) > 0:
+                                        resp = vpapi.post(collection[1:], json_doc)
+                                        if resp["_status"] != "OK":
+                                            raise Exception("Invalid status code")
+                                        print "\n\tFinished Posting and updating data from %s data collection" % collection[1:]
+                                except BaseException as ex:
+                                    print ex.message
 
                         votes = references[item.lower()].scrape_votes()
                         try:
