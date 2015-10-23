@@ -6,7 +6,6 @@ import os
 import urllib2
 import json
 import vpapi
-import shutil
 import dateutil.parser
 from app.mod_scraper.ukraine import ukraine_scraper
 from app.mod_scraper.moldova import moldova_scraper
@@ -35,11 +34,6 @@ def local_to_utc(dt_str):
         return vpapi.local_to_utc(dt, to_string=True)
     else:
         return dt.strftime('%Y-%m-%d')
-
-
-def clear_cache():
-    """Clears the cache directory."""
-    shutil.rmtree(WEBCACHE_PATH + '/', ignore_errors=True)
 
 
 def scrape(countries, people, votes):
@@ -169,7 +163,6 @@ def scrape(countries, people, votes):
                             continue
                 if votes == "yes":
                     if item.lower() == "ukraine":
-                        # clear_cache()
                         # events = references[item.lower()].scrape_events()
                         # try:
                         #     if len(events) > 0:

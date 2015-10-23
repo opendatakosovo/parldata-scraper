@@ -3,6 +3,8 @@ from bs4 import BeautifulSoup
 
 class Scraper():
     def download_html_file(self, url):
+        # downloads the html file from the url through Mechanize
+        # and returns the beautifulsoup object of page.
         br = mechanize.Browser()
         br.set_handle_robots(False)  # ignore robots
         br.set_handle_refresh(False)  # can sometimes hang without this

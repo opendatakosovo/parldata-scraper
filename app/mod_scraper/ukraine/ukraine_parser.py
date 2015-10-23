@@ -2,11 +2,9 @@
 from app.mod_scraper import scraper
 from bs4 import BeautifulSoup
 from progressbar import ProgressBar, Percentage, ETA, Counter, Bar
-import dateutil.parser as dparser
 from datetime import datetime
 from operator import itemgetter
 import requests
-import pprint
 import urlparse
 import re
 import vpapi
@@ -34,6 +32,8 @@ class UkraineParser():
     }
 
     def download_html_file(self, url, encoding_type=None):
+        # downloads the html file from the url through requests
+        # and returns the beautifulsoup object of page.
         try:
             while True:
                 sleep(float(2))
@@ -53,21 +53,16 @@ class UkraineParser():
 
         return soup
 
-    def get_response_from_url(self, response, encoding_type=None ):
+    def get_response_from_url(self, response, encoding_type=None):
+        # returns the soup from get request response.
         if encoding_type:
             response.encoding = "utf-8"
         html_content = response.text
         soup = BeautifulSoup(html_content, 'html.parser')
         return soup
 
-    def local_to_utc(self, dt_str):
-        dt = dateutil.parser.parse(dt_str, dayfirst=True)
-        if ':' in dt_str:
-            return vpapi.local_to_utc(dt, to_string=True)
-        else:
-            return dt.strftime('%Y-%m-%d')
-
     def chambers(self):
+        # returns the  chambers docs with all the information needed from the official website.
         chambers = {
             "9": {
                 "url": "http://w1.c1.rada.gov.ua/pls/site2/p_deputat_list?skl=9",
@@ -100,6 +95,7 @@ class UkraineParser():
         return chambers
 
     def chamber_mps_list(self, term):
+        # returns list of members from specific term from function parameter for Ukraine's parliament.
         chamber_mps = []
         url = "http://w1.c1.rada.gov.ua/pls/radan_gs09/d_index_arh?skl=%s" % term
         soup = self.download_html_file(url)
@@ -135,6 +131,7 @@ class UkraineParser():
         return chamber_mps
 
     def first_chamber_mps_list(self):
+        # returns list of members from first chamber for Ukraine's parliament.
         first_chamber_mps = []
         url = "http://static.rada.gov.ua/zakon/new/NEWSAIT/DEPUTAT1/spisok1.htm"
         soup = self.download_html_file(url, "utf-8")
@@ -173,6 +170,7 @@ class UkraineParser():
         return first_chamber_mps
 
     def guess_gender(self, name):
+        # Returns gender of a member based on his/her first name.
         males = ["Микола"]
         if name[-1] == "а".decode('utf-8') and name.encode('utf-8') not in males:
             return "female"
@@ -182,6 +180,7 @@ class UkraineParser():
             return "male"
 
     def committee_list(self):
+        # Returns the list of committee groups with basic information for each
         chamber_ids = {}
         all_chambers = vpapi.getall("organizations", where={"classification": "chamber"})
         for term in all_chambers:
@@ -218,6 +217,8 @@ class UkraineParser():
         return committees
 
     def committees(self):
+        # Scrapes committee groups and Returns the list of
+        # committee groups with all the information needed for each.
         committee_list = self.committee_list()
         committees = []
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
@@ -248,6 +249,7 @@ class UkraineParser():
         return committees
 
     def parliamentary_group_list(self):
+        # Returns the list of parliamentary groups with basic information for each
         chamber_ids = {}
         all_chambers = vpapi.getall("organizations", where={"classification": "chamber"})
         for term in all_chambers:
@@ -283,6 +285,8 @@ class UkraineParser():
         return parties
 
     def parliamentary_groups(self):
+        # Scrapes parliamentary groups and Returns the list of
+        # parliamentary groups with all the information needed for each.
         parties_list = self.parliamentary_group_list()
         parties = []
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
@@ -327,6 +331,7 @@ class UkraineParser():
         return parties
 
     def build_ordered_name(self, name):
+        # returns the ordered name of a MP.
         names = name.split(" ")
         first_name = names[1]
         middle_name = names[2]
@@ -335,11 +340,13 @@ class UkraineParser():
         return name_ordered
 
     def build_date_str(self, date_text):
+        # returns the date string format from an unordered date string.
         date_list = date_text.split(".")
         date_str = date_list[2] + "-" + date_list[1] + "-" + date_list[0]
         return date_str
 
     def scrape_parties_members(self, party, soup, all_p_tags, item_index, parties, member_ids, roles):
+        # Scrapes and returns the parties members.
         membership_array = []
         if party['identifier'] != "0":
             members = {}
@@ -426,6 +433,7 @@ class UkraineParser():
         return membership_array
 
     def committee_members(self, url, member_ids, committee_ids, roles, identifier):
+        # Returns the list of committee groups membership for Ukraine parliament.
         committee_members = []
         soup = self.download_html_file(url)
         for each_tr in soup.find('table', {"class": "striped Centered"}).findAll('tr'):
@@ -455,6 +463,8 @@ class UkraineParser():
         return committee_members
 
     def committee_membership(self):
+        # Returns committee groups membership list with all needed information data
+        # for each member of every committee group for Ukraine parliament.
         member_ids = {}
         roles = self.membership_correction()
         all_members = vpapi.getall("people")
@@ -489,6 +499,8 @@ class UkraineParser():
         return committee_membership_list
 
     def parliamentary_group_membership(self):
+        # Returns parliamentary groups membership list with all needed information data
+        # for each member of every parliamentary group for Ukraine parliament.
         member_ids = {}
         roles = self.membership_correction()
         all_members = vpapi.getall("people")
@@ -527,6 +539,7 @@ class UkraineParser():
         return parties_membership
 
     def members_list(self):
+        # Returns MP list with the basic information data for each member for Ukraine parliament.
         mp_list = self.mps_list()
         members_prevent_duplicates = []
         members = []
@@ -574,6 +587,7 @@ class UkraineParser():
         return members
 
     def find_start_end_time(self, all_b_tags, date, index_start):
+        # returns the date json with start date and end date of an event (plenary session).
         max_min_json = {}
         timestamps_array = []
         for b_tag in all_b_tags[index_start:]:
@@ -602,10 +616,12 @@ class UkraineParser():
         return max_min_json
 
     def split_vote_count(self, separator, vote_text):
+        # returns the array with vote counts (e.g. 'yes: 200', 'no': 15')
         vote_list = vote_text.split(separator)
         return vote_list[1]
 
     def build_date_time_str(self, date_text):
+        # returns the date string format that API accepts from an unordered date string.
         date_time_list = date_text.split(" ")
         date = date_time_list[0]
         time = date_time_list[1]
@@ -618,6 +634,7 @@ class UkraineParser():
 
     def build_json_motion(self, date_text, url, motion_id, event_id, organization_id, name, result, yes_counts,
                           no_counts, abstain_counts, absent_counts):
+        # returns the motion json document structure that Visegrad+ API Accepts.
         json_doc = {
             "date": self.build_date_time_str(date_text),
             "start_date": self.build_date_time_str(date_text),
@@ -654,6 +671,8 @@ class UkraineParser():
         return json_doc
 
     def scrape_vote_event(self, event_id, law_id, skl, organization_id):
+        # Scrapes and returns the list of vote events that have been scraped
+        # from each plenary session of Ukraine parliament chambers.
         events = []
         passed_status_correction = {
             "Рішення прийняте": "pass",
@@ -694,6 +713,8 @@ class UkraineParser():
         return events
 
     def scrape_5th_chamber_vote_event(self, all_a_tags, event_id, organization_id):
+        # Scrapes and returns the list of vote events that have been scraped
+        # from each plenary session of Ukraine parliament 5th chamber.
         chamber_motions = []
         passed_status_correction = {
             "Рішення прийняте": "pass",
@@ -732,6 +753,8 @@ class UkraineParser():
         return chamber_motions
 
     def vote_events_list(self):
+        # returns the list of vote events from each
+        # plenary session of Ukraine's parliament chambers.
         vote_event_list = []
         chambers = {}
         all_chambers = vpapi.getall("organizations", where={'classification': 'chamber'})
@@ -787,6 +810,7 @@ class UkraineParser():
         return sorted_vote_events
 
     def events(self):
+        # returns the list of events with basic information needed.
         events = []
         events_list = self.events_list()
         last_event = vpapi.getfirst("events", sort='-start_date')
@@ -819,6 +843,8 @@ class UkraineParser():
         return events
 
     def scrape_events(self, url, chamber_id, term):
+        # Scrapes and returns the list of event with all
+        # the information needed for a specific term given as the parameter.
         plenary_session = "пленарні засідання".decode('utf-8')
         events_list = []
         soup = self.download_html_file(url)
