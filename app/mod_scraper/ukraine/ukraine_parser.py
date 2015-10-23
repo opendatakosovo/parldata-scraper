@@ -993,7 +993,7 @@ class UkraineParser():
                    ' ', ETA(), " - Processed: ", Counter(), ' vote events             ']
         pbar = ProgressBar(widgets=widgets)
         # last items scraped from 7340 Page.
-        for motion in pbar(sorted_motions[7340:7400]):
+        for motion in pbar(sorted_motions[7500:7550]):
             url = motion['url']
             chamber = motion['term']
             vote_event_id = motion['identifier']
