@@ -954,13 +954,19 @@ class UkraineParser():
             "За": "yes",
             "За*": "yes",
             "Проти": "no",
+            "Проти*": "no",
             "Відсутня": "absent",
+            "Відсутня*": "absent",
             "Утримався": "abstain",
+            "Утримався*": "abstain",
             "Утрималась": "abstain",
+            "Утрималась*": "abstain",
             "Не голосував": "not voting",
             "Не голосувала": "not voting",
+            "Не голосувала*": "not voting",
             "Не голосував*": "not voting",
-            "Відсутній": "absent"
+            "Відсутній": "absent",
+            "Відсутній*": "absent"
         }
 
     def scrape_voting_records(self):
@@ -981,7 +987,6 @@ class UkraineParser():
                 "term": chambers[motion['organization_id']],
                 "organization_id": motion['organization_id']
             }
-            print motion['date']
             motions.append(json_motion)
         sorted_motions = sorted(motions, key=itemgetter('start_date'))
         parliamentary_groups = {}
@@ -1014,43 +1019,45 @@ class UkraineParser():
 
         else:
             index_start = 0
-        print index_start
+        # print index_start
         print "\n\tScraping votes from Ukraine's parliament...\n"
         widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
                    ' ', ETA(), " - Processed: ", Counter(), ' vote events             ']
         pbar = ProgressBar(widgets=widgets)
-        # last items scraped from 10000 Page.
-        for motion in pbar(sorted_motions[13000:13100]):
-            url = motion['url']
-            chamber = motion['term']
-            vote_event_id = motion['identifier']
-            soup = self.download_html_file(url)
-            counter = 0
-            for each_li in soup.findAll('div', {"class": "dep"}):
-                counter_all += 1
-                all_votes = soup.findAll('div', {"class": "golos"})
-                option_text = all_votes[counter].get_text().strip()
-                option = vote_correction[option_text.encode('utf-8')]
-                name = each_li.get_text().strip()
-                if name in members:
-                    p_id = members[name]
-                else:
-                    p_id = None
-                if p_id:
-                    json_vote = {
-                        "date": motion['start_date'],
-                        "vote_event_id": vote_event_id,
-                        "option": option,
-                        "voter_id": p_id
-                    }
-                    if p_id in parliamentary_groups[chamber]:
-                        o_id = parliamentary_groups[chamber][p_id]
+        if len(sorted_motions[index_start:]) > 0:
+            for motion in pbar(sorted_motions[index_start:]):
+                url = motion['url']
+                chamber = motion['term']
+                vote_event_id = motion['identifier']
+                soup = self.download_html_file(url)
+                counter = 0
+                for each_li in soup.findAll('div', {"class": "dep"}):
+                    counter_all += 1
+                    all_votes = soup.findAll('div', {"class": "golos"})
+                    option_text = all_votes[counter].get_text().strip()
+                    option = vote_correction[option_text.encode('utf-8')]
+                    name = each_li.get_text().strip()
+                    if name in members:
+                        p_id = members[name]
                     else:
-                        o_id = None
-                    if o_id:
-                        json_vote['group_id'] = o_id
-                    votes.append(json_vote)
-                counter += 1
+                        p_id = None
+                    if p_id:
+                        json_vote = {
+                            "date": motion['start_date'],
+                            "vote_event_id": vote_event_id,
+                            "option": option,
+                            "voter_id": p_id
+                        }
+                        if p_id in parliamentary_groups[chamber]:
+                            o_id = parliamentary_groups[chamber][p_id]
+                        else:
+                            o_id = None
+                        if o_id:
+                            json_vote['group_id'] = o_id
+                        votes.append(json_vote)
+                    counter += 1
+        else:
+            print "\n\tThere are no new voting results"
         sorted_votes = sorted(votes, key=itemgetter('date'))
         return sorted_votes
 
