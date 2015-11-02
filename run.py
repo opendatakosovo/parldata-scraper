@@ -65,7 +65,7 @@ def scrape(countries, people, votes):
     with open(os.path.join(BASE_DIR, 'access.json')) as f:
         creds = json.load(f)
     if len(countries_array) > 0:
-        for item in countries_array:
+        for item in sorted(countries_array):
             if internet_on(): # scrape and post data from parliaments if there's internet connection
                 print "\n\tPosting and updating data from %s parliament" % item
                 print "\tThis may take a few minutes..."
@@ -167,7 +167,7 @@ def scrape(countries, people, votes):
                         try:
                             if len(events) > 0:
                                 widgets_events = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                                                  ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+                                           ' ', ETA(), " - Processed: ", Counter(), ' items             ']
                                 pbar_events = ProgressBar(widgets=widgets_events)
                                 for json_doc in pbar_events(events):
                                     existing_event = vpapi.getfirst("events", where={'identifier': json_doc['identifier']})
@@ -199,60 +199,24 @@ def scrape(countries, people, votes):
                             "amotions": references[item.lower()].motions(),
                             "bvote-events": references[item.lower()].vote_events(),
                         }
-                        for collection in sorted(voting_data_collections):
-                            for json_doc in voting_data_collections[collection]:
-                                try:
-                                    if len(voting_data_collections[collection]) > 0:
-                                        resp = vpapi.post(collection[1:], json_doc)
-                                        if resp["_status"] != "OK":
-                                            raise Exception("Invalid status code")
-                                        print "\n\tFinished Posting and updating data from %s data collection" % collection[1:]
-                                except BaseException as ex:
-                                    print ex.message
-
                         votes = references[item.lower()].scrape_votes()
+                        for collection in sorted(voting_data_collections):
+                            try:
+                                if len(voting_data_collections[collection]) > 0:
+                                    resp = vpapi.post(collection[1:], voting_data_collections[collection])
+                                    if resp["_status"] != "OK":
+                                        raise Exception("Invalid status code")
+                                    print "\n\tFinished Posting and updating data from %s data collection" % collection[1:]
+                            except BaseException as ex:
+                                print ex.message
                         try:
                             if len(votes) > 0:
                                 vpapi.post("votes", votes)
+                            print "\n\tFinished Posting and updating data from votes data collection"
                         except BaseException as ex:
                             print ex.message
                     else:
-                        print "\tThere are no voting records for %s" % item
-                        import pprint
-                        motions = references[item.lower()].motions()
-                        vote_events = references[item.lower()].vote_events()
-                        pprint.pprint(motions)
-                        print "=====================================================================>"
-                        pprint.pprint(vote_events)
-                        for vote_event in vote_events:
-                            pprint.pprint(vote_event)
-                        if len(motions) > 0:
-                            print "\n\tPosting Motions data from %s parliament" % item
-                            widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                                       ' ', ETA(), " - Processed: ", Counter(), ' items             ']
-                            pbar = ProgressBar(widgets=widgets)
-                            for motion in pbar(motions):
-                                vpapi.post("motions", motion)
-                        else:
-                            print "\tThere's not any motion to post from %s parliament" % item
-
-                        if len(vote_events) > 0:
-                            print "\n\tPosting Vote Events data from %s parliament" % item
-                            widgets = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
-                                       ' ', ETA(), " - Processed: ", Counter(), ' items             ']
-                            pbar = ProgressBar(widgets=widgets)
-                            for vote_event in pbar(vote_events):
-                                print vote_event
-                                vpapi.post("vote-events", vote_event)
-                        else:
-                            print "\tThere's not any vote event to post from %s parliament" % item
-
-                        votes = references[item.lower()].scrape_votes()
-                        try:
-                            if len(votes) > 0:
-                                vpapi.post("votes", votes)
-                        except BaseException as ex:
-                            print ex.message
+                        print "\n\tThere are no voting records for %s" % item
                 vpapi.deauthorize()
             else:
                 print "\n\tInternet connection problems for %s official parliament web page" % item
