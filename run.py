@@ -166,7 +166,10 @@ def scrape(countries, people, votes):
                         events = references[item.lower()].scrape_events()
                         try:
                             if len(events) > 0:
-                                for json_doc in events:
+                                widgets_events = ['        Progress: ', Percentage(), ' ', Bar(marker='#', left='[', right=']'),
+                                                  ' ', ETA(), " - Processed: ", Counter(), ' items             ']
+                                pbar_events = ProgressBar(widgets=widgets_events)
+                                for json_doc in pbar_events(events):
                                     existing_event = vpapi.getfirst("events", where={'identifier': json_doc['identifier']})
                                     if not existing_event:
                                         resp = vpapi.post("events", json_doc)
