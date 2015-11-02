@@ -88,62 +88,63 @@ class BelarusUpperhouseParser():
             presidium = {}
             url = terms[term]['url']
             soup = scrape.download_html_file(url)
-            for each_div in soup.find("div", {"id": "rukovodstvo_bm_info"}).findAll("div", {'class': "news_item news_item_second"}):
-                name = each_div.find('div', {'class': "news_title"}).find('a').get_text().strip()
-                names_array = name.split(" ")
-                first_name_deputy = names_array[1]
-                middle_name_deputy = names_array[2]
-                last_name_deputy = names_array[0]
-                name_ordered_deputy = first_name_deputy + " " + middle_name_deputy + " " + last_name_deputy
-                name_ordered_deputy_final = name_ordered_deputy.replace("\n", "")
-                membership_label = each_div.find("div", {'class': "news_text"}).get_text().encode('utf-8')
-                if "Председатель Совета Республики Национального собрания Республики Беларусь" in membership_label:
-                    presidium[name_ordered_deputy_final] = \
-                        "Председатель Совета Республики Национального собрания Республики Беларусь"
-                elif "Заместитель Председателя Совета Республики Национального собрания Республики Беларусь" in membership_label:
-                    presidium[name_ordered_deputy_final] = \
-                        "Заместитель Председателя Совета Республики Национального собрания Республики Беларусь"
+            if soup.find("div", {"id": "rukovodstvo_bm_info"}):
+                for each_div in soup.find("div", {"id": "rukovodstvo_bm_info"}).findAll("div", {'class': "news_item news_item_second"}):
+                    name = each_div.find('div', {'class': "news_title"}).find('a').get_text().strip()
+                    names_array = name.split(" ")
+                    first_name_deputy = names_array[1]
+                    middle_name_deputy = names_array[2]
+                    last_name_deputy = names_array[0]
+                    name_ordered_deputy = first_name_deputy + " " + middle_name_deputy + " " + last_name_deputy
+                    name_ordered_deputy_final = name_ordered_deputy.replace("\n", "")
+                    membership_label = each_div.find("div", {'class': "news_text"}).get_text().encode('utf-8')
+                    if "Председатель Совета Республики Национального собрания Республики Беларусь" in membership_label:
+                        presidium[name_ordered_deputy_final] = \
+                            "Председатель Совета Республики Национального собрания Республики Беларусь"
+                    elif "Заместитель Председателя Совета Республики Национального собрания Республики Беларусь" in membership_label:
+                        presidium[name_ordered_deputy_final] = \
+                            "Заместитель Председателя Совета Республики Национального собрания Республики Беларусь"
+            if soup.find("div", {"id": "members_bm_info"}):
+                for each_div in soup.find("div", {"id": "members_bm_info"}).findAll("div", {'class': "news_item news_item_second"}):
+                    name_unordered = each_div.find('div', {'class': "news_title"}).find('a').get_text()
+                    member_url = each_div.find('div', {'class': "news_title"}).find('a').get("href")
+                    identifier = re.findall(r'\d+', member_url)
+                    names = name_unordered.split(" ")
+                    first_name = names[1]
+                    middle_name = names[2]
+                    last_name = names[0]
+                    name_ordered = first_name + " " + middle_name + " " + last_name
+                    name_ordered_final = name_ordered.replace("\n", "")
+                    if name_ordered_final in presidium:
+                        membership = presidium[name_ordered_final].decode('utf-8')
+                    else:
+                        membership = "Член".decode('utf-8')
 
-            for each_div in soup.find("div", {"id": "members_bm_info"}).findAll("div", {'class': "news_item news_item_second"}):
-                name_unordered = each_div.find('div', {'class': "news_title"}).find('a').get_text()
-                member_url = each_div.find('div', {'class': "news_title"}).find('a').get("href")
-                identifier = re.findall(r'\d+', member_url)
-                names = name_unordered.split(" ")
-                first_name = names[1]
-                middle_name = names[2]
-                last_name = names[0]
-                name_ordered = first_name + " " + middle_name + " " + last_name
-                name_ordered_final = name_ordered.replace("\n", "")
-                if name_ordered_final in presidium:
-                    membership = presidium[name_ordered_final].decode('utf-8')
-                else:
-                    membership = "Член".decode('utf-8')
+                    role = roles[membership.encode('utf-8')]
+                    if each_div.find('img'):
+                        image_url = each_div.find('img').get('src')
+                    else:
+                        image_url = ""
+                    if len(identifier) > 1:
+                        member_id = identifier[1]
+                    else:
+                        member_id = identifier[0]
 
-                role = roles[membership.encode('utf-8')]
-                if each_div.find('img'):
-                    image_url = each_div.find('img').get('src')
-                else:
-                    image_url = ""
-                if len(identifier) > 1:
-                    member_id = identifier[1]
-                else:
-                    member_id = identifier[0]
-
-                gender = self.guess_gender(first_name)
-                members_json = {
-                    "gender": gender,
-                    "image_url": image_url,
-                    "term": str(term),
-                    "membership": membership,
-                    "member_id": member_id,
-                    "role": role,
-                    "url": member_url,
-                    "name": name_ordered,
-                    "given_name": first_name,
-                    "family_name": last_name,
-                    "sort_name": last_name + ", " + first_name,
-                }
-                mps_list.append(members_json)
+                    gender = self.guess_gender(first_name)
+                    members_json = {
+                        "gender": gender,
+                        "image_url": image_url,
+                        "term": str(term),
+                        "membership": membership,
+                        "member_id": member_id,
+                        "role": role,
+                        "url": member_url,
+                        "name": name_ordered,
+                        "given_name": first_name,
+                        "family_name": last_name,
+                        "sort_name": last_name + ", " + first_name,
+                    }
+                    mps_list.append(members_json)
         return mps_list
 
     def guess_gender(self, first_name):

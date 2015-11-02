@@ -209,6 +209,8 @@ def scrape(countries, people, votes):
                                     print "\n\tFinished Posting and updating data from %s data collection" % collection[1:]
                             except BaseException as ex:
                                 print ex.message
+
+                        print "\n\tPosting voting records from Georgia Parliament\n"
                         try:
                             if len(votes) > 0:
                                 vpapi.post("votes", votes)
